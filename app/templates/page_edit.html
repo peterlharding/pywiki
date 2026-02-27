@@ -106,5 +106,8 @@
     clearTimeout(previewTimer);
     previewTimer = setTimeout(updatePreview, 800);
   });
+
+  // Render initial preview on page load
+  updatePreview();
 </script>
 {% endblock %}

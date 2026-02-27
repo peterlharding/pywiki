@@ -24,7 +24,7 @@ from typing import Optional
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 4
+RENDERER_VERSION = 5
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 
@@ -488,7 +488,7 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
             f'<a href="{base_url}/category/{c}" class="category-link">{c}</a>'
             for c in categories
         )
-        out.append(f'<div class="wiki-categories"><strong>Categories:</strong> {cat_links}</div>')
+        out.append(f'<div class="wiki-categories"><strong><a href="/special/categories">Categories:</a></strong> {cat_links}</div>')
 
     return "\n".join(out)
 

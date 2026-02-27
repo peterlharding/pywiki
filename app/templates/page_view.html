@@ -70,7 +70,7 @@
 
 {% if categories and ver.format != 'wikitext' %}
 <div class="wiki-categories-bar">
-  <strong>Categories:</strong>
+  <strong><a href="/special/categories">Categories:</a></strong>
   {% for cat in categories %}
   <a href="/category/{{ cat }}" class="category-link">{{ cat }}</a>{% if not loop.last %} · {% endif %}
   {% endfor %}

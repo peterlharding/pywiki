@@ -293,6 +293,15 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .category-group { margin-bottom: 2rem; }
 .category-group h2 { font-size: 1.15rem; margin-bottom: 0.75rem; }
 
+/* Alphabetical category listing (MediaWiki style) */
+.category-alpha-listing { column-count: 3; column-gap: 2rem; margin-top: 1rem; }
+.category-alpha-group { break-inside: avoid; margin-bottom: 1.25rem; }
+.category-alpha-group h3 { font-size: 1rem; font-weight: 700; border-bottom: 1px solid var(--border); margin-bottom: 0.35rem; padding-bottom: 0.2rem; }
+.category-alpha-group ul { list-style: none; margin: 0; padding: 0; }
+.category-alpha-group li { padding: 0.15rem 0; font-size: 0.95rem; }
+@media (max-width: 900px) { .category-alpha-listing { column-count: 2; } }
+@media (max-width: 600px) { .category-alpha-listing { column-count: 1; } }
+
 /* ─── Special pages ──────────────────────────────────────────────────────── */
 
 .special-list { list-style: none; }

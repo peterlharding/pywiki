@@ -24,43 +24,35 @@
 {% endif %}
 
 {% if pages %}
-<p class="search-count">
-  {{ pages|length }} page{{ 's' if pages|length != 1 else '' }} in this category
-</p>
+<div id="mw-pages">
+  <p class="search-count">The following {{ pages|length }} page{{ 's' if pages|length != 1 else '' }} {{ 'are' if pages|length != 1 else 'is' }} in this category.</p>
 
-{% set ns_groups = {} %}
-{% for p in pages %}
-  {% if p.namespace not in ns_groups %}
-    {% set _ = ns_groups.update({p.namespace: []}) %}
-  {% endif %}
-  {% set _ = ns_groups[p.namespace].append(p) %}
-{% endfor %}
+  {# Group pages alphabetically by first letter of title #}
+  {% set alpha_groups = {} %}
+  {% for p in pages | sort(attribute='title') %}
+    {% set letter = p.title[0] | upper %}
+    {% if letter not in alpha_groups %}
+      {% set _ = alpha_groups.update({letter: []}) %}
+    {% endif %}
+    {% set _ = alpha_groups[letter].append(p) %}
+  {% endfor %}
 
-{% for ns_name, ns_pages in ns_groups.items() | sort %}
-<div class="category-group">
-  <h2><a href="/wiki/{{ ns_name }}">{{ ns_name }}</a></h2>
-  <table class="wiki-table">
-    <thead>
-      <tr>
-        <th>Page</th>
-        <th>Format</th>
-        <th>Author</th>
-        <th>Last edited</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in ns_pages %}
-      <tr>
-        <td><a href="/wiki/{{ p.namespace }}/{{ p.slug }}">{{ p.title }}</a></td>
-        <td><span class="badge badge-{{ p.format }}">{{ p.format }}</span></td>
-        <td class="ts">{% if p.author and p.author != 'anonymous' %}<a href="/user/{{ p.author }}">{{ p.author }}</a>{% else %}{{ p.author }}{% endif %}</td>
-        <td class="ts">{{ p.updated_at.strftime('%Y-%m-%d %H:%M') if p.updated_at else '—' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="category-alpha-listing">
+    {% for letter, letter_pages in alpha_groups.items() | sort %}
+    <div class="category-alpha-group">
+      <h3>{{ letter }}</h3>
+      <ul>
+        {% for p in letter_pages %}
+        <li>
+          <a href="/wiki/{{ p.namespace }}/{{ p.slug }}">{{ p.title }}</a>
+          {% if p.namespace != 'Main' %}<span class="muted"> ({{ p.namespace }})</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
 </div>
-{% endfor %}
 
 {% else %}
 <p class="muted">No pages are currently tagged with this category.</p>

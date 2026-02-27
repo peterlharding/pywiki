@@ -41,8 +41,10 @@ class Settings(BaseSettings):
 
     # ── Database ───────────────────────────────────────────────────────────
 
-    database_url: str = "sqlite+aiosqlite:///./pywiki.db"
+    database_url: str = "postgresql+asyncpg://pywiki:pywiki@localhost/pywiki"
     db_echo: bool = False
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
 
     # ── Auth / JWT ─────────────────────────────────────────────────────────
 

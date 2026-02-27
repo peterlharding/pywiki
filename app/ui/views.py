@@ -67,9 +67,12 @@ async def _current_user(request: Request, db: AsyncSession):
     """
     user_id, new_token = get_refreshed_user_id_cookie(request)
     if not user_id:
+        # print("DEBUG _current_user: no user_id from cookie")
         return None, None
     user = await get_user_by_id_or_none(db, user_id)
+    # print(f"DEBUG _current_user: user_id={user_id} user={user} is_admin={user.is_admin if user else 'N/A'}")
     return user, new_token
+
 
 
 def _ctx(user, **extra) -> dict:
@@ -178,11 +181,25 @@ async def category_index(
 ):
     user, new_token = await _current_user(request, db)
     pages = await page_svc.get_pages_in_category(db, category_name)
+
+    # Look up optional description page in the "Category" namespace
+    from app.services.renderer import render
+    cat_slug = page_svc.slugify(category_name)
+    cat_description_html: str | None = None
+    try:
+        _, cat_ver = await page_svc.get_page(db, "Category", cat_slug)
+        cat_description_html = render(cat_ver.content, cat_ver.format,
+                                      namespace="Category", base_url="")
+    except Exception:
+        pass
+
     resp = templates.TemplateResponse(
         request,
         "category.html",
         _ctx(user,
              category_name=category_name,
+             cat_slug=cat_slug,
+             cat_description_html=cat_description_html,
              pages=pages),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)

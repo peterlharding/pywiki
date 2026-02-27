@@ -39,14 +39,13 @@ def _make_engine(url: str | None = None, echo: bool | None = None):
     db_echo = echo if echo is not None else settings.db_echo
 
     kwargs: dict = {}
-    if "sqlite" not in db_url:
-        kwargs.update(pool_size=10, max_overflow=20)
-
-    connect_args = {}
     if "sqlite" in db_url:
-        connect_args["check_same_thread"] = False
+        kwargs["connect_args"] = {"check_same_thread": False}
+    else:
+        kwargs["pool_size"]    = settings.db_pool_size
+        kwargs["max_overflow"] = settings.db_max_overflow
 
-    return create_async_engine(db_url, echo=db_echo, connect_args=connect_args, **kwargs)
+    return create_async_engine(db_url, echo=db_echo, **kwargs)
 
 
 # -----------------------------------------------------------------------------

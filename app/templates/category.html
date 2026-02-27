@@ -5,7 +5,23 @@
 {% block content %}
 <div class="page-header">
   <h1>Category: {{ category_name }}</h1>
+  <div class="page-actions">
+    {% if user %}
+      {% if cat_description_html %}
+        <a class="btn btn-sm" href="/wiki/Category/{{ cat_slug }}/edit">✏️ Edit description</a>
+      {% else %}
+        <a class="btn btn-sm" href="/create?title={{ category_name }}&namespace=Category">➕ Add description</a>
+      {% endif %}
+    {% endif %}
+  </div>
 </div>
+
+{% if cat_description_html %}
+<div class="wiki-content category-description">
+  {{ cat_description_html | safe }}
+</div>
+<hr style="margin: 1.5rem 0;" />
+{% endif %}
 
 {% if pages %}
 <p class="search-count">

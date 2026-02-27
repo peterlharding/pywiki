@@ -4,7 +4,8 @@ uvicorn[standard]>=0.29.0
 
 # Database
 sqlalchemy>=2.0.0
-aiosqlite>=0.20.0        # SQLite async driver (default / dev)
+asyncpg>=0.29.0          # PostgreSQL async driver (production)
+aiosqlite>=0.20.0        # SQLite async driver (dev / testing)
 alembic>=1.13.0
 
 # Auth / security

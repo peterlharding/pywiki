@@ -32,7 +32,7 @@ from .namespaces import get_namespace_by_name
 # Helpers
 # -----------------------------------------------------------------------------
 
-def _slugify(text: str) -> str:
+def slugify(text: str) -> str:
     """Convert a page title to a URL slug."""
     text = text.strip().lower()
     text = re.sub(r"[^\w\s-]", "", text)
@@ -84,7 +84,7 @@ async def create_page(
     author_id: Optional[str] = None,
 ) -> tuple[Page, PageVersion]:
     ns = await get_namespace_by_name(db, namespace_name)
-    slug = _slugify(data.title)
+    slug = slugify(data.title)
 
     exists = await db.execute(
         select(Page).where(Page.namespace_id == ns.id, Page.slug == slug)
@@ -221,7 +221,7 @@ async def rename_page(
 
     old_slug  = page.slug
     old_title = page.title
-    new_slug  = _slugify(data.new_title)
+    new_slug  = slugify(data.new_title)
 
     if new_slug != old_slug:
         conflict = await db.execute(

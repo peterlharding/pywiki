@@ -10,9 +10,17 @@ Uses an in-memory SQLite database so no external services are needed.
 
 from __future__ import annotations
 
+import os
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+# Force test-safe settings before any app module caches them
+os.environ.setdefault("ALLOW_REGISTRATION", "true")
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+
+from app.core.config import get_settings
+get_settings.cache_clear()
 
 from app.core.database import Base, get_db
 from app.main import create_app

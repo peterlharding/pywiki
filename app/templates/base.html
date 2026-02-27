@@ -24,7 +24,7 @@
       <a href="/create">New Page</a>
       {% if user %}
         <span class="nav-user">{{ user.display_name or user.username }}</span>
-        {% if user.is_admin %}<a href="/admin">Admin</a>{% endif %}
+        {% if user.is_admin %}<a href="/special">Admin</a>{% endif %}
         <a href="/logout">Log out</a>
       {% else %}
         <a href="/login">Log in</a>

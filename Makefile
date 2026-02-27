@@ -1,4 +1,5 @@
-.PHONY: install run dev test lint clean
+.PHONY: install run dev test lint clean \
+        db-upgrade db-downgrade db-revision db-history db-current db-reset-dev
 
 venv:
 	uv venv .venv
@@ -21,3 +22,26 @@ lint:
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; \
 	rm -f pywiki.db test_pywiki.db
+
+# ── Database (Alembic) ─────────────────────────────────────────────────────
+
+db-upgrade:
+	alembic upgrade head
+
+db-downgrade:
+	alembic downgrade -1
+
+db-history:
+	alembic history --verbose
+
+db-current:
+	alembic current
+
+# Usage: make db-revision MSG="add_user_preferences"
+db-revision:
+	alembic revision --autogenerate -m "$(MSG)"
+
+# Dev only: drop and recreate the local SQLite DB
+db-reset-dev:
+	rm -f pywiki.db
+	DATABASE_URL=sqlite+aiosqlite:///./pywiki.db alembic upgrade head

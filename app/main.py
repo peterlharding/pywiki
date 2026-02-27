@@ -49,6 +49,18 @@ async def _seed_defaults() -> None:
 
     async with factory() as session:
         try:
+            # Ensure the Category namespace exists (used for category description pages)
+            cat_result = await session.execute(
+                select(Namespace).where(Namespace.name == "Category")
+            )
+            if not cat_result.scalar_one_or_none():
+                session.add(Namespace(
+                    name="Category",
+                    description="Category description pages.",
+                    default_format="markdown",
+                ))
+                await session.flush()
+
             result = await session.execute(
                 select(Namespace).where(Namespace.name == settings.default_namespace)
             )

@@ -98,6 +98,11 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 
 /* ─── Page wrapper ───────────────────────────────────────────────────────── */
 
+.wide-page .page-wrapper {
+  max-width: 100%;
+  padding: 1.5rem 2rem;
+}
+
 .page-wrapper {
   max-width: var(--max-w);
   margin: 0 auto;
@@ -184,6 +189,8 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 }
 .btn-primary:hover { background: var(--accent-hov); color: #fff; }
 .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-danger:hover { background: #b91c1c; color: #fff; }
+.btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
 
 /* ─── Forms ──────────────────────────────────────────────────────────────── */
 
@@ -447,6 +454,15 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 
 .muted { color: var(--muted); }
 hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+/* ─── Redirect notice ───────────────────────────────────────────────────── */
+
+.redirect-notice {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+.redirect-notice a { color: var(--muted); }
 
 /* ─── Featured page ──────────────────────────────────────────────────────── */
 

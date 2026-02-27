@@ -36,7 +36,8 @@ async def test_list_namespaces_empty(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_namespace_requires_admin(client: AsyncClient):
-    await register_user(client, "user1", "user1@example.com")
+    await register_user(client, "seed_admin", "seed_admin@example.com")  # first user = admin
+    await register_user(client, "user1", "user1@example.com")  # second user = non-admin
     headers = await auth_headers(client, "user1")
     resp = await client.post("/api/v1/namespaces", json={
         "name": "TestNS",

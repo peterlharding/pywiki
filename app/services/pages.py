@@ -128,11 +128,23 @@ async def get_page(
     page = await _get_page(db, ns.id, slug)
 
     if version is not None:
-        ver = next((v for v in page.versions if v.version == version), None)
+        result = await db.execute(
+            select(PageVersion)
+            .where(PageVersion.page_id == page.id, PageVersion.version == version)
+            .options(selectinload(PageVersion.author))
+        )
+        ver = result.scalar_one_or_none()
         if not ver:
             raise HTTPException(status_code=404, detail=f"Version {version} not found")
     else:
-        ver = max(page.versions, key=lambda v: v.version) if page.versions else None
+        result = await db.execute(
+            select(PageVersion)
+            .where(PageVersion.page_id == page.id)
+            .options(selectinload(PageVersion.author))
+            .order_by(PageVersion.version.desc())
+            .limit(1)
+        )
+        ver = result.scalar_one_or_none()
         if not ver:
             raise HTTPException(status_code=404, detail="Page has no content")
 
@@ -186,7 +198,7 @@ async def update_page(
         content=data.content,
         format=fmt,
         author_id=author_id,
-        comment=data.comment or f"Version {next_ver}",
+        comment=data.comment or "",
     )
     db.add(new_version)
     await db.flush()
@@ -257,8 +269,8 @@ async def rename_page(
     # Optionally leave a redirect stub at the old slug
     if new_slug != old_slug and data.leave_redirect:
         redirect_content = (
-            f"This page has been moved to [[{data.new_title}]].\n\n"
-            f"#REDIRECT [[{data.new_title}]]"
+            f"#REDIRECT [[{data.new_title}]]\n\n"
+            f"This page has been moved to [[{data.new_title}]]."
         )
         redirect_page = Page(
             namespace_id=ns.id,

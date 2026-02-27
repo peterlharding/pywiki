@@ -330,8 +330,7 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
     # Append categories footer if any were found
     if categories:
         cat_links = " · ".join(
-            f'<a href="{base_url}/search?q=Category:{c}&namespace={namespace}" '
-            f'class="category-link">{c}</a>'
+            f'<a href="{base_url}/category/{c}" class="category-link">{c}</a>'
             for c in categories
         )
         out.append(f'<div class="wiki-categories"><strong>Categories:</strong> {cat_links}</div>')
@@ -367,6 +366,29 @@ def extract_categories(content: str, fmt: str) -> list[str]:
             seen.add(key)
             result.append(n)
     return sorted(result, key=str.lower)
+
+
+# -----------------------------------------------------------------------------
+# Redirect detection
+# -----------------------------------------------------------------------------
+
+_REDIRECT_RE = re.compile(r"^\s*#REDIRECT\s*\[\[([^\]]+)\]\]", re.IGNORECASE)
+
+
+def parse_redirect(content: str) -> str | None:
+    """Return the redirect target title if content is a redirect page, else None.
+
+    Matches ``#REDIRECT [[Target Title]]`` on the first non-blank line.
+    """
+    for line in content.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        m = _REDIRECT_RE.match(line)
+        if m:
+            return m.group(1).strip()
+        break  # first non-blank line didn't match — not a redirect
+    return None
 
 
 # -----------------------------------------------------------------------------

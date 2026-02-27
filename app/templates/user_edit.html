@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{% if edit_mode %}Edit User: {{ u.username }}{% else %}User: {{ u.username }}{% endif %} — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{% if edit_mode %}Edit User: {{ u.username }}{% else %}{{ u.username }}{% endif %}</h1>
+  <div class="page-actions">
+    {% if edit_mode %}
+    <a class="btn" href="/special/users/{{ u.username }}">← Cancel</a>
+    {% else %}
+    {% if user and user.is_admin %}
+    <a class="btn btn-primary" href="/special/users/{{ u.username }}/edit">✏️ Edit</a>
+    {% endif %}
+    <a class="btn" href="/special/users">← User list</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+{% if edit_mode %}
+<form method="post" action="/special/users/{{ u.username }}/edit">
+
+  <div class="form-row">
+    <label>Username</label>
+    <input type="text" value="{{ u.username }}" disabled style="opacity:0.6;" />
+    <small class="muted">Usernames cannot be changed.</small>
+  </div>
+
+  <div class="form-row">
+    <label for="display_name">Display name</label>
+    <input type="text" id="display_name" name="display_name"
+           value="{{ prefill.display_name or u.display_name }}" maxlength="128" style="width:100%;" />
+  </div>
+
+  <div class="form-row">
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email"
+           value="{{ prefill.email or u.email }}" maxlength="256" style="width:100%;" />
+  </div>
+
+  <div class="form-row">
+    <label for="new_password">New password <small class="muted">(leave blank to keep current)</small></label>
+    <input type="password" id="new_password" name="new_password"
+           placeholder="Enter new password…" maxlength="128" style="width:100%;" />
+  </div>
+
+  {% if user and user.is_admin %}
+  <div class="form-row">
+    <label>
+      <input type="checkbox" name="is_admin" value="1"
+             {% if u.is_admin %}checked{% endif %} />
+      Admin privileges
+    </label>
+  </div>
+
+  <div class="form-row">
+    <label>
+      <input type="checkbox" name="is_active" value="1"
+             {% if u.is_active %}checked{% endif %} />
+      Account active
+    </label>
+  </div>
+  {% endif %}
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">💾 Save changes</button>
+    <a class="btn" href="/special/users/{{ u.username }}">Cancel</a>
+  </div>
+
+</form>
+
+{% else %}
+
+<table class="wiki-table" style="max-width:600px;">
+  <tbody>
+    <tr><td><strong>Username</strong></td><td>{{ u.username }}</td></tr>
+    <tr><td><strong>Display name</strong></td><td>{{ u.display_name }}</td></tr>
+    {% if user and user.is_admin %}
+    <tr><td><strong>Email</strong></td><td>{{ u.email }}</td></tr>
+    {% endif %}
+    <tr><td><strong>Admin</strong></td><td>{% if u.is_admin %}Yes{% else %}No{% endif %}</td></tr>
+    <tr><td><strong>Active</strong></td><td>{% if u.is_active %}Yes{% else %}No (disabled){% endif %}</td></tr>
+    <tr><td><strong>Joined</strong></td><td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
+  </tbody>
+</table>
+
+{% endif %}
+
+{% endblock %}

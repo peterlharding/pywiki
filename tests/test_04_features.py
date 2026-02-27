@@ -455,10 +455,14 @@ async def test_move_page_redirect_stub_created(client, db_session):
         headers=ui_headers,
     )
 
-    # Old slug still accessible as a redirect stub
-    old = await client.get("/wiki/MVNS8/source-page")
+    # Old slug redirects to new page
+    old = await client.get("/wiki/MVNS8/source-page", follow_redirects=True)
     assert old.status_code == 200
     assert "Destination Page" in old.text
+
+    # Stub is viewable directly with ?redirect=no
+    stub = await client.get("/wiki/MVNS8/source-page?redirect=no", follow_redirects=False)
+    assert stub.status_code == 200
 
     # New page also exists
     new = await client.get("/wiki/MVNS8/destination-page")
@@ -496,6 +500,77 @@ async def test_move_page_duplicate_title_shows_error(client, db_session):
     )
     assert resp.status_code == 400
     assert "Page One" in resp.text
+
+
+# -----------------------------------------------------------------------------
+# #REDIRECT handling
+# -----------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_redirect_page_issues_302(client, db_session):
+    """A page whose content starts with #REDIRECT should issue a 302."""
+    api_headers = await _setup(client, db_session, "rduser1", "RDNS1")
+    await _create_page(client, "RDNS1", "Target Page", "Destination content.", "wikitext", api_headers)
+    await _create_page(
+        client, "RDNS1", "Old Name",
+        "#REDIRECT [[Target Page]]",
+        "wikitext", api_headers,
+    )
+
+    resp = await client.get("/wiki/RDNS1/old-name", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "target-page" in resp.headers["location"]
+
+
+@pytest.mark.asyncio
+async def test_redirect_page_redirected_from_notice(client, db_session):
+    """After following a redirect the target page shows a 'Redirected from' notice."""
+    api_headers = await _setup(client, db_session, "rduser2", "RDNS2")
+    await _create_page(client, "RDNS2", "Destination", "Content here.", "wikitext", api_headers)
+    await _create_page(
+        client, "RDNS2", "Old Slug",
+        "#REDIRECT [[Destination]]",
+        "wikitext", api_headers,
+    )
+
+    resp = await client.get("/wiki/RDNS2/old-slug", follow_redirects=True)
+    assert resp.status_code == 200
+    assert "Redirected from" in resp.text
+    assert "old-slug" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_redirect_bypass_with_redirect_no(client, db_session):
+    """?redirect=no lets you view the stub page directly without following the redirect."""
+    api_headers = await _setup(client, db_session, "rduser3", "RDNS3")
+    await _create_page(client, "RDNS3", "Real Page", "Content.", "wikitext", api_headers)
+    await _create_page(
+        client, "RDNS3", "Stub Page",
+        "#REDIRECT [[Real Page]]",
+        "wikitext", api_headers,
+    )
+
+    resp = await client.get("/wiki/RDNS3/stub-page?redirect=no", follow_redirects=False)
+    assert resp.status_code == 200
+    assert "Stub Page" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_move_with_redirect_stub_auto_redirects(client, db_session):
+    """After a move with leave_redirect, visiting the old slug redirects to the new one."""
+    api_headers = await _setup(client, db_session, "rduser4", "RDNS4")
+    await _create_page(client, "RDNS4", "Moving Page", "Content.", "wikitext", api_headers)
+    ui_headers = await cookie_auth(client, "rduser4")
+
+    await client.post(
+        "/wiki/RDNS4/moving-page/move",
+        data={"new_title": "Moved Page", "leave_redirect": "1"},
+        headers=ui_headers,
+    )
+
+    resp = await client.get("/wiki/RDNS4/moving-page", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "moved-page" in resp.headers["location"]
 
 
 # -----------------------------------------------------------------------------

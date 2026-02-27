@@ -26,6 +26,7 @@
       <li><a href="/search">Search</a> — full-text search</li>
       <li><a href="/create">Create page</a> — start a new page</li>
       {% if user and user.is_admin %}
+      <li><a href="/special/users">Users</a> — list and manage user accounts</li>
       <li><a href="/admin">Admin panel</a> — site administration</li>
       {% endif %}
     </ul>
@@ -39,6 +40,7 @@
         <span class="badge badge-{{ ns.default_format }}">{{ ns.default_format }}</span>
       </li>
       {% endfor %}
+      <li><a href="/special/namespaces">📂 Manage namespaces</a>{% if user and user.is_admin %} — <a href="/special/namespaces/create">➕ New namespace</a>{% endif %}</li>
     </ul>
 
     <h2 style="margin-top:1.5rem;">Categories</h2>

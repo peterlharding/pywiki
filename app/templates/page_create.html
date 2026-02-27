@@ -50,9 +50,9 @@
   <div class="form-row">
     <label>Content format:</label>
     <div class="format-tabs">
-      <button type="button" class="format-tab active" onclick="setFormat('markdown', this)">Markdown</button>
-      <button type="button" class="format-tab" onclick="setFormat('rst', this)">reStructuredText</button>
-      <button type="button" class="format-tab" onclick="setFormat('wikitext', this)">Wikitext</button>
+      <button type="button" class="format-tab" id="tab-markdown" onclick="setFormat('markdown', this)">Markdown</button>
+      <button type="button" class="format-tab" id="tab-rst" onclick="setFormat('rst', this)">reStructuredText</button>
+      <button type="button" class="format-tab" id="tab-wikitext" onclick="setFormat('wikitext', this)">Wikitext</button>
     </div>
     <input type="hidden" name="fmt" id="fmt-input" value="markdown" />
   </div>
@@ -78,10 +78,27 @@
 
 {% block extra_js %}
 <script>
+  const NS_FORMAT_MAP = {{ ns_format_map | tojson | safe }};
+
   function setFormat(fmt, btn) {
     document.getElementById('fmt-input').value = fmt;
     document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
+    if (btn) btn.classList.add('active');
+    else {
+      const tab = document.getElementById('tab-' + fmt);
+      if (tab) tab.classList.add('active');
+    }
   }
+
+  function applyNamespaceFormat(nsName) {
+    const fmt = NS_FORMAT_MAP[nsName] || 'markdown';
+    setFormat(fmt, null);
+  }
+
+  const nsSel = document.getElementById('namespace_name');
+  nsSel.addEventListener('change', () => applyNamespaceFormat(nsSel.value));
+
+  // Initialise on page load
+  applyNamespaceFormat(nsSel.value);
 </script>
 {% endblock %}

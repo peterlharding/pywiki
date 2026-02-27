@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block body_class %}wide-page{% endblock %}
+{% block title %}Users — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Users</h1>
+  <div class="page-actions">
+    <a class="btn" href="/special">← Special pages</a>
+  </div>
+</div>
+
+<table class="wiki-table">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Display name</th>
+      <th>Email</th>
+      <th>Admin</th>
+      <th>Active</th>
+      <th>Joined</th>
+      {% if user and user.is_admin %}<th>Actions</th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td><a href="/special/users/{{ u.username }}"><strong>{{ u.username }}</strong></a></td>
+      <td>{{ u.display_name }}</td>
+      <td>{{ u.email if user and user.is_admin else '—' }}</td>
+      <td>{% if u.is_admin %}<span class="badge badge-wikitext">admin</span>{% endif %}</td>
+      <td>{% if u.is_active %}✓{% else %}<span class="muted">disabled</span>{% endif %}</td>
+      <td class="ts">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+      {% if user and user.is_admin %}
+      <td><a class="btn btn-sm" href="/special/users/{{ u.username }}/edit">✏️ Edit</a></td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

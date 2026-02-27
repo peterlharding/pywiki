@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{% if edit_mode %}Edit Namespace: {{ ns.name }}{% else %}Create Namespace{% endif %} — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{% if edit_mode %}Edit Namespace: {{ ns.name }}{% else %}Create Namespace{% endif %}</h1>
+  <div class="page-actions">
+    <a class="btn" href="/special/namespaces">← Namespace list</a>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="{% if edit_mode %}/special/namespaces/{{ ns.name }}/edit{% else %}/special/namespaces/create{% endif %}">
+  <div class="form-row">
+    <label for="name">Name <span class="required">*</span></label>
+    {% if edit_mode %}
+    <input type="text" id="name" value="{{ ns.name }}" disabled style="opacity:0.6;" />
+    <small class="muted">Namespace names cannot be changed after creation.</small>
+    {% else %}
+    <input type="text" id="name" name="name" required maxlength="64"
+           value="{{ prefill_name or '' }}"
+           placeholder="e.g. Engineering" />
+    <small class="muted">Only letters, digits, hyphens and underscores. Cannot be changed later.</small>
+    {% endif %}
+  </div>
+
+  <div class="form-row">
+    <label for="description">Description</label>
+    <input type="text" id="description" name="description" maxlength="256"
+           value="{{ prefill_description or (ns.description if edit_mode else '') }}"
+           placeholder="Brief description of this namespace" style="width:100%;" />
+  </div>
+
+  <div class="form-row">
+    <label for="default_format">Default format <span class="required">*</span></label>
+    <select id="default_format" name="default_format">
+      {% for fmt in ['markdown', 'rst', 'wikitext'] %}
+      <option value="{{ fmt }}"
+        {% if edit_mode and ns.default_format == fmt %}selected
+        {% elif not edit_mode and (prefill_format or 'markdown') == fmt %}selected{% endif %}>
+        {{ fmt }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">
+      {% if edit_mode %}💾 Save changes{% else %}✅ Create namespace{% endif %}
+    </button>
+    <a class="btn" href="/special/namespaces">Cancel</a>
+  </div>
+</form>
+
+{% if edit_mode %}
+<hr />
+<details>
+  <summary style="cursor:pointer; color:var(--danger); font-size:0.9rem;">⚠️ Delete this namespace</summary>
+  <div style="margin-top:1rem; padding:1rem; border:1px solid var(--danger); border-radius:4px; background:var(--bg-alt);">
+    <p><strong>Warning:</strong> Deleting a namespace will permanently delete all pages within it. This cannot be undone.</p>
+    <form method="post" action="/special/namespaces/{{ ns.name }}/delete"
+          onsubmit="return confirm('Delete namespace {{ ns.name }} and ALL its pages? This cannot be undone.');">
+      <button class="btn btn-danger" type="submit">🗑️ Delete namespace</button>
+    </form>
+  </div>
+</details>
+{% endif %}
+
+{% endblock %}

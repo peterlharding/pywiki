@@ -38,12 +38,13 @@ from app.core.security import (
     create_access_token, create_refresh_token,
     get_current_user_id_cookie, get_refreshed_user_id_cookie,
 )
-from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate
+from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, NamespaceCreate, NamespaceUpdate
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
-from app.services.renderer import render as render_markup, extract_categories
+from app.services.renderer import render as render_markup, extract_categories, parse_redirect
 from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
+    list_users, get_user_by_username, update_user, set_admin, set_active,
 )
 
 
@@ -221,6 +222,8 @@ async def view_page(
     namespace_name: str,
     slug: str,
     version: Optional[int] = None,
+    redirect: Optional[str] = None,
+    redirected_from: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -230,7 +233,6 @@ async def view_page(
         page, ver = await page_svc.get_page(db, namespace_name, slug, version=version)
     except HTTPException as e:
         if e.status_code == 404:
-            # Page doesn't exist — offer to create it
             return templates.TemplateResponse(
                 request,
                 "page_not_found.html",
@@ -238,6 +240,17 @@ async def view_page(
                 status_code=404,
             )
         raise
+
+    # Handle #REDIRECT — unless ?redirect=no is set (to allow viewing the stub)
+    if redirect != "no" and version is None:
+        target_title = parse_redirect(ver.content)
+        if target_title:
+            from app.services.renderer import _slugify as _rslugify
+            target_slug = _rslugify(target_title)
+            url = f"/wiki/{namespace_name}/{target_slug}?redirected_from={slug}"
+            resp = RedirectResponse(url=url, status_code=302)
+            _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+            return resp
 
     rendered = ver.rendered
     if not rendered or version is not None:
@@ -260,7 +273,8 @@ async def view_page(
              rendered=rendered,
              namespace_name=namespace_name,
              viewing_version=version,
-             categories=categories),
+             categories=categories,
+             redirected_from=redirected_from),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp
@@ -476,11 +490,13 @@ async def create_page_form(
     if not user:
         return _login_redirect("/create")
     namespaces = await ns_svc.list_namespaces(db)
+    ns_format_map = {ns.name: ns.default_format for ns in namespaces}
     resp = templates.TemplateResponse(
         request,
         "page_create.html",
         _ctx(user,
              namespaces=namespaces,
+             ns_format_map=ns_format_map,
              prefill_namespace=namespace,
              prefill_title=title,
              error=None),
@@ -514,11 +530,13 @@ async def create_page_submit(
         return resp
     except HTTPException as e:
         namespaces = await ns_svc.list_namespaces(db)
+        ns_format_map = {ns.name: ns.default_format for ns in namespaces}
         resp = templates.TemplateResponse(
             request,
             "page_create.html",
             _ctx(user,
                  namespaces=namespaces,
+                 ns_format_map=ns_format_map,
                  prefill_namespace=namespace_name,
                  prefill_title=title,
                  error=e.detail),
@@ -761,6 +779,222 @@ async def special_pages(request: Request, db: AsyncSession = Depends(get_db)):
              all_categories=all_categories),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Namespace management (admin only)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/namespaces", response_class=HTMLResponse)
+async def ns_list_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    namespaces_raw = await ns_svc.list_namespaces(db)
+    ns_rows = []
+    for ns in namespaces_raw:
+        count = await ns_svc.get_page_count(db, ns.id)
+        ns_rows.append({
+            "name": ns.name,
+            "description": ns.description,
+            "default_format": ns.default_format,
+            "page_count": count,
+        })
+    resp = templates.TemplateResponse(
+        request,
+        "ns_list.html",
+        _ctx(user, namespaces=ns_rows),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.get("/special/namespaces/create", response_class=HTMLResponse)
+async def ns_create_form(request: Request, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    resp = templates.TemplateResponse(
+        request,
+        "ns_manage.html",
+        _ctx(user, edit_mode=False, error=None,
+             prefill_name="", prefill_description="", prefill_format="markdown"),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/namespaces/create", response_class=HTMLResponse)
+async def ns_create_submit(
+    request: Request,
+    name: str             = Form(...),
+    description: str      = Form(default=""),
+    default_format: str   = Form(default="markdown"),
+    db: AsyncSession      = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    try:
+        await ns_svc.create_namespace(db, NamespaceCreate(
+            name=name, description=description, default_format=default_format
+        ))
+        resp = RedirectResponse(url="/special/namespaces", status_code=303)
+    except HTTPException as e:
+        resp = templates.TemplateResponse(
+            request,
+            "ns_manage.html",
+            _ctx(user, edit_mode=False, error=e.detail,
+                 prefill_name=name, prefill_description=description, prefill_format=default_format),
+            status_code=400,
+        )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.get("/special/namespaces/{ns_name}/edit", response_class=HTMLResponse)
+async def ns_edit_form(
+    request: Request,
+    ns_name: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    ns = await ns_svc.get_namespace_by_name(db, ns_name)
+    resp = templates.TemplateResponse(
+        request,
+        "ns_manage.html",
+        _ctx(user, edit_mode=True, ns=ns, error=None,
+             prefill_description=ns.description, prefill_format=ns.default_format),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/namespaces/{ns_name}/edit", response_class=HTMLResponse)
+async def ns_edit_submit(
+    request: Request,
+    ns_name: str,
+    description: str     = Form(default=""),
+    default_format: str  = Form(default="markdown"),
+    db: AsyncSession     = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    ns = await ns_svc.get_namespace_by_name(db, ns_name)
+    try:
+        await ns_svc.update_namespace(db, ns_name, NamespaceUpdate(
+            description=description, default_format=default_format
+        ))
+        resp = RedirectResponse(url="/special/namespaces", status_code=303)
+    except HTTPException as e:
+        resp = templates.TemplateResponse(
+            request,
+            "ns_manage.html",
+            _ctx(user, edit_mode=True, ns=ns, error=e.detail,
+                 prefill_description=description, prefill_format=default_format),
+            status_code=400,
+        )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/namespaces/{ns_name}/delete", response_class=HTMLResponse)
+async def ns_delete_submit(
+    request: Request,
+    ns_name: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    await ns_svc.delete_namespace(db, ns_name)
+    resp = RedirectResponse(url="/special/namespaces", status_code=303)
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# User management
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/users", response_class=HTMLResponse)
+async def user_list_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    users = await list_users(db)
+    resp = templates.TemplateResponse(
+        request, "user_list.html", _ctx(user, users=users),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.get("/special/users/{username}", response_class=HTMLResponse)
+async def user_view(request: Request, username: str, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    target = await get_user_by_username(db, username)
+    resp = templates.TemplateResponse(
+        request, "user_edit.html",
+        _ctx(user, u=target, edit_mode=False, error=None, prefill={}),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.get("/special/users/{username}/edit", response_class=HTMLResponse)
+async def user_edit_form(request: Request, username: str, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    if not user or (not user.is_admin and user.username != username):
+        raise HTTPException(status_code=403, detail="Not authorised")
+    target = await get_user_by_username(db, username)
+    resp = templates.TemplateResponse(
+        request, "user_edit.html",
+        _ctx(user, u=target, edit_mode=True, error=None, prefill={}),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/users/{username}/edit", response_class=HTMLResponse)
+async def user_edit_submit(
+    request: Request,
+    username: str,
+    display_name: str  = Form(default=""),
+    email: str         = Form(default=""),
+    new_password: str  = Form(default=""),
+    is_admin: str      = Form(default=""),
+    is_active: str     = Form(default=""),
+    db: AsyncSession   = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user or (not user.is_admin and user.username != username):
+        raise HTTPException(status_code=403, detail="Not authorised")
+
+    target = await get_user_by_username(db, username)
+    try:
+        update_data = UserUpdate(
+            display_name=display_name or None,
+            email=email or None,
+            password=new_password or None,
+        )
+        await update_user(db, target.id, update_data)
+        if user.is_admin:
+            await set_admin(db, username, is_admin == "1")
+            await set_active(db, username, is_active == "1")
+        await db.commit()
+        resp = RedirectResponse(url=f"/special/users/{username}", status_code=303)
+    except HTTPException as e:
+        target = await get_user_by_username(db, username)
+        resp = templates.TemplateResponse(
+            request, "user_edit.html",
+            _ctx(user, u=target, edit_mode=True, error=e.detail,
+                 prefill={"display_name": display_name, "email": email}),
+            status_code=400,
+        )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
 
 

@@ -27,7 +27,7 @@ async def test_register(client: AsyncClient):
     data = resp.json()
     assert data["username"] == "alice"
     assert data["email"] == "alice@example.com"
-    assert data["is_admin"] is False
+    assert data["is_admin"] is True  # first registered user is auto-promoted to admin
 
 
 @pytest.mark.asyncio

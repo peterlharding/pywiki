@@ -54,6 +54,12 @@
   </div>
 </div>
 
+{% if redirected_from %}
+<div class="redirect-notice">
+  Redirected from <a href="/wiki/{{ namespace_name }}/{{ redirected_from }}?redirect=no">{{ redirected_from }}</a>
+</div>
+{% endif %}
+
 {% if ver.comment %}
 <p class="edit-comment muted"><em>{{ ver.comment }}</em></p>
 {% endif %}
@@ -62,7 +68,7 @@
   {{ rendered | safe }}
 </div>
 
-{% if categories %}
+{% if categories and ver.format != 'wikitext' %}
 <div class="wiki-categories-bar">
   <strong>Categories:</strong>
   {% for cat in categories %}

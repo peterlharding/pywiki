@@ -32,11 +32,16 @@ async def create_user(db: AsyncSession, data: UserCreate) -> User:
     if existing_email.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
+    from sqlalchemy import func
+    user_count = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+    is_first_user = (user_count == 0)
+
     user = User(
         username=data.username,
         email=str(data.email),
         display_name=data.display_name or data.username,
         password_hash=hash_password(data.password),
+        is_admin=is_first_user,
     )
     db.add(user)
     await db.flush()

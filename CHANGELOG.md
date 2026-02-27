@@ -9,6 +9,55 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+---
+
+## [0.1.3] — 2026-02-27
+
+### Added
+
+#### #REDIRECT handling
+- `parse_redirect(content)` in `renderer.py` — detects `#REDIRECT [[Title]]` on the first non-blank line
+- Visiting a redirect page issues a **302** to the target slug in the same namespace
+- `?redirect=no` query parameter bypasses the redirect to view/edit the stub directly
+- "Redirected from" notice displayed on the target page with a link back to the stub
+- Redirect stub content created by page move now puts `#REDIRECT` on the first line so it is detected correctly
+- Wikitext category links fixed to use `/category/{name}` (was `/search?q=Category:X`)
+
+#### Namespace Management UI
+- `GET /special/namespaces` — full namespace list with page counts and edit buttons for admins
+- `GET/POST /special/namespaces/create` — create namespace form (admin only)
+- `GET/POST /special/namespaces/{name}/edit` — edit description and default format
+- `POST /special/namespaces/{name}/delete` — delete with JS confirmation (cascades all pages)
+- New templates: `ns_list.html`, `ns_manage.html`
+- Link to Manage Namespaces added to Special Pages hub
+
+#### User Management UI
+- `GET /special/users` — user list table (admin only): username, display name, email, admin badge, active status, joined date
+- `GET /special/users/{username}` — user profile view (email visible to admins only)
+- `GET/POST /special/users/{username}/edit` — edit form; admins can toggle `is_admin` / `is_active`; users can edit their own profile
+- New templates: `user_list.html`, `user_edit.html`
+- Link to Users added to Special Pages Maintenance section (admin only)
+- `wide-page` CSS body class added — used by user list to expand past `--max-w` constraint
+
+#### Create Page — namespace default format
+- Format tabs on the Create Page form now auto-switch when the namespace selector changes
+- Correct format is also set on initial page load based on the pre-selected namespace
+- `ns_format_map` dict passed from both GET and POST error paths
+
+#### Auth / User bootstrap
+- **First registered user is automatically promoted to admin** — no manual DB edit needed on a fresh install
+
+### Fixed
+- Wikitext pages showed **two** category bars — renderer emits its own footer and the template was adding a second; template bar is now suppressed for `wikitext` format
+- Version number on page view showed stale value (e.g. v2 instead of v7) after a rename — `get_page()` was picking the max from an in-memory collection cleared by `db.refresh()`; fixed to query DB directly with `ORDER BY version DESC LIMIT 1`
+- Edit summary field was pre-filled with the previous version's comment (e.g. "Version 2"), causing it to be re-saved on the next edit; now always starts blank
+- Auto-generated "Version N" fallback comment removed from `update_page()` — empty string used instead
+- `btn-sm` and `btn-danger:hover` CSS rules added (were referenced in templates but missing)
+
+### Tests
+- `test_register` updated — first user is now correctly asserted as `is_admin=True`
+- `test_create_namespace_requires_admin` updated — registers a seed admin user first so test user is the second (non-admin)
+- 4 new redirect tests: 302 issued, redirected-from notice, `?redirect=no` bypass, move-with-stub auto-redirect
 
 ---
 
@@ -151,7 +200,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/your-org/pywiki/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/your-org/pywiki/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/your-org/pywiki/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/your-org/pywiki/releases/tag/v0.1.0

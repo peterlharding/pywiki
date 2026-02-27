@@ -11,6 +11,47 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.5] — 2026-02-27
+
+### Added
+
+#### Wikitext table syntax (`{| ... |}`)
+- Full MediaWiki table syntax support in the wikitext renderer
+- `{| attrs` — table open with optional HTML attributes (e.g. `class=`, `style=`)
+- `|+ caption` — table caption rendered as `<caption>`
+- `|-` — row separator
+- `! h1 !! h2` — header cells; inline multi-cell with `!!`
+- `| c1 || c2` — data cells; inline multi-cell with `||`
+- Per-cell attributes: `| style="color:red" | Text`
+- `|}` — table close
+- Inline markup (bold, italic, wikilinks, external links) fully supported inside cells
+- Tables default to `class="wikitable"` unless an explicit `class=` attribute is present
+- Multiple tables per page, freely mixed with paragraphs, headings, and lists
+- `table.wikitable` CSS styles added: borders, padding, header background, alternating row shading, caption
+
+#### External links open in new tab
+- All external links (`https://`, `http://`, `//`) in rendered output now include `target="_blank" rel="noopener noreferrer"`
+- Applied via a post-processing pass at the end of `render()` — covers all three formats (markdown, RST, wikitext)
+- Internal wiki links (`/wiki/...`) are unaffected
+
+#### Bare URL auto-linking in wikitext
+- Raw `https://...` URLs written without bracket syntax now render as clickable `<a>` anchors
+- Matches MediaWiki behaviour; complements the existing `[URL]` and `[URL label]` forms
+- Lookbehind prevents double-wrapping URLs already inside `href="..."` or brackets
+
+#### Self-healing render cache
+- `RENDERER_VERSION` constant in `renderer.py` — increment to invalidate all cached rendered HTML
+- `_CACHE_STAMP` embedded as an HTML comment at the start of every cached page
+- `is_cache_valid(rendered)` helper used at every cache-read site in `views.py` and `routes/pages.py`
+- Stale pages (missing stamp or wrong version) are silently re-rendered on first view — no migration needed
+- Current version: `4`
+
+### Tests
+- `test_10_wikitext_tables.py` — 21 new tests covering table structure, cells, headers, captions, per-cell attrs, inline markup inside cells, mixed content, multiple tables, realistic example
+- **Total: 144 tests** (was 123 at v0.1.4)
+
+---
+
 ## [0.1.4] — 2026-02-27
 
 ### Added

@@ -41,7 +41,7 @@ from app.core.security import (
 from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, UserUpdate, NamespaceCreate, NamespaceUpdate
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
-from app.services.renderer import render as render_markup, extract_categories, parse_redirect
+from app.services.renderer import render as render_markup, extract_categories, parse_redirect, is_cache_valid
 from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
     list_users, get_user_by_username, update_user, set_admin, set_active,
@@ -113,7 +113,7 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         ns = await ns_svc.get_namespace_by_name(db, settings.default_namespace)
         page, ver = await page_svc.get_page(db, settings.default_namespace, "main-page")
-        rendered = ver.rendered or render_markup(
+        rendered = ver.rendered if is_cache_valid(ver.rendered) else render_markup(
             ver.content, ver.format,
             namespace=settings.default_namespace,
             base_url=settings.base_url,
@@ -253,8 +253,9 @@ async def view_page(
             _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
             return resp
 
-    rendered = ver.rendered
-    if not rendered or version is not None:
+    if is_cache_valid(ver.rendered) and version is None:
+        rendered = ver.rendered
+    else:
         rendered = render_markup(
             ver.content, ver.format,
             namespace=namespace_name,
@@ -1094,7 +1095,7 @@ async def print_page(
             )
         raise
 
-    rendered = ver.rendered or render_markup(
+    rendered = ver.rendered if is_cache_valid(ver.rendered) else render_markup(
         ver.content, ver.format,
         namespace=namespace_name,
         base_url=settings.base_url,

@@ -22,6 +22,12 @@ import re
 from typing import Optional
 
 
+# Bump this whenever the render pipeline changes so stale cached HTML is
+# automatically discarded and re-rendered on next page view.
+RENDERER_VERSION = 4
+_CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
+
+
 # -----------------------------------------------------------------------------
 # Markdown renderer via mistune
 # -----------------------------------------------------------------------------
@@ -160,11 +166,15 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
     # item  /  ## nested                             — ordered lists
     ; term : definition                              — definition lists
     {{template}}                                     — rendered as an info box placeholder
+    {| ... |}                                        — tables (MediaWiki syntax)
     Lines not matching any block rule become <p> paragraphs.
     """
     lines = content.splitlines()
     out: list[str] = []
     categories: list[str] = []
+
+    # Sentinel prefix used to pass already-rendered HTML through the main loop
+    _SENTINEL = "\x00HTML\x00"
 
     # ── inline markup ────────────────────────────────────────────────────────
 
@@ -181,6 +191,12 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
         # Bare external links: [URL]
         text = re.sub(
             r"\[(\w+://[^\s\]]+)\]",
+            lambda m: f'<a href="{m.group(1)}" class="external">{m.group(1)}</a>',
+            text,
+        )
+        # Bare URLs not already inside an anchor or brackets
+        text = re.sub(
+            r'(?<!["\'>=\[])(https?://[^\s<>\'"]+ )',
             lambda m: f'<a href="{m.group(1)}" class="external">{m.group(1)}</a>',
             text,
         )
@@ -202,6 +218,138 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
         text = re.sub(r"'{2}(.+?)'{2}", r"<i>\1</i>", text)
 
         return text
+
+    # ── table pre-pass: replace {| ... |} blocks with a sentinel ─────────────
+
+    def _parse_table(table_lines: list[str]) -> str:
+        """
+        Convert a list of raw wikitext table lines (from {| to |} inclusive)
+        into an HTML <table>.
+
+        Supported:
+          {| attrs          — table open with optional HTML attributes
+          |+ caption        — table caption
+          |-                — new row (with optional attrs)
+          ! h1 !! h2        — header cells (inline multi-cell with !!)
+          | c1 || c2        — data cells  (inline multi-cell with ||)
+          |}                — table close
+        Cell/header lines may start with per-cell attributes: | attrs | content
+        """
+        html_rows: list[str] = []
+        caption: str | None = None
+        current_row_cells: list[str] = []
+        in_row = False
+        # Table-level attrs from the opening {| line
+        table_attrs = ""
+        if table_lines:
+            first = table_lines[0]
+            m = re.match(r"^\{\|(.*)$", first)
+            if m:
+                table_attrs = m.group(1).strip()
+
+        def _flush_row():
+            nonlocal in_row
+            if current_row_cells:
+                html_rows.append("<tr>" + "".join(current_row_cells) + "</tr>")
+                current_row_cells.clear()
+            in_row = False
+
+        def _parse_cells(line: str, tag: str) -> list[str]:
+            """Split a cell line into individual <td>/<th> elements.
+            Handles inline multi-cell (|| / !!) and per-cell attributes.
+            """
+            # Strip leading | or ! marker
+            sep = "||" if tag == "td" else "!!"
+            raw = re.sub(r"^[|!]\s*", "", line)
+            parts = re.split(re.escape(sep), raw)
+            cells: list[str] = []
+            for part in parts:
+                part = part.strip()
+                # Check for per-cell attrs:  attrs | content
+                attr_match = re.match(r"^([^|]+)\|(?!\|)(.*)$", part)
+                if attr_match:
+                    attrs = attr_match.group(1).strip()
+                    cell_content = attr_match.group(2).strip()
+                else:
+                    attrs = ""
+                    cell_content = part
+                attr_str = f" {attrs}" if attrs else ""
+                cells.append(f"<{tag}{attr_str}>{_inline(cell_content)}</{tag}>")
+            return cells
+
+        for line in table_lines[1:]:  # skip the opening {| line
+            stripped = line.strip()
+
+            # Table close
+            if stripped.startswith("|}" ):
+                _flush_row()
+                continue
+
+            # Caption
+            if stripped.startswith("|+"):
+                caption = _inline(stripped[2:].strip())
+                continue
+
+            # New row
+            if stripped.startswith("|-"):
+                _flush_row()
+                in_row = True
+                continue
+
+            # Header cells: ! or !!
+            if stripped.startswith("!"):
+                if not in_row:
+                    in_row = True
+                current_row_cells.extend(_parse_cells(stripped, "th"))
+                continue
+
+            # Data cells: |
+            if stripped.startswith("|"):
+                if not in_row:
+                    in_row = True
+                current_row_cells.extend(_parse_cells(stripped, "td"))
+                continue
+
+            # Continuation line (indented cell content) — append to last cell
+            if current_row_cells and stripped:
+                last = current_row_cells[-1]
+                # Strip closing tag, append, re-close
+                tag_close = re.search(r"</t[dh]>$", last)
+                if tag_close:
+                    current_row_cells[-1] = last[:tag_close.start()] + " " + _inline(stripped) + last[tag_close.start():]
+                continue
+
+        _flush_row()
+
+        attr_str = f" {table_attrs}" if table_attrs else ""
+        # Merge class="wikitable" if not already present
+        if "class=" not in attr_str:
+            attr_str = " class=\"wikitable\"" + attr_str
+
+        parts = [f"<table{attr_str}>"]
+        if caption:
+            parts.append(f"<caption>{caption}</caption>")
+        parts.extend(html_rows)
+        parts.append("</table>")
+        return "".join(parts)
+
+    # Replace table blocks with sentinels before the main loop
+    processed_lines: list[str] = []
+    i = 0
+    while i < len(lines):
+        if lines[i].startswith("{|"):
+            table_block: list[str] = []
+            while i < len(lines):
+                table_block.append(lines[i])
+                if lines[i].strip().startswith("|}"):
+                    i += 1
+                    break
+                i += 1
+            processed_lines.append(_SENTINEL + _parse_table(table_block))
+        else:
+            processed_lines.append(lines[i])
+            i += 1
+    lines = processed_lines
 
     # ── collect categories first ──────────────────────────────────────────────
     for line in lines:
@@ -232,6 +380,13 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
             in_dl = False
 
     for line in lines:
+        # Emit pre-rendered HTML blocks (tables) verbatim
+        if line.startswith(_SENTINEL):
+            _flush_para()
+            _close_lists()
+            out.append(line[len(_SENTINEL):])
+            continue
+
         # Strip category tags from display
         stripped = _CATEGORY_RE.sub("", line).rstrip()
 
@@ -392,6 +547,26 @@ def parse_redirect(content: str) -> str | None:
 
 
 # -----------------------------------------------------------------------------
+# External link post-processor
+# -----------------------------------------------------------------------------
+
+_EXT_LINK_RE = re.compile(
+    r'<a\s([^>]*href=["\'](?:https?://|//)[^"\'>][^>]*)>',
+    re.IGNORECASE,
+)
+
+
+def _add_external_link_targets(html: str) -> str:
+    """Add target="_blank" rel="noopener noreferrer" to all external <a> tags."""
+    def _patch(m: re.Match) -> str:
+        attrs = m.group(1)
+        if "target=" in attrs:
+            return m.group(0)
+        return f'<a {attrs} target="_blank" rel="noopener noreferrer">'
+    return _EXT_LINK_RE.sub(_patch, html)
+
+
+# -----------------------------------------------------------------------------
 # Public render function
 # -----------------------------------------------------------------------------
 
@@ -422,7 +597,12 @@ def render(content: str, fmt: str, namespace: str = "Main", base_url: str = "") 
         import html as _html
         html = f"<pre>{_html.escape(content)}</pre>"
 
-    return html
+    return _CACHE_STAMP + _add_external_link_targets(html)
+
+
+def is_cache_valid(rendered: str | None) -> bool:
+    """Return True only if *rendered* was produced by the current renderer version."""
+    return rendered is not None and rendered.startswith(_CACHE_STAMP)
 
 
 # -----------------------------------------------------------------------------

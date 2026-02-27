@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import get_current_user_id
+from app.services.renderer import is_cache_valid
 from app.schemas import (
     DiffResponse, OKResponse,
     PageCreate, PageRename, PageResponse,
@@ -91,7 +92,7 @@ async def get_page(
     rendered = None
     if render_html:
         cacheable = version is None
-        if ver.rendered and cacheable:
+        if is_cache_valid(ver.rendered) and cacheable:
             rendered = ver.rendered
         else:
             rendered = _render_page(ver.content, ver.format, namespace_name)

@@ -369,16 +369,27 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
   background: #f0f4ff;
   border-radius: 0 4px 4px 0;
 }
-.wiki-content table {
+.wiki-content table,
+table.wikitable {
   border-collapse: collapse;
   width: 100%;
   margin: 1em 0;
 }
-.wiki-content table th, .wiki-content table td {
+.wiki-content table th, .wiki-content table td,
+table.wikitable th, table.wikitable td {
   border: 1px solid var(--border);
   padding: 0.4rem 0.75rem;
+  text-align: left;
 }
-.wiki-content table th { background: var(--bg-alt); }
+.wiki-content table th,
+table.wikitable th { background: var(--bg-alt); font-weight: 600; }
+table.wikitable tr:nth-child(even) td { background: var(--bg-alt); }
+table.wikitable caption {
+  caption-side: top;
+  font-weight: 600;
+  padding: 0.4rem 0;
+  color: var(--muted);
+}
 .wiki-content img { max-width: 100%; height: auto; }
 .wiki-content a.wikilink { color: var(--accent); }
 .wiki-content a.wikilink.missing { color: var(--danger); }

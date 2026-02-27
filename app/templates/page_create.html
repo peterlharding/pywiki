@@ -27,6 +27,9 @@
 
 <form method="post" action="/create">
 
+  {% if prefill_namespace == 'Category' %}
+  <input type="hidden" name="namespace_name" value="Category" />
+  {% else %}
   <div class="form-row">
     <label for="namespace_name">Namespace <span class="required">*</span></label>
     <select id="namespace_name" name="namespace_name" required>
@@ -39,6 +42,7 @@
       {% endfor %}
     </select>
   </div>
+  {% endif %}
 
   <div class="form-row">
     <label for="title">Page title <span class="required">*</span></label>
@@ -96,9 +100,10 @@
   }
 
   const nsSel = document.getElementById('namespace_name');
-  nsSel.addEventListener('change', () => applyNamespaceFormat(nsSel.value));
-
-  // Initialise on page load
-  applyNamespaceFormat(nsSel.value);
+  if (nsSel && nsSel.tagName === 'SELECT') {
+    nsSel.addEventListener('change', () => applyNamespaceFormat(nsSel.value));
+    // Initialise on page load
+    applyNamespaceFormat(nsSel.value);
+  }
 </script>
 {% endblock %}

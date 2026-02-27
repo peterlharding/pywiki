@@ -508,13 +508,15 @@ async def create_page_form(
     user, new_token = await _current_user(request, db)
     if not user:
         return _login_redirect("/create")
-    namespaces = await ns_svc.list_namespaces(db)
-    ns_format_map = {ns.name: ns.default_format for ns in namespaces}
+    all_namespaces = await ns_svc.list_namespaces(db)
+    # Category namespace is internal — hide from dropdown unless explicitly prefilled
+    visible_namespaces = [ns for ns in all_namespaces if ns.name != "Category"]
+    ns_format_map = {ns.name: ns.default_format for ns in all_namespaces}
     resp = templates.TemplateResponse(
         request,
         "page_create.html",
         _ctx(user,
-             namespaces=namespaces,
+             namespaces=visible_namespaces,
              ns_format_map=ns_format_map,
              prefill_namespace=namespace,
              prefill_title=title,
@@ -544,17 +546,23 @@ async def create_page_submit(
         page, ver = await page_svc.create_page(db, namespace_name, data, author_id=user.id)
         rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
         ver.rendered = rendered
-        resp = RedirectResponse(url=f"/wiki/{namespace_name}/{page.slug}", status_code=303)
+        # Category description pages redirect back to the category page, not the wiki page
+        if namespace_name == "Category":
+            redirect_url = f"/category/{title}"
+        else:
+            redirect_url = f"/wiki/{namespace_name}/{page.slug}"
+        resp = RedirectResponse(url=redirect_url, status_code=303)
         _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
         return resp
     except HTTPException as e:
-        namespaces = await ns_svc.list_namespaces(db)
-        ns_format_map = {ns.name: ns.default_format for ns in namespaces}
+        all_namespaces = await ns_svc.list_namespaces(db)
+        visible_namespaces = [ns for ns in all_namespaces if ns.name != "Category"]
+        ns_format_map = {ns.name: ns.default_format for ns in all_namespaces}
         resp = templates.TemplateResponse(
             request,
             "page_create.html",
             _ctx(user,
-                 namespaces=namespaces,
+                 namespaces=visible_namespaces,
                  ns_format_map=ns_format_map,
                  prefill_namespace=namespace_name,
                  prefill_title=title,

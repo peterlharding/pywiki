@@ -57,7 +57,7 @@ def _render_rst(content: str) -> str:
     from docutils.core import publish_parts
     parts = publish_parts(
         source=content,
-        writer_name="html5",
+        writer="html5",
         settings_overrides={
             "halt_level": 5,
             "report_level": 5,
@@ -330,6 +330,36 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
         out.append(f'<div class="wiki-categories"><strong>Categories:</strong> {cat_links}</div>')
 
     return "\n".join(out)
+
+
+# -----------------------------------------------------------------------------
+# Category extraction (all formats)
+# -----------------------------------------------------------------------------
+
+_MD_CATEGORY_RE  = re.compile(r"\[\[Category:([^\]]+)\]\]", re.IGNORECASE)
+_RST_CATEGORY_RE = re.compile(r"\.\.\s+category::\s*(.+)", re.IGNORECASE)
+
+
+def extract_categories(content: str, fmt: str) -> list[str]:
+    """Return a sorted, deduplicated list of category names declared in *content*.
+
+    Markdown / Wikitext : ``[[Category:Name]]``
+    RST                 : ``.. category:: Name``
+    """
+    fmt = fmt.lower()
+    names: list[str] = []
+    if fmt in ("markdown", "wikitext"):
+        names = [m.group(1).strip() for m in _MD_CATEGORY_RE.finditer(content)]
+    elif fmt == "rst":
+        names = [m.group(1).strip() for m in _RST_CATEGORY_RE.finditer(content)]
+    seen: set[str] = set()
+    result: list[str] = []
+    for n in names:
+        key = n.lower()
+        if key not in seen:
+            seen.add(key)
+            result.append(n)
+    return sorted(result, key=str.lower)
 
 
 # -----------------------------------------------------------------------------

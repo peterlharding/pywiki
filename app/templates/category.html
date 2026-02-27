@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Category: {{ category_name }} — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Category: {{ category_name }}</h1>
+</div>
+
+{% if pages %}
+<p class="search-count">
+  {{ pages|length }} page{{ 's' if pages|length != 1 else '' }} in this category
+</p>
+
+{% set ns_groups = {} %}
+{% for p in pages %}
+  {% if p.namespace not in ns_groups %}
+    {% set _ = ns_groups.update({p.namespace: []}) %}
+  {% endif %}
+  {% set _ = ns_groups[p.namespace].append(p) %}
+{% endfor %}
+
+{% for ns_name, ns_pages in ns_groups.items() | sort %}
+<div class="category-group">
+  <h2><a href="/wiki/{{ ns_name }}">{{ ns_name }}</a></h2>
+  <table class="wiki-table">
+    <thead>
+      <tr>
+        <th>Page</th>
+        <th>Format</th>
+        <th>Author</th>
+        <th>Last edited</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in ns_pages %}
+      <tr>
+        <td><a href="/wiki/{{ p.namespace }}/{{ p.slug }}">{{ p.title }}</a></td>
+        <td><span class="badge badge-{{ p.format }}">{{ p.format }}</span></td>
+        <td class="ts">{{ p.author }}</td>
+        <td class="ts">{{ p.updated_at.strftime('%Y-%m-%d %H:%M') if p.updated_at else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+
+{% else %}
+<p class="muted">No pages are currently tagged with this category.</p>
+{% endif %}
+
+{% endblock %}

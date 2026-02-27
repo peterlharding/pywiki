@@ -417,6 +417,56 @@ async def search_pages(
 
 # -----------------------------------------------------------------------------
 
+async def get_pages_in_category(
+    db: AsyncSession,
+    category_name: str,
+) -> list[dict]:
+    """Return all pages whose latest version content contains [[Category:name]].
+
+    Case-insensitive match.  Returns dicts with: namespace, title, slug,
+    version, format, author, updated_at — sorted alphabetically by title.
+    """
+    import re as _re
+    pattern = _re.compile(
+        r"\[\[Category:" + _re.escape(category_name) + r"\]\]",
+        _re.IGNORECASE,
+    )
+
+    max_ver_sub = (
+        select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
+        .group_by(PageVersion.page_id)
+        .subquery()
+    )
+    q = (
+        select(Page, PageVersion, Namespace, User)
+        .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
+        .join(
+            PageVersion,
+            (PageVersion.page_id == Page.id)
+            & (PageVersion.version == max_ver_sub.c.max_ver),
+        )
+        .join(Namespace, Namespace.id == Page.namespace_id)
+        .outerjoin(User, User.id == PageVersion.author_id)
+        .order_by(Page.title)
+    )
+    result = await db.execute(q)
+    rows = result.all()
+
+    return [
+        {
+            "namespace": ns.name,
+            "title": p.title,
+            "slug": p.slug,
+            "version": v.version,
+            "format": v.format,
+            "author": u.username if u else "anonymous",
+            "updated_at": v.created_at,
+        }
+        for p, v, ns, u in rows
+        if pattern.search(v.content)
+    ]
+
+
 async def get_recent_changes(
     db: AsyncSession,
     limit: int = 50,

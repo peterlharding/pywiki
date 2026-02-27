@@ -267,6 +267,30 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .badge-rst      { background: #fff3e0; border-color: #ffcc80; color: #e65100; }
 .badge-wikitext { background: #e8eaf6; border-color: #9fa8da; color: #283593; }
 
+/* ─── Categories ─────────────────────────────────────────────────────────── */
+
+.wiki-categories-bar {
+  margin-top: 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+  border-radius: 0 0 4px 4px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.wiki-categories-bar strong { color: var(--text); margin-right: 0.4rem; }
+.category-link { color: var(--accent); }
+.category-link:hover { text-decoration: underline; }
+
+.category-group { margin-bottom: 2rem; }
+.category-group h2 { font-size: 1.15rem; margin-bottom: 0.75rem; }
+
+/* ─── Special pages ──────────────────────────────────────────────────────── */
+
+.special-list { list-style: none; }
+.special-list li { padding: 0.3rem 0; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+.special-list li:last-child { border-bottom: none; }
+
 /* ─── Recent Changes ─────────────────────────────────────────────────────── */
 
 .rc-filters { margin-bottom: 1.25rem; }

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ page.title }} — {{ site_name }}</title>
+  <style>
+    body { font-family: Georgia, "Times New Roman", serif; font-size: 12pt; color: #000; background: #fff; margin: 2cm; }
+    h1 { font-size: 1.8rem; border-bottom: 2px solid #000; padding-bottom: 0.3rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.4rem; border-bottom: 1px solid #555; margin: 1.2em 0 0.4em; }
+    h3 { font-size: 1.15rem; margin: 1em 0 0.3em; }
+    p  { margin: 0.6em 0; line-height: 1.6; }
+    a  { color: #000; text-decoration: underline; }
+    pre, code { font-family: monospace; font-size: 10pt; background: #f5f5f5; }
+    pre { padding: 0.5rem; border: 1px solid #ccc; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    table th, table td { border: 1px solid #999; padding: 0.3rem 0.6rem; }
+    table th { background: #eee; }
+    hr { border: none; border-top: 1px solid #999; margin: 1.2rem 0; }
+    .print-meta { font-size: 0.85rem; color: #555; margin-bottom: 1rem; }
+    .print-categories { margin-top: 1.5rem; padding-top: 0.5rem; border-top: 1px solid #ccc; font-size: 0.85rem; }
+    .no-print { display: none; }
+    @media print {
+      .no-print { display: none !important; }
+    }
+    @media screen {
+      body { max-width: 800px; margin: 2rem auto; padding: 1rem; }
+      .no-print { display: block; margin-bottom: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="no-print">
+  <a href="/wiki/{{ namespace_name }}/{{ page.slug }}">&larr; Back to page</a>
+  &nbsp;&nbsp;
+  <button onclick="window.print()">🖨️ Print</button>
+</div>
+
+<h1>{{ page.title }}</h1>
+
+<div class="print-meta">
+  <strong>{{ site_name }}</strong> &mdash;
+  Namespace: {{ namespace_name }} &middot;
+  Version: {{ ver.version }} &middot;
+  Author: {{ ver.author.username if ver.author else '—' }} &middot;
+  {{ ver.created_at.strftime('%Y-%m-%d %H:%M') }}
+</div>
+
+<div class="wiki-content">
+  {{ rendered | safe }}
+</div>
+
+{% if categories %}
+<div class="print-categories">
+  <strong>Categories:</strong>
+  {{ categories | join(' · ') }}
+</div>
+{% endif %}
+
+</body>
+</html>

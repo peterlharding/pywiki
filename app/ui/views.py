@@ -41,7 +41,7 @@ from app.core.security import (
 from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
-from app.services.renderer import render as render_markup
+from app.services.renderer import render as render_markup, extract_categories
 from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
 )
@@ -70,11 +70,10 @@ async def _current_user(request: Request, db: AsyncSession):
     return user, new_token
 
 
-def _ctx(request: Request, user, **extra) -> dict:
-    """Base template context."""
+def _ctx(user, **extra) -> dict:
+    """Base template context (request passed separately as first arg to TemplateResponse)."""
     settings = get_settings()
     return {
-        "request": request,
         "user": user,
         "site_name": settings.site_name,
         "app_version": settings.app_version,
@@ -127,8 +126,9 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     namespaces = await ns_svc.list_namespaces(db)
 
     resp = templates.TemplateResponse(
+        request,
         "home.html",
-        _ctx(request, user,
+        _ctx(user,
              featured_page=featured_page,
              recent=recent,
              namespaces=namespaces),
@@ -152,12 +152,36 @@ async def recent_changes(
     changes = await page_svc.get_recent_changes(db, limit=min(limit, 200), namespace_name=namespace)
     namespaces = await ns_svc.list_namespaces(db)
     resp = templates.TemplateResponse(
+        request,
         "recent_changes.html",
-        _ctx(request, user,
+        _ctx(user,
              changes=changes,
              namespaces=namespaces,
              selected_namespace=namespace,
              limit=limit),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Category index
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/category/{category_name}", response_class=HTMLResponse)
+async def category_index(
+    request: Request,
+    category_name: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    pages = await page_svc.get_pages_in_category(db, category_name)
+    resp = templates.TemplateResponse(
+        request,
+        "category.html",
+        _ctx(user,
+             category_name=category_name,
+             pages=pages),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
@@ -179,8 +203,9 @@ async def namespace_index(
     count = await ns_svc.get_page_count(db, ns.id)
 
     resp = templates.TemplateResponse(
+        request,
         "namespace.html",
-        _ctx(request, user, ns=ns, pages=pages, page_count=count),
+        _ctx(user, ns=ns, pages=pages, page_count=count),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
@@ -207,8 +232,9 @@ async def view_page(
         if e.status_code == 404:
             # Page doesn't exist — offer to create it
             return templates.TemplateResponse(
+                request,
                 "page_not_found.html",
-                _ctx(request, user, namespace_name=namespace_name, slug=slug),
+                _ctx(user, namespace_name=namespace_name, slug=slug),
                 status_code=404,
             )
         raise
@@ -223,14 +249,18 @@ async def view_page(
         if version is None:
             ver.rendered = rendered
 
+    categories = extract_categories(ver.content, ver.format)
+
     resp = templates.TemplateResponse(
+        request,
         "page_view.html",
-        _ctx(request, user,
+        _ctx(user,
              page=page,
              ver=ver,
              rendered=rendered,
              namespace_name=namespace_name,
-             viewing_version=version),
+             viewing_version=version,
+             categories=categories),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp
@@ -254,8 +284,9 @@ async def edit_page_form(
     page, ver = await page_svc.get_page(db, namespace_name, slug)
 
     resp = templates.TemplateResponse(
+        request,
         "page_edit.html",
-        _ctx(request, user,
+        _ctx(user,
              page=page,
              ver=ver,
              namespace_name=namespace_name,
@@ -291,8 +322,9 @@ async def edit_page_submit(
     except HTTPException as e:
         page, ver_old = await page_svc.get_page(db, namespace_name, slug)
         resp = templates.TemplateResponse(
+            request,
             "page_edit.html",
-            _ctx(request, user,
+            _ctx(user,
                  page=page,
                  ver=ver_old,
                  namespace_name=namespace_name,
@@ -319,8 +351,9 @@ async def page_history(
     versions = await page_svc.get_page_history(db, namespace_name, slug)
 
     resp = templates.TemplateResponse(
+        request,
         "page_history.html",
-        _ctx(request, user,
+        _ctx(user,
              page=page,
              versions=versions,
              namespace_name=namespace_name),
@@ -347,8 +380,9 @@ async def page_diff(
     diff = await page_svc.get_diff(db, namespace_name, slug, from_ver, to_ver)
 
     resp = templates.TemplateResponse(
+        request,
         "page_diff.html",
-        _ctx(request, user,
+        _ctx(user,
              page=page,
              diff=diff,
              from_ver=from_ver,
@@ -375,8 +409,9 @@ async def create_page_form(
         return _login_redirect("/create")
     namespaces = await ns_svc.list_namespaces(db)
     resp = templates.TemplateResponse(
+        request,
         "page_create.html",
-        _ctx(request, user,
+        _ctx(user,
              namespaces=namespaces,
              prefill_namespace=namespace,
              prefill_title=title,
@@ -412,8 +447,9 @@ async def create_page_submit(
     except HTTPException as e:
         namespaces = await ns_svc.list_namespaces(db)
         resp = templates.TemplateResponse(
+            request,
             "page_create.html",
-            _ctx(request, user,
+            _ctx(user,
                  namespaces=namespaces,
                  prefill_namespace=namespace_name,
                  prefill_title=title,
@@ -441,8 +477,9 @@ async def search_view(
         results = await page_svc.search_pages(db, q, namespace_name=namespace, limit=50)
     namespaces = await ns_svc.list_namespaces(db)
     resp = templates.TemplateResponse(
+        request,
         "search.html",
-        _ctx(request, user,
+        _ctx(user,
              q=q or "",
              results=results,
              namespaces=namespaces,
@@ -466,8 +503,9 @@ async def login_form(
     if user:
         return RedirectResponse(url=next, status_code=302)
     return templates.TemplateResponse(
+        request,
         "login.html",
-        _ctx(request, user, next=next, error=None),
+        _ctx(user, next=next, error=None),
     )
 
 
@@ -483,8 +521,9 @@ async def login_submit(
         user = await authenticate_user(db, username, password)
     except HTTPException:
         return templates.TemplateResponse(
+            request,
             "login.html",
-            _ctx(request, None, next=next, error="Invalid username or password"),
+            _ctx(None, next=next, error="Invalid username or password"),
             status_code=401,
         )
 
@@ -522,14 +561,15 @@ async def register_form(request: Request, db: AsyncSession = Depends(get_db)):
     settings = get_settings()
     if not settings.allow_registration:
         return templates.TemplateResponse(
+            request,
             "error.html",
-            _ctx(request, None, message="Public registration is disabled."),
+            _ctx(None, message="Public registration is disabled."),
             status_code=403,
         )
     user, _ = await _current_user(request, db)
     if user:
         return RedirectResponse(url="/", status_code=302)
-    return templates.TemplateResponse("register.html", _ctx(request, user, error=None))
+    return templates.TemplateResponse(request, "register.html", _ctx(user, error=None))
 
 
 @router.post("/register", response_class=HTMLResponse)
@@ -558,8 +598,9 @@ async def register_submit(
         if hasattr(e, "detail"):
             error_msg = e.detail
         return templates.TemplateResponse(
+            request,
             "register.html",
-            _ctx(request, None, error=error_msg),
+            _ctx(None, error=error_msg),
             status_code=400,
         )
 
@@ -581,6 +622,104 @@ async def register_submit(
         samesite="lax",
     )
     return response
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Special pages
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special", response_class=HTMLResponse)
+async def special_pages(request: Request, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    settings = get_settings()
+
+    from sqlalchemy import func, select as sa_select
+    from app.models import Page, PageVersion, User as UserModel
+
+    total_pages    = (await db.execute(sa_select(func.count()).select_from(Page))).scalar_one()
+    total_versions = (await db.execute(sa_select(func.count()).select_from(PageVersion))).scalar_one()
+    total_users    = (await db.execute(sa_select(func.count()).select_from(UserModel))).scalar_one()
+    namespaces = await ns_svc.list_namespaces(db)
+
+    # Collect all declared categories from latest versions
+    max_ver_sub = (
+        sa_select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
+        .group_by(PageVersion.page_id)
+        .subquery()
+    )
+    q = (
+        sa_select(PageVersion.content, PageVersion.format)
+        .join(max_ver_sub,
+              (PageVersion.page_id == max_ver_sub.c.page_id)
+              & (PageVersion.version == max_ver_sub.c.max_ver))
+        .where(PageVersion.content.ilike("%[[Category:%"))
+    )
+    rows = (await db.execute(q)).all()
+    cat_set: set[str] = set()
+    for content, fmt in rows:
+        for c in extract_categories(content, fmt):
+            cat_set.add(c)
+    all_categories = sorted(cat_set, key=str.lower)
+
+    resp = templates.TemplateResponse(
+        request,
+        "special_pages.html",
+        _ctx(user,
+             total_pages=total_pages,
+             total_versions=total_versions,
+             total_users=total_users,
+             namespaces=namespaces,
+             all_categories=all_categories),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Printable version
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/wiki/{namespace_name}/{slug}/print", response_class=HTMLResponse)
+async def print_page(
+    request: Request,
+    namespace_name: str,
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    settings = get_settings()
+
+    try:
+        page, ver = await page_svc.get_page(db, namespace_name, slug)
+    except HTTPException as e:
+        if e.status_code == 404:
+            return templates.TemplateResponse(
+                request,
+                "page_not_found.html",
+                _ctx(user, namespace_name=namespace_name, slug=slug),
+                status_code=404,
+            )
+        raise
+
+    rendered = ver.rendered or render_markup(
+        ver.content, ver.format,
+        namespace=namespace_name,
+        base_url=settings.base_url,
+    )
+    categories = extract_categories(ver.content, ver.format)
+
+    resp = templates.TemplateResponse(
+        request,
+        "page_print.html",
+        _ctx(user,
+             page=page,
+             ver=ver,
+             rendered=rendered,
+             namespace_name=namespace_name,
+             categories=categories),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
 
 
 # -----------------------------------------------------------------------------

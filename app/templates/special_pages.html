@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Special Pages — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Special Pages</h1>
+</div>
+
+<div class="two-col">
+
+  <div>
+    <h2>Statistics</h2>
+    <table class="wiki-table" style="margin-bottom:1.5rem;">
+      <tbody>
+        <tr><td>Total pages</td><td><strong>{{ total_pages }}</strong></td></tr>
+        <tr><td>Total revisions</td><td><strong>{{ total_versions }}</strong></td></tr>
+        <tr><td>Registered users</td><td><strong>{{ total_users }}</strong></td></tr>
+        <tr><td>Namespaces</td><td><strong>{{ namespaces|length }}</strong></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Maintenance</h2>
+    <ul class="special-list">
+      <li><a href="/recent">Recent changes</a> — latest edits across all namespaces</li>
+      <li><a href="/search">Search</a> — full-text search</li>
+      <li><a href="/create">Create page</a> — start a new page</li>
+      {% if user and user.is_admin %}
+      <li><a href="/admin">Admin panel</a> — site administration</li>
+      {% endif %}
+    </ul>
+  </div>
+
+  <div>
+    <h2>Namespaces</h2>
+    <ul class="special-list">
+      {% for ns in namespaces %}
+      <li><a href="/wiki/{{ ns.name }}">{{ ns.name }}</a>
+        <span class="badge badge-{{ ns.default_format }}">{{ ns.default_format }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+
+    {% if all_categories %}
+    <h2 style="margin-top:1.5rem;">All categories</h2>
+    <ul class="special-list">
+      {% for cat in all_categories %}
+      <li><a href="/category/{{ cat }}">{{ cat }}</a></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

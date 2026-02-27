@@ -43,6 +43,10 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## Search
 
+- [x] **Category pages** — `[[Category:Name]]` tags on any page (all three formats)
+      create a auto-generated `/category/{name}` page listing all tagged pages
+      alphabetically, with namespace and last-edited date. Category links appear
+      in a footer bar on every page that declares them.
 - [ ] **Full-text search index** — replace `ILIKE` with PostgreSQL `tsvector` / FTS5
       for SQLite when running in production.
 - [ ] **Search by category** — `Category:Foo` query syntax.

@@ -11,6 +11,35 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.1] — 2026-02-27
+
+### Added
+
+#### Categories
+- `[[Category:Name]]` tag support in all three formats (Markdown, Wikitext, RST `.. category::`)
+- Auto-generated `/category/{name}` page listing all tagged pages alphabetically, grouped by namespace
+- Category footer bar on every page view with clickable links to the category index
+- `extract_categories(content, fmt)` renderer utility function
+- `get_pages_in_category(db, name)` page service function
+
+#### UI
+- **Tools** sidebar section on page view: Printable version, Special pages, Upload file (logged-in)
+- **Special Pages** hub (`/special`) — site statistics, namespace list, all-categories index
+- **Printable version** (`/wiki/{ns}/{slug}/print`) — standalone print-optimised page with `@media print` CSS
+- Recent Changes link added to base sidebar navigation
+- Special Pages link added to base sidebar navigation
+
+#### Tests
+- `tests/test_04_features.py` — 25 tests covering `extract_categories()` unit tests, category page,
+  recent changes, special pages, and printable version
+
+### Fixed
+- Starlette `TemplateResponse` deprecation — `request` now passed as first positional argument across
+  all 21 call sites in `views.py`; `_ctx()` helper simplified accordingly
+- Docutils `writer_name` deprecation — replaced with `writer=` keyword argument in `_render_rst()`
+
+---
+
 ## [0.1.0] — 2026-02-27
 
 ### Added
@@ -78,7 +107,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/your-org/pywiki/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/your-org/pywiki/releases/tag/v0.1.0
 
 <!-- When cutting the next release:

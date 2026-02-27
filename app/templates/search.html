@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Search{% if q %}: {{ q }}{% endif %} — {{ site_name }}{% endblock %}
+
+{% block sidebar_extra %}
+<div class="sidebar-section">
+  <h3>Filter by namespace</h3>
+  <ul>
+    <li>
+      <a href="/search{% if q %}?q={{ q }}{% endif %}"
+         class="{% if not selected_namespace %}active-filter{% endif %}">All namespaces</a>
+    </li>
+    {% for ns in namespaces %}
+    <li>
+      <a href="/search?q={{ q }}&namespace={{ ns.name }}"
+         class="{% if selected_namespace == ns.name %}active-filter{% endif %}">
+        {{ ns.name }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Search</h1>
+</div>
+
+<form action="/search" method="get" class="search-form-full">
+  {% if selected_namespace %}
+  <input type="hidden" name="namespace" value="{{ selected_namespace }}" />
+  {% endif %}
+  <div class="search-input-row">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search pages…"
+           autofocus autocomplete="off" style="flex:1;" />
+    <button class="btn btn-primary" type="submit">Search</button>
+  </div>
+</form>
+
+{% if q %}
+  {% if results %}
+  <p class="search-count">{{ results | length }} result(s) for <strong>"{{ q }}"</strong>
+    {% if selected_namespace %}in namespace <em>{{ selected_namespace }}</em>{% endif %}
+  </p>
+  <ul class="search-results">
+    {% for r in results %}
+    <li class="search-result">
+      <div class="result-title">
+        <a href="/wiki/{{ r.namespace }}/{{ r.slug }}">{{ r.title }}</a>
+        <span class="muted"> — <a href="/wiki/{{ r.namespace }}">{{ r.namespace }}</a></span>
+      </div>
+      <div class="result-snippet">{{ r.snippet }}</div>
+      <div class="result-meta muted">Updated: {{ r.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No results found for <strong>"{{ q }}"</strong>.</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

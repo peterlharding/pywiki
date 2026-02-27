@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}History: {{ page.title }} — {{ site_name }}{% endblock %}
+
+{% block sidebar_extra %}
+<div class="sidebar-section">
+  <h3>Page tools</h3>
+  <ul>
+    <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}">← View page</a></li>
+    {% if user %}
+    <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}/edit">✏️ Edit</a></li>
+    {% endif %}
+  </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Revision history: {{ page.title }}</h1>
+</div>
+
+<form id="diff-form" action="" method="get">
+  <table class="wiki-table history-table">
+    <thead>
+      <tr>
+        <th colspan="2">Compare</th>
+        <th>Ver</th>
+        <th>Format</th>
+        <th>Date</th>
+        <th>Author</th>
+        <th>Comment</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in versions %}
+      <tr>
+        <td><input type="radio" name="from_ver" value="{{ v.version }}"
+                   {% if loop.index == 2 %}checked{% endif %} /></td>
+        <td><input type="radio" name="to_ver" value="{{ v.version }}"
+                   {% if loop.first %}checked{% endif %} /></td>
+        <td>
+          <a href="/wiki/{{ namespace_name }}/{{ page.slug }}?version={{ v.version }}">
+            {{ v.version }}
+          </a>
+          {% if loop.first %}<span class="badge">current</span>{% endif %}
+        </td>
+        <td><span class="badge badge-{{ v.format }}">{{ v.format }}</span></td>
+        <td class="ts">{{ v.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        <td>{{ v.author.username if v.author else '—' }}</td>
+        <td>{{ v.comment or '—' }}</td>
+        <td>
+          <a href="/wiki/{{ namespace_name }}/{{ page.slug }}?version={{ v.version }}">view</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="muted">No versions found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if versions | length >= 2 %}
+  <div class="form-actions">
+    <button class="btn btn-primary" type="button" onclick="goDiff()">Compare selected versions</button>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const WIKI_NS   = "{{ namespace_name }}";
+  const WIKI_SLUG = "{{ page.slug }}";
+
+  function goDiff() {
+    const from = document.querySelector('input[name="from_ver"]:checked');
+    const to   = document.querySelector('input[name="to_ver"]:checked');
+    if (!from || !to || from.value === to.value) {
+      alert('Please select two different versions to compare.');
+      return;
+    }
+    const a = Math.min(parseInt(from.value), parseInt(to.value));
+    const b = Math.max(parseInt(from.value), parseInt(to.value));
+    window.location.href = '/wiki/' + WIKI_NS + '/' + WIKI_SLUG + '/diff/' + a + '/' + b;
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Diff v{{ from_ver }}→v{{ to_ver }}: {{ page.title }} — {{ site_name }}{% endblock %}
+
+{% block sidebar_extra %}
+<div class="sidebar-section">
+  <h3>Page tools</h3>
+  <ul>
+    <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}">← View current</a></li>
+    <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}/history">📜 History</a></li>
+  </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>
+    Diff: {{ page.title }}
+    <small>v{{ from_ver }} → v{{ to_ver }}</small>
+  </h1>
+</div>
+
+<div class="diff-legend">
+  <span class="diff-insert-sample">+ Added</span>
+  <span class="diff-delete-sample">− Removed</span>
+  <span class="diff-equal-sample">  Unchanged</span>
+</div>
+
+<div class="diff-view">
+  {% for chunk in diff %}
+  <div class="diff-chunk diff-{{ chunk.type }}">
+    {% for line in chunk.lines %}
+    <div class="diff-line diff-{{ chunk.type }}">
+      <span class="diff-marker">
+        {% if chunk.type == 'insert' %}+
+        {% elif chunk.type == 'delete' %}-
+        {% else %}&nbsp;
+        {% endif %}
+      </span>
+      <span class="diff-text">{{ line }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No differences found between these versions.</p>
+  {% endfor %}
+</div>
+{% endblock %}

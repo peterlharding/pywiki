@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Error — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="error-box">
+  <h1>Something went wrong</h1>
+  <p>{{ message }}</p>
+  <p><a href="/">← Return to home</a></p>
+</div>
+{% endblock %}

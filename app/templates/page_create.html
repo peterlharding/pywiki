@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block body_class %}editor-page{% endblock %}
+{% block title %}Create New Page — {{ site_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  body.editor-page .page-wrapper { max-width: 100%; padding: 1rem 1.5rem; }
+  body.editor-page .sidebar { display: none; }
+  body.editor-page .content { padding: 1.25rem 1.5rem; }
+
+  #source-editor { width: 100%; height: 60vh; min-height: 400px; font-family: monospace; font-size: 0.9rem; resize: vertical; }
+  .format-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .format-tab { padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; background: var(--bg); }
+  .format-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Create New Page</h1>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/create">
+
+  <div class="form-row">
+    <label for="namespace_name">Namespace <span class="required">*</span></label>
+    <select id="namespace_name" name="namespace_name" required>
+      {% for ns in namespaces %}
+      <option value="{{ ns.name }}" {% if ns.name == prefill_namespace %}selected{% endif %}>
+        {{ ns.name }} ({{ ns.default_format }})
+      </option>
+      {% else %}
+      <option disabled>No namespaces available — ask an admin to create one</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-row">
+    <label for="title">Page title <span class="required">*</span></label>
+    <input type="text" id="title" name="title" required maxlength="512"
+           value="{{ prefill_title or '' }}"
+           placeholder="e.g. Getting Started" />
+  </div>
+
+  <div class="form-row">
+    <label>Content format:</label>
+    <div class="format-tabs">
+      <button type="button" class="format-tab active" onclick="setFormat('markdown', this)">Markdown</button>
+      <button type="button" class="format-tab" onclick="setFormat('rst', this)">reStructuredText</button>
+      <button type="button" class="format-tab" onclick="setFormat('wikitext', this)">Wikitext</button>
+    </div>
+    <input type="hidden" name="fmt" id="fmt-input" value="markdown" />
+  </div>
+
+  <div class="form-row">
+    <label for="source-editor">Content</label>
+    <textarea id="source-editor" name="content" placeholder="Start writing your page content here…"></textarea>
+  </div>
+
+  <div class="form-row">
+    <label for="comment">Edit summary</label>
+    <input type="text" id="comment" name="comment" placeholder="Initial version"
+           maxlength="512" style="width:100%;" />
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">✅ Create page</button>
+    <a class="btn" href="/">Cancel</a>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function setFormat(fmt, btn) {
+    document.getElementById('fmt-input').value = fmt;
+    document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+</script>
+{% endblock %}

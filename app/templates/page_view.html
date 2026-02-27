@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} — {{ site_name }}{% endblock %}
+
+{% block sidebar_extra %}
+<div class="sidebar-section">
+  <h3>Page tools</h3>
+  <ul>
+    {% if user %}
+    <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}/edit">✏️ Edit</a></li>
+    {% endif %}
+    <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}/history">📜 History</a></li>
+    <li><a href="/api/v1/namespaces/{{ namespace_name }}/pages/{{ page.slug }}/raw">📄 Raw source</a></li>
+  </ul>
+</div>
+<div class="sidebar-section">
+  <h3>Page info</h3>
+  <ul>
+    <li><strong>Namespace:</strong> <a href="/wiki/{{ namespace_name }}">{{ namespace_name }}</a></li>
+    <li><strong>Format:</strong> <span class="badge badge-{{ ver.format }}">{{ ver.format }}</span></li>
+    <li><strong>Version:</strong> {{ ver.version }}</li>
+    <li><strong>Author:</strong> {{ ver.author.username if ver.author else '—' }}</li>
+    <li><strong>Updated:</strong> {{ ver.created_at.strftime('%Y-%m-%d %H:%M') }}</li>
+  </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if viewing_version %}
+<div class="version-banner">
+  Viewing version {{ viewing_version }} of this page.
+  <a href="/wiki/{{ namespace_name }}/{{ page.slug }}">View latest</a>
+</div>
+{% endif %}
+
+<div class="page-header">
+  <h1>{{ page.title }}</h1>
+  <div class="page-actions">
+    {% if user %}
+    <a class="btn btn-primary" href="/wiki/{{ namespace_name }}/{{ page.slug }}/edit">✏️ Edit</a>
+    {% endif %}
+    <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}/history">📜 History</a>
+  </div>
+</div>
+
+{% if ver.comment %}
+<p class="edit-comment muted"><em>{{ ver.comment }}</em></p>
+{% endif %}
+
+<div class="wiki-content">
+  {{ rendered | safe }}
+</div>
+{% endblock %}

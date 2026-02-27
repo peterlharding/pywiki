@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block body_class %}editor-page{% endblock %}
+{% block title %}Edit: {{ page.title }} — {{ site_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Full-width editor layout — override base page constraints */
+  body.editor-page .page-wrapper { max-width: 100%; padding: 1rem 1.5rem; }
+  body.editor-page .sidebar { display: none; }
+  body.editor-page .content { padding: 1.25rem 1.5rem; }
+
+  .editor-wrap { display: flex; gap: 1rem; }
+  .editor-pane { flex: 1; min-width: 0; }
+  #preview-pane { flex: 1; min-width: 0; border: 1px solid var(--border); padding: 1rem; border-radius: 4px; overflow-y: auto; max-height: 70vh; }
+  #source-editor { width: 100%; height: 70vh; min-height: 400px; font-family: monospace; font-size: 0.9rem; resize: vertical; }
+  .format-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .format-tab { padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; background: var(--bg); }
+  .format-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Edit: {{ page.title }}</h1>
+  <div class="page-actions">
+    <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}">← Cancel</a>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/wiki/{{ namespace_name }}/{{ page.slug }}/edit">
+
+  <div class="form-row">
+    <label>Content format:</label>
+    <div class="format-tabs">
+      <button type="button" class="format-tab {% if ver.format == 'markdown' %}active{% endif %}"
+              onclick="setFormat('markdown')">Markdown</button>
+      <button type="button" class="format-tab {% if ver.format == 'rst' %}active{% endif %}"
+              onclick="setFormat('rst')">reStructuredText</button>
+      <button type="button" class="format-tab {% if ver.format == 'wikitext' %}active{% endif %}"
+              onclick="setFormat('wikitext')">Wikitext</button>
+    </div>
+    <input type="hidden" name="fmt" id="fmt-input" value="{{ ver.format }}" />
+  </div>
+
+  <div class="editor-wrap">
+    <div class="editor-pane">
+      <label for="source-editor"><strong>Source</strong></label>
+      <textarea id="source-editor" name="content">{{ ver.content }}</textarea>
+    </div>
+    <div id="preview-pane">
+      <strong>Preview</strong>
+      <div id="preview-content" class="wiki-content"></div>
+    </div>
+  </div>
+
+  <div class="form-row" style="margin-top:1rem;">
+    <label for="comment">Edit summary:</label>
+    <input type="text" id="comment" name="comment" placeholder="Brief description of your changes…"
+           value="{{ ver.comment if ver.version > 1 else '' }}" maxlength="512" style="width:100%;" />
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">💾 Save changes</button>
+    <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}">Cancel</a>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function setFormat(fmt) {
+    document.getElementById('fmt-input').value = fmt;
+    document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+
+  // Live preview via API
+  let previewTimer = null;
+  const editor = document.getElementById('source-editor');
+  const previewContent = document.getElementById('preview-content');
+  const WIKI_NS   = "{{ namespace_name }}";
+  const WIKI_SLUG = "{{ page.slug }}";
+
+  async function updatePreview() {
+    const content = editor.value;
+    const fmt = document.getElementById('fmt-input').value;
+    const params = new URLSearchParams({ content: content, format: fmt, namespace: WIKI_NS });
+    try {
+      const res = await fetch('/api/v1/render?' + params.toString());
+      if (res.ok) {
+        const data = await res.json();
+        previewContent.innerHTML = data.html;
+      }
+    } catch (e) {
+      previewContent.innerHTML = '<em class="muted">Preview unavailable</em>';
+    }
+  }
+
+  editor.addEventListener('input', () => {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreview, 800);
+  });
+</script>
+{% endblock %}

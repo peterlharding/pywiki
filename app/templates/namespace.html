@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ns.name }} — {{ site_name }}{% endblock %}
+
+{% block sidebar_extra %}
+<div class="sidebar-section">
+  <h3>This namespace</h3>
+  <ul>
+    <li><strong>Format:</strong> {{ ns.default_format }}</li>
+    <li><strong>Pages:</strong> {{ page_count }}</li>
+  </ul>
+  {% if ns.description %}
+  <p class="muted">{{ ns.description }}</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Namespace: {{ ns.name }}</h1>
+  <div class="page-actions">
+    <a class="btn btn-primary" href="/create?namespace={{ ns.name }}">+ New Page</a>
+  </div>
+</div>
+
+{% if ns.description %}
+<p class="namespace-desc">{{ ns.description }}</p>
+{% endif %}
+
+{% if pages %}
+<table class="wiki-table">
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Format</th>
+      <th>Version</th>
+      <th>Last edited by</th>
+      <th>Updated</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in pages %}
+    <tr>
+      <td><a href="/wiki/{{ ns.name }}/{{ p.slug }}">{{ p.title }}</a></td>
+      <td><span class="badge badge-{{ p.format }}">{{ p.format }}</span></td>
+      <td>{{ p.version }}</td>
+      <td>{{ p.author_username or '—' }}</td>
+      <td class="ts">{{ p.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No pages in this namespace yet. <a href="/create?namespace={{ ns.name }}">Create one!</a></p>
+{% endif %}
+{% endblock %}

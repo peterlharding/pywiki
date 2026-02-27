@@ -11,6 +11,52 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.4] — 2026-02-27
+
+### Added
+
+#### User Profile Pages
+- New public route `GET /user/{username}` — user profile page, no login required
+- Shows display name, admin badge, disabled badge, member since date, total edit count
+- **Recent contributions table** — last 20 edits with page link, namespace, version, edit summary, and timestamp
+- "Showing N of M total edits" note when edit count exceeds the displayed list
+- "Edit profile" button visible to the user themselves or any admin
+- "Admin view" button (links to `/special/users/{username}`) visible to admins only
+- New template: `user_profile.html`
+- New service functions in `users.py`: `get_user_contributions()`, `get_user_edit_count()`
+
+#### Admin Create User
+- `GET/POST /special/users/create` — admin form to create a new user account directly
+- Fields: username, display name, email, password, admin checkbox
+- Errors re-render the form with pre-filled values (duplicate username/email)
+- "➕ Create user" button added to `/special/users` list header (admin only)
+- New template: `user_create.html`
+
+#### Author names linked to profiles site-wide
+- Page view sidebar Author field → `/user/{username}`
+- Page history Author column → `/user/{username}`
+- Recent changes Author column → `/user/{username}`
+- Home page recent changes Author column → `/user/{username}`
+- Category page Author column → `/user/{username}`
+- User list Username column → `/user/{username}` (was `/special/users/{username}`)
+- Anonymous edits shown as plain text (not linked)
+
+### Fixed
+- `UserUpdate` schema not imported at top level in `views.py` — caused `NameError` on profile edit submit
+- Pydantic `ValidationError` on invalid namespace name not caught in `ns_create_submit` — now returns HTTP 400 with form re-rendered instead of 500
+
+### Tests
+- **Test suite restructured** — `test_04_features.py` trimmed to categories/recent-changes/special-pages/printable only
+- `test_05_page_move.py` — extracted page move/rename tests (9 tests)
+- `test_06_redirects.py` — extracted redirect tests + 2 new (case-insensitive `#redirect`, version-view bypass) (6 tests)
+- `test_07_users_ui.py` — 19 new user management UI tests (list, view, edit, create)
+- `test_08_namespaces_ui.py` — 17 new namespace management UI tests (list, create, edit, delete)
+- `test_09_user_profile.py` — 18 new user profile tests (access, badges, edit button visibility, contributions, author links)
+- **Total: 123 tests** (was 67 at v0.1.3)
+
+
+---
+
 ## [0.1.3] — 2026-02-27
 
 ### Added

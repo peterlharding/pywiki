@@ -130,3 +130,43 @@ async def list_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[
 
 
 # -----------------------------------------------------------------------------
+
+async def get_user_contributions(
+    db: AsyncSession, user_id: str, limit: int = 20
+) -> list[dict]:
+    from sqlalchemy import select as sa_select, func
+    from app.models import PageVersion, Page, Namespace
+    result = await db.execute(
+        sa_select(PageVersion, Page, Namespace)
+        .join(Page, PageVersion.page_id == Page.id)
+        .join(Namespace, Page.namespace_id == Namespace.id)
+        .where(PageVersion.author_id == user_id)
+        .order_by(PageVersion.created_at.desc())
+        .limit(limit)
+    )
+    rows = result.all()
+    return [
+        {
+            "namespace": ns.name,
+            "slug": page.slug,
+            "title": page.title,
+            "version": ver.version,
+            "comment": ver.comment,
+            "created_at": ver.created_at,
+        }
+        for ver, page, ns in rows
+    ]
+
+
+# -----------------------------------------------------------------------------
+
+async def get_user_edit_count(db: AsyncSession, user_id: str) -> int:
+    from sqlalchemy import func
+    from app.models import PageVersion
+    result = await db.execute(
+        select(func.count()).select_from(PageVersion).where(PageVersion.author_id == user_id)
+    )
+    return result.scalar_one()
+
+
+# -----------------------------------------------------------------------------

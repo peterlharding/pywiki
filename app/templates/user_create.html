@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Create User — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Create User</h1>
+  <div class="page-actions">
+    <a class="btn" href="/special/users">← User list</a>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/special/users/create">
+
+  <div class="form-row">
+    <label for="username">Username <span class="required">*</span></label>
+    <input type="text" id="username" name="username" required maxlength="64"
+           value="{{ prefill.username or '' }}"
+           placeholder="e.g. jsmith" style="width:100%;" />
+  </div>
+
+  <div class="form-row">
+    <label for="display_name">Display name</label>
+    <input type="text" id="display_name" name="display_name" maxlength="128"
+           value="{{ prefill.display_name or '' }}"
+           placeholder="e.g. John Smith" style="width:100%;" />
+  </div>
+
+  <div class="form-row">
+    <label for="email">Email <span class="required">*</span></label>
+    <input type="email" id="email" name="email" required maxlength="256"
+           value="{{ prefill.email or '' }}"
+           placeholder="e.g. jsmith@example.com" style="width:100%;" />
+  </div>
+
+  <div class="form-row">
+    <label for="password">Password <span class="required">*</span></label>
+    <input type="password" id="password" name="password" required maxlength="128"
+           placeholder="Minimum 8 characters" style="width:100%;" />
+  </div>
+
+  <div class="form-row">
+    <label>
+      <input type="checkbox" name="is_admin" value="1"
+             {% if prefill.is_admin %}checked{% endif %} />
+      Admin privileges
+    </label>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">✅ Create user</button>
+    <a class="btn" href="/special/users">Cancel</a>
+  </div>
+
+</form>
+{% endblock %}

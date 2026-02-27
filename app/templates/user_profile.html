@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.display_name }} ({{ profile.username }}) — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ profile.display_name }}
+    {% if profile.is_admin %}<span class="badge badge-wikitext" style="font-size:0.7rem;vertical-align:middle;">admin</span>{% endif %}
+    {% if not profile.is_active %}<span class="badge" style="background:#888;color:#fff;font-size:0.7rem;vertical-align:middle;">disabled</span>{% endif %}
+  </h1>
+  <div class="page-actions">
+    {% if user and (user.username == profile.username or user.is_admin) %}
+    <a class="btn btn-primary" href="/special/users/{{ profile.username }}/edit">✏️ Edit profile</a>
+    {% endif %}
+    {% if user and user.is_admin %}
+    <a class="btn" href="/special/users/{{ profile.username }}">⚙ Admin view</a>
+    {% endif %}
+    <a class="btn" href="/special/users">← User list</a>
+  </div>
+</div>
+
+<div class="two-col" style="gap:2rem;align-items:flex-start;">
+
+  <div style="min-width:220px;max-width:280px;">
+    <table class="wiki-table">
+      <tbody>
+        <tr><td><strong>Username</strong></td><td>{{ profile.username }}</td></tr>
+        <tr><td><strong>Display name</strong></td><td>{{ profile.display_name }}</td></tr>
+        <tr><td><strong>Member since</strong></td><td>{{ profile.created_at.strftime('%d %b %Y') }}</td></tr>
+        <tr><td><strong>Total edits</strong></td><td>{{ edit_count }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="flex:1;">
+    <h2>Recent contributions</h2>
+    {% if contributions %}
+    <table class="wiki-table">
+      <thead>
+        <tr>
+          <th>Page</th>
+          <th>Ver</th>
+          <th>Summary</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in contributions %}
+        <tr>
+          <td>
+            <a href="/wiki/{{ c.namespace }}/{{ c.slug }}">{{ c.title }}</a>
+            <span class="muted" style="font-size:0.8rem;">{{ c.namespace }}</span>
+          </td>
+          <td class="muted" style="white-space:nowrap;">v{{ c.version }}</td>
+          <td>{{ c.comment or '<span class="muted">—</span>' }}</td>
+          <td class="ts muted" style="white-space:nowrap;">{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if edit_count > contributions|length %}
+    <p class="muted" style="margin-top:0.5rem;font-size:0.875rem;">
+      Showing {{ contributions|length }} of {{ edit_count }} total edits.
+    </p>
+    {% endif %}
+    {% else %}
+    <p class="muted">No contributions yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

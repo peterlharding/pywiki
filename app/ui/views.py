@@ -38,13 +38,14 @@ from app.core.security import (
     create_access_token, create_refresh_token,
     get_current_user_id_cookie, get_refreshed_user_id_cookie,
 )
-from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, NamespaceCreate, NamespaceUpdate
+from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, UserUpdate, NamespaceCreate, NamespaceUpdate
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
 from app.services.renderer import render as render_markup, extract_categories, parse_redirect
 from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
     list_users, get_user_by_username, update_user, set_admin, set_active,
+    get_user_contributions, get_user_edit_count,
 )
 
 
@@ -834,16 +835,18 @@ async def ns_create_submit(
     user, new_token = await _current_user(request, db)
     if not user or not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin only")
+    from pydantic import ValidationError as PydanticValidationError
     try:
         await ns_svc.create_namespace(db, NamespaceCreate(
             name=name, description=description, default_format=default_format
         ))
         resp = RedirectResponse(url="/special/namespaces", status_code=303)
-    except HTTPException as e:
+    except (HTTPException, PydanticValidationError) as e:
+        error_msg = e.detail if isinstance(e, HTTPException) else e.errors()[0]["msg"]
         resp = templates.TemplateResponse(
             request,
             "ns_manage.html",
-            _ctx(user, edit_mode=False, error=e.detail,
+            _ctx(user, edit_mode=False, error=error_msg,
                  prefill_name=name, prefill_description=description, prefill_format=default_format),
             status_code=400,
         )
@@ -916,6 +919,24 @@ async def ns_delete_submit(
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# User profile (public)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/user/{username}", response_class=HTMLResponse)
+async def user_profile(request: Request, username: str, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    profile = await get_user_by_username(db, username)
+    contributions = await get_user_contributions(db, profile.id)
+    edit_count = await get_user_edit_count(db, profile.id)
+    resp = templates.TemplateResponse(
+        request, "user_profile.html",
+        _ctx(user, profile=profile, contributions=contributions, edit_count=edit_count),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # User management
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -928,6 +949,55 @@ async def user_list_view(request: Request, db: AsyncSession = Depends(get_db)):
     resp = templates.TemplateResponse(
         request, "user_list.html", _ctx(user, users=users),
     )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.get("/special/users/create", response_class=HTMLResponse)
+async def user_create_form(request: Request, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    resp = templates.TemplateResponse(
+        request, "user_create.html",
+        _ctx(user, error=None, prefill={}),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/users/create", response_class=HTMLResponse)
+async def user_create_submit(
+    request: Request,
+    username: str     = Form(...),
+    display_name: str = Form(default=""),
+    email: str        = Form(...),
+    password: str     = Form(...),
+    is_admin: str     = Form(default=""),
+    db: AsyncSession  = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    try:
+        new_user = await create_user(db, UserCreate(
+            username=username,
+            display_name=display_name or username,
+            email=email,
+            password=password,
+        ))
+        if is_admin == "1":
+            await set_admin(db, username, True)
+        await db.commit()
+        resp = RedirectResponse(url=f"/special/users/{username}", status_code=303)
+    except HTTPException as e:
+        resp = templates.TemplateResponse(
+            request, "user_create.html",
+            _ctx(user, error=e.detail,
+                 prefill={"username": username, "display_name": display_name,
+                          "email": email, "is_admin": is_admin == "1"}),
+            status_code=400,
+        )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
 

@@ -7,6 +7,9 @@
 <div class="page-header">
   <h1>Users</h1>
   <div class="page-actions">
+    {% if user and user.is_admin %}
+    <a class="btn btn-primary" href="/special/users/create">➕ Create user</a>
+    {% endif %}
     <a class="btn" href="/special">← Special pages</a>
   </div>
 </div>
@@ -26,7 +29,7 @@
   <tbody>
     {% for u in users %}
     <tr>
-      <td><a href="/special/users/{{ u.username }}"><strong>{{ u.username }}</strong></a></td>
+      <td><a href="/user/{{ u.username }}"><strong>{{ u.username }}</strong></a></td>
       <td>{{ u.display_name }}</td>
       <td>{{ u.email if user and user.is_admin else '—' }}</td>
       <td>{% if u.is_admin %}<span class="badge badge-wikitext">admin</span>{% endif %}</td>

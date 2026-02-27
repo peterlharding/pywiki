@@ -37,7 +37,7 @@
       <tr>
         <td><a href="/wiki/{{ p.namespace }}/{{ p.slug }}">{{ p.title }}</a></td>
         <td><span class="badge badge-{{ p.format }}">{{ p.format }}</span></td>
-        <td class="ts">{{ p.author }}</td>
+        <td class="ts">{% if p.author and p.author != 'anonymous' %}<a href="/user/{{ p.author }}">{{ p.author }}</a>{% else %}{{ p.author }}{% endif %}</td>
         <td class="ts">{{ p.updated_at.strftime('%Y-%m-%d %H:%M') if p.updated_at else '—' }}</td>
       </tr>
       {% endfor %}

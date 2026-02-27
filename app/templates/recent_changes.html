@@ -64,7 +64,7 @@
         <span class="badge badge-{{ c.format }}">{{ c.format }}</span>
       </td>
       <td class="rc-comment">{{ c.comment or '—' }}</td>
-      <td class="ts">{{ c.author }}</td>
+      <td class="ts">{% if c.author and c.author != 'anonymous' %}<a href="/user/{{ c.author }}">{{ c.author }}</a>{% else %}{{ c.author }}{% endif %}</td>
       <td class="ts">{{ c.updated_at.strftime('%Y-%m-%d %H:%M') if c.updated_at else '—' }}</td>
       <td>
         <a class="btn" style="font-size:0.8rem;padding:0.15rem 0.5rem;"

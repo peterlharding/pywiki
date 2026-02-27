@@ -47,7 +47,7 @@
         </td>
         <td><span class="badge badge-{{ v.format }}">{{ v.format }}</span></td>
         <td class="ts">{{ v.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-        <td>{{ v.author.username if v.author else '—' }}</td>
+        <td>{% if v.author %}<a href="/user/{{ v.author.username }}">{{ v.author.username }}</a>{% else %}—{% endif %}</td>
         <td>{{ v.comment or '—' }}</td>
         <td>
           <a href="/wiki/{{ namespace_name }}/{{ page.slug }}?version={{ v.version }}">view</a>

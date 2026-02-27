@@ -30,7 +30,7 @@
     <li><strong>Namespace:</strong> <a href="/wiki/{{ namespace_name }}">{{ namespace_name }}</a></li>
     <li><strong>Format:</strong> <span class="badge badge-{{ ver.format }}">{{ ver.format }}</span></li>
     <li><strong>Version:</strong> {{ ver.version }}</li>
-    <li><strong>Author:</strong> {{ ver.author.username if ver.author else '—' }}</li>
+    <li><strong>Author:</strong> {% if ver.author %}<a href="/user/{{ ver.author.username }}">{{ ver.author.username }}</a>{% else %}—{% endif %}</li>
     <li><strong>Updated:</strong> {{ ver.created_at.strftime('%Y-%m-%d %H:%M') }}</li>
   </ul>
 </div>

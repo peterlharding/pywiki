@@ -46,7 +46,7 @@
         <td><a href="/wiki/{{ item.namespace }}/{{ item.slug }}">{{ item.title }}</a></td>
         <td><a href="/wiki/{{ item.namespace }}">{{ item.namespace }}</a></td>
         <td>{{ item.version }}</td>
-        <td>{{ item.author }}</td>
+        <td>{% if item.author and item.author != 'anonymous' %}<a href="/user/{{ item.author }}">{{ item.author }}</a>{% else %}{{ item.author }}{% endif %}</td>
         <td class="ts">{{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
       </tr>
       {% endfor %}

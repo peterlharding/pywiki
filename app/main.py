@@ -104,7 +104,7 @@ async def _seed_defaults() -> None:
                     comment="Initial welcome page",
                 )
                 session.add(version)
-                await session.commit()
+            await session.commit()
         except Exception:
             await session.rollback()
 

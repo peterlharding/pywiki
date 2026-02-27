@@ -80,3 +80,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [Unreleased]: https://github.com/your-org/pywiki/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/your-org/pywiki/releases/tag/v0.1.0
+
+<!-- When cutting the next release:
+  1. Rename [Unreleased] to [X.Y.Z] — YYYY-MM-DD
+  2. Add a new empty [Unreleased] section above it
+  3. Add [X.Y.Z]: compare link below
+  4. Update pyproject.toml version
+  5. git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z
+-->

@@ -14,7 +14,7 @@ dev:
 	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 test:
-	pytest tests/ -v
+	PYTHONUNBUFFERED=1 .venv/bin/python -u -m pytest tests/
 
 lint:
 	ruff check app/ tests/

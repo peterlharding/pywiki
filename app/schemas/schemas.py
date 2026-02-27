@@ -166,6 +166,8 @@ class PageUpdate(BaseModel):
 
 class PageRename(BaseModel):
     new_title: str = Field(..., min_length=1, max_length=512)
+    reason: str = Field(default="", max_length=512)
+    leave_redirect: bool = Field(default=False)
 
 
 # -----------------------------------------------------------------------------

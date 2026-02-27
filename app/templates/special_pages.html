@@ -41,13 +41,14 @@
       {% endfor %}
     </ul>
 
-    {% if all_categories %}
-    <h2 style="margin-top:1.5rem;">All categories</h2>
+    <h2 style="margin-top:1.5rem;">Categories</h2>
     <ul class="special-list">
-      {% for cat in all_categories %}
-      <li><a href="/category/{{ cat }}">{{ cat }}</a></li>
-      {% endfor %}
+      <li><a href="/special/categories">All categories</a> — alphabetical list with page counts</li>
     </ul>
+    {% if all_categories %}
+    <p class="muted" style="font-size:0.875rem;margin-top:0.5rem;">
+      {{ all_categories|length }} categor{{ 'y' if all_categories|length == 1 else 'ies' }} currently in use.
+    </p>
     {% endif %}
   </div>
 

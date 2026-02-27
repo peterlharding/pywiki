@@ -207,19 +207,77 @@ async def rename_page(
     ns = await get_namespace_by_name(db, namespace_name)
     page = await _get_page(db, ns.id, slug)
 
-    new_slug = _slugify(data.new_title)
-    conflict = await db.execute(
-        select(Page).where(Page.namespace_id == ns.id, Page.slug == new_slug)
-    )
-    if conflict.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"A page with title '{data.new_title}' already exists",
+    old_slug  = page.slug
+    old_title = page.title
+    new_slug  = _slugify(data.new_title)
+
+    if new_slug != old_slug:
+        conflict = await db.execute(
+            select(Page).where(Page.namespace_id == ns.id, Page.slug == new_slug)
         )
+        if conflict.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A page with title '{data.new_title}' already exists",
+            )
 
     page.title = data.new_title
     page.slug  = new_slug
-    await db.flush()
+
+    # Record the rename as a new version on the page so it appears in history
+    if old_slug != new_slug or old_title != data.new_title:
+        latest = await db.execute(
+            select(func.max(PageVersion.version)).where(PageVersion.page_id == page.id)
+        )
+        next_ver = (latest.scalar() or 0) + 1
+        reason_text = data.reason.strip() if data.reason else ""
+        comment = f"Renamed from '{old_title}' to '{data.new_title}'"
+        if reason_text:
+            comment += f": {reason_text}"
+        # Carry forward the current content/format from the most recent version
+        last_ver_q = await db.execute(
+            select(PageVersion)
+            .where(PageVersion.page_id == page.id)
+            .order_by(PageVersion.version.desc())
+            .limit(1)
+        )
+        last_ver = last_ver_q.scalar_one_or_none()
+        content = last_ver.content if last_ver else ""
+        fmt     = last_ver.format  if last_ver else "markdown"
+        rename_ver = PageVersion(
+            page_id=page.id,
+            version=next_ver,
+            content=content,
+            format=fmt,
+            comment=comment,
+            author_id=author_id,
+        )
+        db.add(rename_ver)
+
+    # Optionally leave a redirect stub at the old slug
+    if new_slug != old_slug and data.leave_redirect:
+        redirect_content = (
+            f"This page has been moved to [[{data.new_title}]].\n\n"
+            f"#REDIRECT [[{data.new_title}]]"
+        )
+        redirect_page = Page(
+            namespace_id=ns.id,
+            title=old_title,
+            slug=old_slug,
+        )
+        db.add(redirect_page)
+        await db.flush()
+        db.add(PageVersion(
+            page_id=redirect_page.id,
+            version=1,
+            content=redirect_content,
+            format="wikitext",
+            comment=f"Redirect to '{data.new_title}' after page move",
+            author_id=author_id,
+        ))
+
+    await db.commit()
+    await db.refresh(page)
     return page
 
 
@@ -416,6 +474,46 @@ async def search_pages(
 
 
 # -----------------------------------------------------------------------------
+
+async def get_all_categories(
+    db: AsyncSession,
+    starts_with: str = "",
+) -> list[dict]:
+    """Return all categories declared across the wiki with their page counts.
+
+    Each dict has: name, count.  Sorted case-insensitively by name.
+    Optionally filter to names starting with *starts_with* (case-insensitive).
+    """
+    from app.services.renderer import extract_categories
+
+    max_ver_sub = (
+        select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
+        .group_by(PageVersion.page_id)
+        .subquery()
+    )
+    q = (
+        select(PageVersion.content, PageVersion.format)
+        .join(max_ver_sub,
+              (PageVersion.page_id == max_ver_sub.c.page_id)
+              & (PageVersion.version == max_ver_sub.c.max_ver))
+        .where(PageVersion.content.ilike("%[[Category:%"))
+    )
+    rows = (await db.execute(q)).all()
+
+    counts: dict[str, int] = {}
+    for content, fmt in rows:
+        for cat in extract_categories(content, fmt):
+            key = cat.lower()
+            # Store the first-seen casing as the canonical name
+            if key not in counts:
+                counts[key] = {"name": cat, "count": 0}
+            counts[key]["count"] += 1
+
+    results = list(counts.values())
+    if starts_with:
+        results = [r for r in results if r["name"].lower().startswith(starts_with.lower())]
+    return sorted(results, key=lambda r: r["name"].lower())
+
 
 async def get_pages_in_category(
     db: AsyncSession,

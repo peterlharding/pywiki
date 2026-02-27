@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Move: {{ page.title }} — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Move page</h1>
+</div>
+
+<p class="muted">
+  Moving <strong>{{ namespace_name }}/{{ page.title }}</strong> will rename the page and update its URL slug.
+  The page history is preserved.
+</p>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/wiki/{{ namespace_name }}/{{ page.slug }}/move" class="move-form">
+  <div class="form-group">
+    <label for="current_title">Current title</label>
+    <input id="current_title" type="text" value="{{ page.title }}" disabled class="form-control" />
+  </div>
+
+  <div class="form-group">
+    <label for="new_title">New title <span class="required">*</span></label>
+    <input id="new_title" name="new_title" type="text"
+           value="{{ prefill_title if prefill_title else page.title }}"
+           required autofocus class="form-control" />
+    <small class="form-hint">The URL slug will be generated automatically from the new title.</small>
+  </div>
+
+  <div class="form-group">
+    <label for="reason">Reason for move</label>
+    <input id="reason" name="reason" type="text"
+           value="{{ prefill_reason if prefill_reason else '' }}"
+           placeholder="Optional — briefly describe why you are moving this page"
+           class="form-control" />
+    <small class="form-hint">Saved in the page history.</small>
+  </div>
+
+  <div class="form-group form-check">
+    <label>
+      <input type="checkbox" name="leave_redirect" value="1"
+             {{ 'checked' if prefill_redirect else 'checked' }} />
+      Leave a redirect from the old name
+    </label>
+    <small class="form-hint">Creates a stub page at the old URL pointing to the new one.</small>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">🚚 Move page</button>
+    <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

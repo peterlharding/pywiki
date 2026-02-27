@@ -8,6 +8,7 @@
   <ul>
     {% if user %}
     <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}/edit">✏️ Edit</a></li>
+    <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}/move">🚚 Move / Rename</a></li>
     {% endif %}
     <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}/history">📜 History</a></li>
     <li><a href="/api/v1/namespaces/{{ namespace_name }}/pages/{{ page.slug }}/raw">📄 Raw source</a></li>

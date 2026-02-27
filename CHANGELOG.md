@@ -9,6 +9,48 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+
+---
+
+## [0.1.2] — 2026-02-27
+
+### Added
+
+#### Special Pages — Categories
+- Dedicated `/special/categories` page listing all categories alphabetically with page counts
+- "Display categories starting at" filter input (submits `?from_=X`) matching MediaWiki behaviour
+- Two-column display with member count (`1 member` / `N members`)
+- `/special` hub updated to link to the new page instead of listing categories inline
+- `get_all_categories(db, starts_with="")` service function
+
+#### Page Move / Rename
+- Move form at `GET /wiki/{ns}/{slug}/move` (logged-in only)
+- **Reason** field — saved as a new `PageVersion` comment visible in page history
+- **Leave a redirect** checkbox — creates a wikitext stub at the old slug pointing to the new title
+- Move / Rename link added to Page tools sidebar
+- `cookie_auth()` test helper added to `conftest.py` for UI route authentication
+
+#### Tests
+- `tests/test_04_features.py` extended with 9 new tests covering `/special/categories`,
+  category filter, move form, redirect stub, reason in history, duplicate error, same-slug fix
+
+### Fixed
+- `[[Category:Name]]` and `.. category::` tags were not stripped from Markdown and RST content
+  before rendering, causing them to appear as literal text alongside the category footer bar
+- Same-slug rename collision — renaming `Health SHorts` → `Health Shorts` (same slug, different
+  display title) incorrectly raised a 409 conflict; skipped when new slug equals current slug
+- `rename_page()` used `db.flush()` without `db.commit()` — rename was never persisted to disk
+- Global 404 handler in `main.py` used deprecated `TemplateResponse` signature
+- `[project.scripts]` entry pointing at FastAPI `app` object (not a valid CLI entry point) removed
+- `pytest.ini` deleted — configuration consolidated into `pyproject.toml`
+
+### UI
+- Home page layout changed from side-by-side two-column to vertical stacked sections
+  (Recent Changes then Namespaces), resolving overlap at narrow widths
+- Featured page block styled with background, border, padding
+- Page title column in `wiki-table` given `width: 40%; min-width: 180px` to prevent squeezing
+
+
 ---
 
 ## [0.1.1] — 2026-02-27
@@ -37,6 +79,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Starlette `TemplateResponse` deprecation — `request` now passed as first positional argument across
   all 21 call sites in `views.py`; `_ctx()` helper simplified accordingly
 - Docutils `writer_name` deprecation — replaced with `writer=` keyword argument in `_render_rst()`
+
 
 ---
 
@@ -105,9 +148,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `delete_page` route unnecessarily fetching user object
 - `db_session` and `client` test fixtures using independent session factories (DB state mismatch)
 
+
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/your-org/pywiki/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/your-org/pywiki/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/your-org/pywiki/releases/tag/v0.1.0
 

@@ -95,6 +95,9 @@ def _rewrite_wikilinks(html: str, namespace: str, base_url: str = "") -> str:
 
 def _preprocess_wikilinks_md(content: str, namespace: str, base_url: str = "") -> str:
     """Convert [[...]] wikilinks to markdown links before rendering."""
+    # Strip category tags first so they don't appear in rendered output
+    content = re.sub(r"\[\[Category:[^\]]+\]\]\n?", "", content, flags=re.IGNORECASE)
+
     def _replace(m: re.Match) -> str:
         target = m.group(1).strip()
         label  = (m.group(2) or target).strip()
@@ -107,6 +110,10 @@ def _preprocess_wikilinks_md(content: str, namespace: str, base_url: str = "") -
 
 def _preprocess_wikilinks_rst(content: str, namespace: str, base_url: str = "") -> str:
     """Convert [[...]] wikilinks to RST hyperlinks before rendering."""
+    # Strip category tags (both wikitext-style and RST-style) before rendering
+    content = re.sub(r"\[\[Category:[^\]]+\]\]\n?", "", content, flags=re.IGNORECASE)
+    content = re.sub(r"\.\. category::.*\n?", "", content, flags=re.IGNORECASE)
+
     def _replace(m: re.Match) -> str:
         target = m.group(1).strip()
         label  = (m.group(2) or target).strip()

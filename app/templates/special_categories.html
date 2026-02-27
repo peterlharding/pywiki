@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Categories — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Categories</h1>
+</div>
+
+<p class="muted">
+  The following categories exist on the wiki and may or may not be unused.
+</p>
+
+<div class="special-filter-box">
+  <form method="get" action="/special/categories">
+    <label for="from_input"><strong>Display categories starting at:</strong></label>
+    <div class="special-filter-row">
+      <input id="from_input" type="text" name="from_" value="{{ from_ }}"
+             placeholder="e.g. A" autocomplete="off" class="special-filter-input" />
+      <button type="submit" class="btn">Show</button>
+    </div>
+  </form>
+</div>
+
+{% if categories %}
+<ul class="category-index-list">
+  {% for cat in categories %}
+  <li>
+    <a href="/category/{{ cat.name }}">{{ cat.name }}</a>
+    <span class="cat-count">({{ cat.count }} {{ 'member' if cat.count == 1 else 'members' }})</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">
+  {% if from_ %}
+    No categories found starting with <strong>{{ from_ }}</strong>.
+  {% else %}
+    No categories have been defined yet.
+  {% endif %}
+</p>
+{% endif %}
+
+{% endblock %}

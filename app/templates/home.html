@@ -27,56 +27,50 @@
 <hr />
 {% endif %}
 
-<div class="two-col">
-
-  <!-- Recent changes -->
-  <section class="recent-changes">
-    <h2>Recent Changes</h2>
-    {% if recent %}
-    <table class="wiki-table">
-      <thead>
-        <tr>
-          <th>Page</th>
-          <th>Namespace</th>
-          <th>Ver</th>
-          <th>Author</th>
-          <th>Updated</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in recent %}
-        <tr>
-          <td><a href="/wiki/{{ item.namespace }}/{{ item.slug }}">{{ item.title }}</a></td>
-          <td><a href="/wiki/{{ item.namespace }}">{{ item.namespace }}</a></td>
-          <td>{{ item.version }}</td>
-          <td>{{ item.author }}</td>
-          <td class="ts">{{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p class="muted">No pages yet. <a href="/create">Create the first page!</a></p>
-    {% endif %}
-  </section>
-
-  <!-- Namespaces overview -->
-  <section class="ns-overview">
-    <h2>Namespaces</h2>
-    {% if namespaces %}
-    <ul class="ns-list">
-      {% for ns in namespaces %}
-      <li>
-        <a href="/wiki/{{ ns.name }}"><strong>{{ ns.name }}</strong></a>
-        <span class="badge">{{ ns.default_format }}</span>
-        {% if ns.description %}<span class="muted"> — {{ ns.description }}</span>{% endif %}
-      </li>
+<section class="home-section">
+  <h2>Recent Changes</h2>
+  {% if recent %}
+  <table class="wiki-table">
+    <thead>
+      <tr>
+        <th>Page</th>
+        <th>Namespace</th>
+        <th>Ver</th>
+        <th>Author</th>
+        <th>Updated</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in recent %}
+      <tr>
+        <td><a href="/wiki/{{ item.namespace }}/{{ item.slug }}">{{ item.title }}</a></td>
+        <td><a href="/wiki/{{ item.namespace }}">{{ item.namespace }}</a></td>
+        <td>{{ item.version }}</td>
+        <td>{{ item.author }}</td>
+        <td class="ts">{{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      </tr>
       {% endfor %}
-    </ul>
-    {% else %}
-    <p class="muted">No namespaces have been created yet.</p>
-    {% endif %}
-  </section>
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No pages yet. <a href="/create">Create the first page!</a></p>
+  {% endif %}
+</section>
 
-</div>
+<section class="home-section">
+  <h2>Namespaces</h2>
+  {% if namespaces %}
+  <ul class="ns-list">
+    {% for ns in namespaces %}
+    <li>
+      <a href="/wiki/{{ ns.name }}"><strong>{{ ns.name }}</strong></a>
+      <span class="badge">{{ ns.default_format }}</span>
+      {% if ns.description %}<span class="muted"> — {{ ns.description }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No namespaces have been created yet.</p>
+  {% endif %}
+</section>
 {% endblock %}

@@ -249,6 +249,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 }
 .wiki-table th { background: var(--bg-alt); font-weight: 600; }
 .wiki-table tr:hover td { background: #f0f4ff; }
+.wiki-table td:first-child, .wiki-table th:first-child { min-width: 180px; width: 40%; }
 .ts { white-space: nowrap; color: var(--muted); }
 
 /* ─── Badges ─────────────────────────────────────────────────────────────── */
@@ -290,6 +291,32 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .special-list { list-style: none; }
 .special-list li { padding: 0.3rem 0; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
 .special-list li:last-child { border-bottom: none; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+@media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+.special-filter-box {
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  padding: 1rem 1.25rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  max-width: 480px;
+}
+.special-filter-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.special-filter-input {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.95rem;
+  background: var(--bg);
+}
+
+.category-index-list { list-style: none; column-count: 2; column-gap: 2rem; margin-top: 0.5rem; }
+.category-index-list li { padding: 0.2rem 0; break-inside: avoid; font-size: 0.95rem; }
+.category-index-list .cat-count { color: var(--muted); font-size: 0.85rem; margin-left: 0.3rem; }
+@media (max-width: 640px) { .category-index-list { column-count: 1; } }
 
 /* ─── Recent Changes ─────────────────────────────────────────────────────── */
 
@@ -391,11 +418,10 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .result-meta { font-size: 0.8rem; }
 .active-filter { font-weight: 600; color: var(--text); }
 
-/* ─── Home two-col layout ────────────────────────────────────────────────── */
+/* ─── Home page stacked sections ─────────────────────────────────────────── */
 
-.two-col { display: flex; gap: 2rem; flex-wrap: wrap; }
-.two-col > * { flex: 1; min-width: 280px; }
-.recent-changes h2, .ns-overview h2 { font-size: 1.15rem; margin-bottom: 0.75rem; }
+.home-section { margin-bottom: 2rem; }
+.home-section h2 { font-size: 1.15rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.35rem; }
 .ns-list { list-style: none; }
 .ns-list li { padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
 
@@ -424,7 +450,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
 
 /* ─── Featured page ──────────────────────────────────────────────────────── */
 
-.featured-page { margin-bottom: 1.5rem; }
+.featured-page {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
 
 /* ─── Footer ─────────────────────────────────────────────────────────────── */
 

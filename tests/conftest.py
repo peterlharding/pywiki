@@ -109,4 +109,11 @@ async def auth_headers(client: AsyncClient, username: str = "testuser",
     return {"Authorization": f"Bearer {token}"}
 
 
+async def cookie_auth(client: AsyncClient, username: str = "testuser",
+                      password: str = "testpass123") -> dict:
+    """Log in via the UI form and return a Cookie header dict for UI requests."""
+    token = await login_user(client, username, password)
+    return {"Cookie": f"access_token={token}"}
+
+
 # -----------------------------------------------------------------------------

@@ -155,8 +155,9 @@ def create_app() -> FastAPI:
         from fastapi.templating import Jinja2Templates
         tmpl = Jinja2Templates(directory="app/templates")
         return tmpl.TemplateResponse(
+            request,
             "error.html",
-            {"request": request, "site_name": settings.site_name, "user": None,
+            {"site_name": settings.site_name, "user": None,
              "message": "The page you requested could not be found."},
             status_code=404,
         )

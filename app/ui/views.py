@@ -336,6 +336,74 @@ async def edit_page_submit(
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Page move / rename
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/wiki/{namespace_name}/{slug}/move", response_class=HTMLResponse)
+async def move_page_form(
+    request: Request,
+    namespace_name: str,
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return _login_redirect(f"/wiki/{namespace_name}/{slug}/move")
+    page, ver = await page_svc.get_page(db, namespace_name, slug)
+    resp = templates.TemplateResponse(
+        request,
+        "page_move.html",
+        _ctx(user, page=page, ver=ver, namespace_name=namespace_name, error=None),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.post("/wiki/{namespace_name}/{slug}/move", response_class=HTMLResponse)
+async def move_page_submit(
+    request: Request,
+    namespace_name: str,
+    slug: str,
+    new_title: str      = Form(...),
+    reason: str         = Form(default=""),
+    leave_redirect: str = Form(default=""),
+    db: AsyncSession    = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return _login_redirect(f"/wiki/{namespace_name}/{slug}/move")
+
+    from app.schemas import PageRename
+    try:
+        page = await page_svc.rename_page(
+            db, namespace_name, slug,
+            PageRename(
+                new_title=new_title,
+                reason=reason,
+                leave_redirect=bool(leave_redirect),
+            ),
+            author_id=user.id,
+        )
+        resp = RedirectResponse(
+            url=f"/wiki/{namespace_name}/{page.slug}", status_code=303
+        )
+        _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+        return resp
+    except HTTPException as e:
+        page, ver = await page_svc.get_page(db, namespace_name, slug)
+        resp = templates.TemplateResponse(
+            request,
+            "page_move.html",
+            _ctx(user, page=page, ver=ver, namespace_name=namespace_name,
+                 error=e.detail, prefill_title=new_title,
+                 prefill_reason=reason, prefill_redirect=bool(leave_redirect)),
+            status_code=400,
+        )
+        _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+        return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Page history
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -622,6 +690,27 @@ async def register_submit(
         samesite="lax",
     )
     return response
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Special pages — Categories
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/categories", response_class=HTMLResponse)
+async def special_categories(
+    request: Request,
+    from_: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    categories = await page_svc.get_all_categories(db, starts_with=from_ or "")
+    resp = templates.TemplateResponse(
+        request,
+        "special_categories.html",
+        _ctx(user, categories=categories, from_=from_ or ""),
+    )
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

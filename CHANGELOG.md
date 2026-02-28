@@ -11,6 +11,61 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.0] — 2026-02-28
+
+### Added
+
+#### MediaWiki XML Import (`scripts/import_mediawiki.py`)
+- Standalone async script to import pages from a MediaWiki XML export file
+- Iterative XML parsing via `iterparse` — handles large exports without loading into memory
+- Imports latest revision of each page as `wikitext` format
+- MW namespace filtering: main articles (ns=0) imported by default; Talk, User, Template, Help, File, MediaWiki, Category namespaces skipped by default
+- `--include-talk` flag maps Talk pages to a pywiki `Talk` namespace
+- `--namespace NS` to target any pywiki namespace (default: `Main`)
+- `--overwrite` flag adds a new version to existing pages instead of skipping
+- `--dry-run` mode reports what would be imported without touching the database
+- `--limit N` for test runs
+- Auto-creates target namespace in pywiki if it doesn't exist
+- `make import-mw XML=path/to/export.xml [ARGS="..."]` Makefile target
+
+#### Category Description Pages (MediaWiki style)
+- Pages in the `Category` namespace (e.g. `/wiki/Category/python`) serve as descriptions for `/category/Python`
+- Category description displayed above the page list on `/category/{name}`
+- "✏️ Edit description" button when description exists; "➕ Add description" when it doesn't (logged-in only)
+- `Category` namespace auto-seeded at startup by `_seed_defaults()` in `app/main.py`
+
+#### Alphabetical Category Page
+- `/category/{name}` now groups pages alphabetically by first letter with H3 letter headings
+- Three-column CSS layout (responsive: 2-col at 900 px, 1-col at 600 px), matching MediaWiki style
+- Namespace shown in parentheses for non-Main pages
+
+#### PostgreSQL + Alembic
+- Production database switched from SQLite to PostgreSQL via `asyncpg`
+- `DATABASE_URL`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW` settings added
+- Alembic configured with async engine; `alembic/env.py` reads URL from app settings
+- Initial migration `b7ed900152d9` covers full schema
+- Makefile targets: `db-upgrade`, `db-downgrade`, `db-revision`, `db-history`, `db-current`, `db-reset-dev`
+
+#### Session Primer (`SKILLS.md`)
+- `SKILLS.md` at project root documents environment setup, test commands, architecture decisions, and Makefile targets for fast onboarding of new sessions
+
+### Changed
+- **Category page layout** — replaced namespace-grouped table with alphabetical letter-grouped list
+- **`Categories:` label** on page view and in wikitext renderer output now links to `/special/categories`
+- **`/create` namespace dropdown** — `Category` namespace hidden from dropdown; when arriving via `?namespace=Category` prefill a hidden input is used instead, and after save the user is redirected to `/category/{title}` rather than `/wiki/Category/{slug}`
+- **Edit page preview** now renders immediately on page load (was blank until first keystroke)
+- **`make test`** uses `PYTHONUNBUFFERED=1 .venv/bin/python -u` for live per-test output streaming through the Windows/WSL pipe
+
+### Fixed
+- `Category` namespace seed not committed at startup when `Main` namespace already existed (`session.commit()` was inside the `Main`-namespace conditional block)
+- Test suite was picking up `ALLOW_REGISTRATION=false` from `.env` — `conftest.py` now sets env vars and clears `get_settings()` lru_cache before any app imports
+
+### Technical
+- `RENDERER_VERSION` bumped to `5` — invalidates all cached wikitext rendered HTML to pick up category footer link fix
+- `slugify()` made public in `app/services/pages.py` (was `_slugify`)
+
+---
+
 ## [0.1.5] — 2026-02-27
 
 ### Added
@@ -287,7 +342,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/your-org/pywiki/compare/v0.1.5...v0.2.0
+[0.1.5]: https://github.com/your-org/pywiki/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/your-org/pywiki/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/your-org/pywiki/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/your-org/pywiki/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/your-org/pywiki/compare/v0.1.0...v0.1.1

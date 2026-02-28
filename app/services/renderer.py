@@ -24,7 +24,7 @@ from typing import Optional
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 6
+RENDERER_VERSION = 7
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 
@@ -660,6 +660,107 @@ def parse_redirect(content: str) -> str | None:
 
 
 # -----------------------------------------------------------------------------
+# TOC post-processor
+# -----------------------------------------------------------------------------
+
+_HEADING_RE = re.compile(r'<(h[1-6])(?:\s[^>]*)?>(.+?)</h[1-6]>', re.IGNORECASE | re.DOTALL)
+_STRIP_TAGS_RE = re.compile(r'<[^>]+>')
+TOC_MIN_HEADINGS = 3   # show TOC only when page has at least this many headings
+
+
+def _slugify_anchor(text: str) -> str:
+    """Convert heading text to a URL-safe anchor ID."""
+    text = _STRIP_TAGS_RE.sub('', text)   # strip any inline HTML
+    text = text.strip().lower()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[\s_]+', '-', text)
+    text = re.sub(r'-+', '-', text)
+    return text.strip('-') or 'section'
+
+
+def _add_toc(html: str) -> str:
+    """Add heading anchor IDs and inject a TOC block before the first heading.
+
+    - All h1-h6 get a unique ``id`` attribute for deep-linking.
+    - A ``<div class="toc">`` is injected before the first heading when the
+      page has at least TOC_MIN_HEADINGS headings (MediaWiki convention).
+    - Nesting mirrors heading depth: h2 → top-level, h3 → one indent, etc.
+    """
+    headings = list(_HEADING_RE.finditer(html))
+    if not headings:
+        return html
+
+    # ── assign unique anchor IDs ──────────────────────────────────────────────
+    used: dict[str, int] = {}
+    heading_data: list[tuple[int, str, str]] = []   # (level, anchor_id, plain_text)
+
+    def _anchor_for(raw_text: str) -> str:
+        base = _slugify_anchor(raw_text)
+        count = used.get(base, 0)
+        used[base] = count + 1
+        return base if count == 0 else f'{base}-{count}'
+
+    # Build replacement map: old tag → new tag with id=
+    replacements: list[tuple[str, str]] = []
+    for m in headings:
+        tag   = m.group(1).lower()           # e.g. "h2"
+        inner = m.group(2)                    # inner HTML of the heading
+        level = int(tag[1])
+        plain = _STRIP_TAGS_RE.sub('', inner).strip()
+        anchor = _anchor_for(plain)
+        heading_data.append((level, anchor, plain))
+        old = m.group(0)
+        new = f'<{tag} id="{anchor}">{inner}</{tag}>'
+        replacements.append((old, new))
+
+    # Apply replacements (replace first occurrence only, in order)
+    for old, new in replacements:
+        html = html.replace(old, new, 1)
+
+    # ── build TOC ─────────────────────────────────────────────────────────────
+    if len(heading_data) < TOC_MIN_HEADINGS:
+        return html
+
+    # Determine base level (smallest h-level present) for relative nesting
+    base_level = min(level for level, _, _ in heading_data)
+
+    toc_lines = ['<div class="toc">',
+                 '<div class="toc-title">Contents</div>',
+                 '<ol class="toc-list">']
+    depth_stack: list[int] = []
+
+    for level, anchor, plain in heading_data:
+        rel = level - base_level   # 0 = top level
+        # Open nested <ol> tags if going deeper
+        while len(depth_stack) < rel:
+            toc_lines.append('<ol>')
+            depth_stack.append(rel)
+        # Close nested <ol> tags if going shallower
+        while depth_stack and depth_stack[-1] > rel:
+            toc_lines.append('</ol>')
+            depth_stack.pop()
+        toc_lines.append(f'<li><a href="#{anchor}">{plain}</a></li>')
+
+    while depth_stack:
+        toc_lines.append('</ol>')
+        depth_stack.pop()
+    toc_lines.append('</ol>')
+    toc_lines.append('</div>')
+    toc_html = '\n'.join(toc_lines)
+
+    # Inject TOC before the first heading tag (after id= was added)
+    first_anchor = heading_data[0][1]
+    insert_marker = f' id="{first_anchor}"'
+    insert_pos = html.find(insert_marker)
+    # Walk back to the opening < of the heading tag
+    tag_start = html.rfind('<', 0, insert_pos)
+    if tag_start >= 0:
+        html = html[:tag_start] + toc_html + '\n' + html[tag_start:]
+
+    return html
+
+
+# -----------------------------------------------------------------------------
 # External link post-processor
 # -----------------------------------------------------------------------------
 
@@ -710,7 +811,7 @@ def render(content: str, fmt: str, namespace: str = "Main", base_url: str = "") 
         import html as _html
         html = f"<pre>{_html.escape(content)}</pre>"
 
-    return _CACHE_STAMP + _add_external_link_targets(html)
+    return _CACHE_STAMP + _add_toc(_add_external_link_targets(html))
 
 
 def is_cache_valid(rendered: str | None) -> bool:

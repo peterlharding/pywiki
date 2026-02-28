@@ -505,6 +505,47 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
   margin-top: 2rem;
 }
 
+/* ─── Table of Contents ──────────────────────────────────────────────────── */
+
+.toc {
+  display: inline-block;
+  min-width: 180px;
+  max-width: 320px;
+  background: var(--surface, #f8f9fa);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.25rem 0;
+  font-size: 0.9rem;
+}
+
+.toc-title {
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+}
+
+.toc ol.toc-list,
+.toc ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style: decimal;
+}
+
+.toc li {
+  margin: 0.15rem 0;
+  line-height: 1.4;
+}
+
+.toc a {
+  color: var(--link, #0645ad);
+  text-decoration: none;
+}
+
+.toc a:hover {
+  text-decoration: underline;
+}
+
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {

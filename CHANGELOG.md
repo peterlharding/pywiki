@@ -11,6 +11,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.3] — 2026-02-28
+
+### Added
+
+#### Table of Contents (auto-generated)
+- All rendered pages with ≥ 3 headings (h1–h6) automatically receive a floating **Contents** box before the first heading
+- All heading elements (`<h1>`–`<h6>`) in rendered output now carry a unique `id=` attribute for deep-linking
+- Implemented as a pure HTML post-processing step in `_add_toc()` — works identically across Markdown, RST, and Wikitext formats
+- Duplicate heading text resolved by appending `-1`, `-2`, … suffixes
+- Nested headings produce nested `<ol>` lists mirroring document depth
+- `TOC_MIN_HEADINGS = 3` constant controls the threshold (MediaWiki convention)
+- TOC CSS added to `app/static/css/wiki.css` (`.toc`, `.toc-title`, `.toc-list`)
+- `tests/test_13_toc.py` — 21 new tests: threshold, anchor IDs, duplicate deduplication, nesting, injection position, all three formats, edge cases
+- **Total: 193 tests** (was 173 at v0.2.2)
+
+### Changed
+- `RENDERER_VERSION` bumped to `7` — invalidates cached HTML so all pages are re-rendered with heading anchors and TOC
+- Existing tests updated to match `<h1 id="...">` heading format
+
+---
+
 ## [0.2.2] — 2026-02-28
 
 ### Added
@@ -385,7 +406,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/your-org/pywiki/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/your-org/pywiki/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/your-org/pywiki/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/your-org/pywiki/compare/v0.1.5...v0.2.0

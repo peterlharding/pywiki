@@ -12,9 +12,8 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
       and a UI button on the edit page.
 - [x] **Wikitext: tables** — `{| ... |}` MediaWiki table syntax rendered to `<table>`.
 - [ ] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support.
-- [ ] **Wikitext: `<code>` and `<pre>` blocks** — verbatim / syntax-highlighted blocks.
-- [ ] **Syntax highlighting** — integrate Pygments or highlight.js for fenced code
-      blocks in Markdown and `<pre>` blocks in wikitext/RST.
+- [x] **Wikitext: `<code>` and `<pre>` blocks** — verbatim / syntax-highlighted blocks.
+- [x] **Syntax highlighting** — Pygments server-side; fenced blocks in Markdown, `<syntaxhighlight>` / fenced / `<pre>` / space-indent in wikitext, code-block in RST. CSS served as `/static/css/pygments.css`.
 - [ ] **Math rendering** — LaTeX via MathJax or KaTeX for `$...$` / `$$...$$`
       (Markdown) and `:math:` role (RST).
 - [ ] **Wikitext: image embedding** — `[[File:name.png|thumb|Caption]]` syntax.

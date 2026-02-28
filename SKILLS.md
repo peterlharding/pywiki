@@ -64,7 +64,8 @@ When cutting a new release (e.g. vX.Y.Z):
 3. Bump `version` in `pyproject.toml`
 4. Update version in `SKILLS.md` header
 5. Commit all four files: `git commit -m "chore: bump version to vX.Y.Z"`
-6. Tag: `git tag vX.Y.Z`
+6. Tag: `git tag vX.Y.Z` (use `git tag -f vX.Y.Z HEAD` if re-tagging after post-release doc commits)
+7. Push tag: `git push origin vX.Y.Z` (use `--force` if the tag was moved after initial creation)
 
 ## Git
 - Branch: `devel`

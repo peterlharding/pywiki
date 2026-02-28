@@ -11,6 +11,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.1] — 2026-02-28
+
+### Added
+
+#### PostgreSQL Full-Text Search
+- `search_pages()` in `app/services/pages.py` now uses `to_tsvector` / `plainto_tsquery` / `ts_rank` on PostgreSQL, returning results ordered by relevance score
+- Automatic dialect detection via `_db_dialect()` — falls back to `ILIKE` on SQLite (used by the test suite)
+- `rank: float` field added to `SearchResult` schema and returned by `GET /api/v1/search`
+- Alembic migration `58579c489d29` adds two `GIN` indexes: `ix_page_versions_fts` (content) and `ix_pages_title_fts` (title); created `CONCURRENTLY` in autocommit mode; no-op on non-PostgreSQL databases
+- `tests/test_11_search.py` — 11 new tests covering UI and API search: empty query, no results, title match, content match, exclusion, snippet, namespace filter, result links, rank field, case-insensitive matching
+- **Total: 155 tests** (was 144 at v0.2.0)
+
+### Changed
+- Search results are now ranked by relevance (PostgreSQL `ts_rank`) rather than alphabetical title order
+
+### Operations
+- Run `make db-upgrade` after deploying to apply the GIN index migration
+
+---
+
 ## [0.2.0] — 2026-02-28
 
 ### Added
@@ -342,7 +362,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/your-org/pywiki/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/your-org/pywiki/compare/v0.1.5...v0.2.0
 [0.1.5]: https://github.com/your-org/pywiki/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/your-org/pywiki/compare/v0.1.3...v0.1.4

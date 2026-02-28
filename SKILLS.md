@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.2.0)
+# PyWiki — Session Primer (v0.2.1)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)

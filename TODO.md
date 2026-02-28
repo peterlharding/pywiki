@@ -63,6 +63,22 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ---
 
+## Image Upload & Embedding
+
+- [ ] **Image upload UI** — drag-and-drop / file-picker on the edit page; uploads via
+      the existing attachment API and inserts the correct embed syntax into the editor.
+- [ ] **Inline image rendering (Markdown)** — standard `![alt](url)` already works;
+      add support for attached images via `![alt](/api/v1/attachments/{id})`.
+- [ ] **Inline image rendering (Wikitext)** — `[[File:name.png|thumb|Caption]]`
+      syntax; resolve against page attachments, render as `<figure><img …></figure>`.
+- [ ] **Inline image rendering (RST)** — `.. image:: /api/v1/attachments/{id}` and
+      `.. figure::` directives.
+- [ ] **Image resizing / thumbnails** — server-side thumbnail generation on upload
+      (e.g. via Pillow); serve `?width=N` variants.
+- [ ] **Lightbox / full-size view** — click an inline thumbnail to open the full image.
+
+---
+
 ## Attachments
 
 - [ ] **Image gallery on page** — display inline thumbnails of attached images.
@@ -77,7 +93,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 ## UI / UX
 
 - [ ] **Dark mode** — CSS media-query-aware theme toggle.
-- [ ] **Table of contents** — auto-generate TOC from headings (all three formats).
+- [x] **Table of contents** — auto-generated from headings for all three formats; injected before first heading when ≥ 3 headings; heading anchors always added.
 - [ ] **Breadcrumb navigation** — namespace → page → section.
 - [ ] **Recent changes RSS/Atom feed** — `/recent.xml`.
 - [ ] **Watch page** — users can watch pages and receive notifications on change.

@@ -10,7 +10,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] **Wikitext → Markdown/RST conversion tool** — one-shot converter to migrate
       existing wikitext pages to Markdown or RST; expose as an admin API endpoint
       and a UI button on the edit page.
-- [ ] **Wikitext: tables** — `{| ... |}` MediaWiki table syntax rendered to `<table>`.
+- [x] **Wikitext: tables** — `{| ... |}` MediaWiki table syntax rendered to `<table>`.
 - [ ] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support.
 - [ ] **Wikitext: `<code>` and `<pre>` blocks** — verbatim / syntax-highlighted blocks.
 - [ ] **Syntax highlighting** — integrate Pygments or highlight.js for fenced code
@@ -27,17 +27,16 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 - [ ] **Wikitext-to-Markdown migration** — admin batch job to convert all wikitext
       pages in a namespace to Markdown.
-- [ ] **Page move / redirect** — when a page is renamed, leave a redirect stub at
+- [x] **Page move / redirect** — when a page is renamed, leave a redirect stub at
       the old slug so existing links continue to resolve.
 - [ ] **Page locking** — allow admins to mark a page as read-only.
 - [ ] **Page protection levels** — per-page edit permission: any user / logged-in /
       admin only.
 - [ ] **Soft delete / undelete** — mark pages as deleted rather than hard-removing
       them; admin UI to restore.
-- [ ] **Namespace default format** — honour `Namespace.default_format` when pre-
+- [x] **Namespace default format** — honour `Namespace.default_format` when pre-
       filling the format selector on the Create Page form.
-- [ ] **Bulk import** — accept a ZIP of `.md` / `.rst` / `.wiki` files and create
-      pages from them.
+- [~] **Bulk import** — MediaWiki XML import done (`scripts/import_mediawiki.py`); ZIP of flat files not yet implemented.
 
 ---
 
@@ -60,7 +59,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] **OAuth / SSO login** — GitHub, Google, or generic OIDC provider.
 - [ ] **Email verification** — send verification link on registration.
 - [ ] **Password reset** — forgot-password flow via email.
-- [ ] **User profile page** — display name, avatar, contribution history.
+- [x] **User profile page** — display name, avatar, contribution history.
 - [ ] **Per-namespace permissions** — grant read/write access per user or group.
 - [ ] **API tokens** — long-lived personal access tokens for scripting/bots.
 
@@ -102,9 +101,9 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## Operations & Quality
 
-- [ ] **Alembic migrations** — replace `create_all` startup with proper versioned
+- [x] **Alembic migrations** — replace `create_all` startup with proper versioned
       migrations; add initial migration for current schema.
-- [ ] **PostgreSQL support** — test and document running against PostgreSQL in
+- [x] **PostgreSQL support** — test and document running against PostgreSQL in
       production (async driver: `asyncpg`).
 - [ ] **Caching layer** — Redis-backed cache for rendered HTML (invalidate on
       page update).

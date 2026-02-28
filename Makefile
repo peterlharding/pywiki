@@ -1,4 +1,4 @@
-.PHONY: install run dev test lint clean \
+.PHONY: install run dev test lint clean import-mw \
         db-upgrade db-downgrade db-revision db-history db-current db-reset-dev
 
 venv:
@@ -18,6 +18,10 @@ test:
 
 lint:
 	ruff check app/ tests/
+
+# Usage: make import-mw XML=path/to/export.xml [ARGS="--dry-run --limit 10"]
+import-mw:
+	PYTHONUNBUFFERED=1 .venv/bin/python scripts/import_mediawiki.py $(XML) $(ARGS)
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; \

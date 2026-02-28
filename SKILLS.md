@@ -57,6 +57,15 @@ make db-history   # show migration history
 make db-current   # show current migration
 ```
 
+## Release Process
+When cutting a new release (e.g. vX.Y.Z):
+1. Update `CHANGELOG.md` — move `[Unreleased]` section to `[X.Y.Z] — YYYY-MM-DD`, add a new empty `[Unreleased]` above it, and add the `[X.Y.Z]` compare link at the bottom
+2. Create `release_notes/vX.Y.Z.md` — standalone release note with highlights, full what's-new breakdown, upgrade instructions, and known limitations
+3. Bump `version` in `pyproject.toml`
+4. Update version in `SKILLS.md` header
+5. Commit all four files: `git commit -m "chore: bump version to vX.Y.Z"`
+6. Tag: `git tag vX.Y.Z`
+
 ## Git
 - Branch: `devel`
 - Commit often with descriptive messages

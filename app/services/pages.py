@@ -421,6 +421,22 @@ async def get_diff(
 
 # -----------------------------------------------------------------------------
 
+def _db_dialect() -> str:
+    """Return the SQLAlchemy dialect name for the current engine (e.g. 'postgresql', 'sqlite')."""
+    from app.core.database import get_engine
+    return get_engine().dialect.name
+
+
+def _python_snippet(content: str, query: str, context: int = 160) -> str:
+    """Extract a plain-text snippet around the first query match."""
+    idx = content.lower().find(query.lower())
+    if idx >= 0:
+        start = max(0, idx - 80)
+        end   = min(len(content), idx + context)
+        return "…" + content[start:end].replace("\n", " ") + "…"
+    return content[:context].replace("\n", " ") + "…"
+
+
 async def search_pages(
     db: AsyncSession,
     query: str,
@@ -428,7 +444,13 @@ async def search_pages(
     skip: int = 0,
     limit: int = 50,
 ) -> list[dict]:
-    """Full-text search across page titles and latest content."""
+    """Full-text search across page titles and latest content.
+
+    Uses PostgreSQL tsvector/tsquery when available; falls back to ILIKE for SQLite.
+    """
+    # Detect engine dialect — use FTS on PostgreSQL, fall back to ILIKE on SQLite
+    use_fts = _db_dialect() == "postgresql"
+
     max_ver_sub = (
         select(
             PageVersion.page_id,
@@ -438,23 +460,49 @@ async def search_pages(
         .subquery()
     )
 
-    q = (
-        select(Page, PageVersion, Namespace)
-        .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
-        .join(
-            PageVersion,
-            (PageVersion.page_id == Page.id) &
-            (PageVersion.version == max_ver_sub.c.max_ver),
+    if use_fts:
+        from sqlalchemy import cast, literal_column
+        from sqlalchemy.dialects.postgresql import REGCONFIG, TSVECTOR
+
+        ts_query = func.plainto_tsquery(cast("english", REGCONFIG), query)
+        ts_vector = func.to_tsvector(
+            cast("english", REGCONFIG),
+            func.coalesce(Page.title, "") + " " + func.coalesce(PageVersion.content, ""),
         )
-        .join(Namespace, Namespace.id == Page.namespace_id)
-        .where(
-            Page.title.ilike(f"%{query}%") |
-            PageVersion.content.ilike(f"%{query}%")
+        rank = func.ts_rank(ts_vector, ts_query)
+
+        q = (
+            select(Page, PageVersion, Namespace, rank.label("rank"))
+            .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
+            .join(
+                PageVersion,
+                (PageVersion.page_id == Page.id) &
+                (PageVersion.version == max_ver_sub.c.max_ver),
+            )
+            .join(Namespace, Namespace.id == Page.namespace_id)
+            .where(ts_vector.op("@@")(ts_query))
+            .order_by(rank.desc())
+            .offset(skip)
+            .limit(limit)
         )
-        .order_by(Page.title)
-        .offset(skip)
-        .limit(limit)
-    )
+    else:
+        q = (
+            select(Page, PageVersion, Namespace)
+            .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
+            .join(
+                PageVersion,
+                (PageVersion.page_id == Page.id) &
+                (PageVersion.version == max_ver_sub.c.max_ver),
+            )
+            .join(Namespace, Namespace.id == Page.namespace_id)
+            .where(
+                Page.title.ilike(f"%{query}%") |
+                PageVersion.content.ilike(f"%{query}%")
+            )
+            .order_by(Page.title)
+            .offset(skip)
+            .limit(limit)
+        )
 
     if namespace_name:
         q = q.where(Namespace.name == namespace_name)
@@ -463,24 +511,27 @@ async def search_pages(
     rows = result.all()
 
     results = []
-    for p, v, ns in rows:
-        # Extract a snippet around the first match
-        content = v.content
-        idx = content.lower().find(query.lower())
-        if idx >= 0:
-            start = max(0, idx - 80)
-            end   = min(len(content), idx + 160)
-            snippet = "..." + content[start:end].replace("\n", " ") + "..."
-        else:
-            snippet = content[:160].replace("\n", " ") + "..."
-
-        results.append({
-            "namespace": ns.name,
-            "title":     p.title,
-            "slug":      p.slug,
-            "snippet":   snippet,
-            "updated_at": v.created_at,
-        })
+    if use_fts:
+        for p, v, ns, rank_val in rows:
+            snippet = _python_snippet(v.content, query)
+            results.append({
+                "namespace":  ns.name,
+                "title":      p.title,
+                "slug":       p.slug,
+                "snippet":    snippet,
+                "updated_at": v.created_at,
+                "rank":       float(rank_val) if rank_val is not None else 0.0,
+            })
+    else:
+        for p, v, ns in rows:
+            results.append({
+                "namespace":  ns.name,
+                "title":      p.title,
+                "slug":       p.slug,
+                "snippet":    _python_snippet(v.content, query),
+                "updated_at": v.created_at,
+                "rank":       0.0,
+            })
 
     return results
 

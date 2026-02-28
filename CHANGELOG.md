@@ -11,6 +11,29 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.2] — 2026-02-28
+
+### Added
+
+#### Syntax Highlighting (Pygments)
+- Server-side syntax highlighting via [Pygments](https://pygments.org/) 2.17+ across all three formats
+- **Markdown**: fenced code blocks (` ```lang `) highlighted using Pygments `HtmlFormatter`; unknown languages fall back to plain `<pre><code>`
+- **Wikitext**: four code block syntaxes supported:
+  - `<syntaxhighlight lang="python">...</syntaxhighlight>` — MediaWiki native, multi-line, highlighted
+  - ` ```lang\n...\n``` ` — fenced blocks (GitHub style), highlighted when lang specified
+  - `<pre>...</pre>` — plain preformatted block, HTML-escaped
+  - Leading-space indentation (`\ code`) — MediaWiki space-indent convention, plain `<pre>`
+- **RST**: `code-block` directive highlighting enabled via docutils `syntax_highlight = "short"` setting
+- Pygments CSS (`friendly` theme) served as `/static/css/pygments.css`; linked in `base.html`
+- `pygments>=2.17.0` added to `requirements.txt` and `pyproject.toml`
+- `tests/test_12_syntax_highlight.py` — 18 new tests covering all formats and fallback paths
+- **Total: 173 tests** (was 155 at v0.2.1)
+
+### Changed
+- `RENDERER_VERSION` bumped to `6` — invalidates all cached rendered HTML to pick up code block changes
+
+---
+
 ## [0.2.1] — 2026-02-28
 
 ### Added
@@ -362,7 +385,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/your-org/pywiki/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/your-org/pywiki/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/your-org/pywiki/compare/v0.1.5...v0.2.0
 [0.1.5]: https://github.com/your-org/pywiki/compare/v0.1.4...v0.1.5

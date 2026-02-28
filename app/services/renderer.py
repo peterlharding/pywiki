@@ -24,7 +24,7 @@ from typing import Optional
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 5
+RENDERER_VERSION = 6
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 
@@ -32,14 +32,45 @@ _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 # Markdown renderer via mistune
 # -----------------------------------------------------------------------------
 
+def _highlight_code(code: str, lang: str, attrs: str | None = None) -> str:
+    """Highlight *code* using Pygments.  Falls back to plain <pre><code> on unknown language."""
+    try:
+        from pygments import highlight
+        from pygments.lexers import get_lexer_by_name, TextLexer
+        from pygments.formatters import HtmlFormatter
+        from pygments.util import ClassNotFound
+        try:
+            lexer = get_lexer_by_name(lang.strip(), stripall=True) if lang.strip() else TextLexer()
+        except ClassNotFound:
+            lexer = TextLexer()
+        formatter = HtmlFormatter(nowrap=False, cssclass="highlight")
+        return highlight(code, lexer, formatter)
+    except ImportError:
+        import html as _html
+        return f'<pre><code class="language-{lang}">{_html.escape(code)}</code></pre>'
+
+
 def _make_md_renderer():
     import mistune
     from mistune.plugins.table import table
     from mistune.plugins.formatting import strikethrough
     from mistune.plugins.url import url
 
+    class _HighlightRenderer(mistune.HTMLRenderer):
+        def codespan(self, code: str) -> str:
+            import html as _html
+            return f'<code>{_html.escape(code)}</code>'
+
+        def block_code(self, code: str, **kwargs) -> str:
+            info = kwargs.get('info') or ''
+            lang = info.split()[0] if info else ''
+            if lang:
+                return _highlight_code(code, lang)
+            import html as _html
+            return f'<pre><code>{_html.escape(code)}</code></pre>'
+
     md = mistune.create_markdown(
-        escape=False,
+        renderer=_HighlightRenderer(escape=False),
         plugins=[table, strikethrough, url],
     )
     return md
@@ -69,6 +100,7 @@ def _render_rst(content: str) -> str:
             "report_level": 5,
             "input_encoding": "unicode",
             "output_encoding": "unicode",
+            "syntax_highlight": "short",
         },
     )
     return parts["body"]
@@ -167,6 +199,10 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
     ; term : definition                              — definition lists
     {{template}}                                     — rendered as an info box placeholder
     {| ... |}                                        — tables (MediaWiki syntax)
+    <syntaxhighlight lang="python">...</syntaxhighlight>  — syntax-highlighted code
+    <pre>...</pre>                                   — preformatted / plain code block
+    ```lang\n...\n```                               — fenced code block (GitHub style)
+     (space-indented line)                           — treated as <pre> block
     Lines not matching any block rule become <p> paragraphs.
     """
     lines = content.splitlines()
@@ -175,6 +211,83 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
 
     # Sentinel prefix used to pass already-rendered HTML through the main loop
     _SENTINEL = "\x00HTML\x00"
+
+    # ── code block pre-pass: replace code blocks with sentinels ─────────────
+
+    import html as _html
+
+    def _process_code_blocks(raw_lines: list[str]) -> list[str]:
+        result: list[str] = []
+        i = 0
+        while i < len(raw_lines):
+            line = raw_lines[i]
+
+            # <syntaxhighlight lang="...">...</syntaxhighlight> (multi-line)
+            sh_open = re.match(r'^\s*<syntaxhighlight(?:\s+lang=["\']?([\w+-]+)["\']?)?[^>]*>', line, re.IGNORECASE)
+            if sh_open:
+                lang = sh_open.group(1) or ''
+                code_lines: list[str] = []
+                # content may start on the same line after the tag
+                rest = re.sub(r'^\s*<syntaxhighlight[^>]*>', '', line, flags=re.IGNORECASE)
+                while i < len(raw_lines):
+                    close = re.search(r'</syntaxhighlight>', rest, re.IGNORECASE)
+                    if close:
+                        code_lines.append(rest[:close.start()])
+                        break
+                    code_lines.append(rest)
+                    i += 1
+                    rest = raw_lines[i] if i < len(raw_lines) else ''
+                code = '\n'.join(code_lines)
+                result.append(_SENTINEL + _highlight_code(code, lang))
+                i += 1
+                continue
+
+            # <pre>...</pre> plain block (multi-line)
+            if re.match(r'^\s*<pre\b[^>]*>', line, re.IGNORECASE):
+                code_lines = []
+                rest = re.sub(r'^\s*<pre\b[^>]*>', '', line, flags=re.IGNORECASE)
+                while i < len(raw_lines):
+                    close = re.search(r'</pre>', rest, re.IGNORECASE)
+                    if close:
+                        code_lines.append(rest[:close.start()])
+                        break
+                    code_lines.append(rest)
+                    i += 1
+                    rest = raw_lines[i] if i < len(raw_lines) else ''
+                code = _html.escape('\n'.join(code_lines))
+                result.append(_SENTINEL + f'<pre><code>{code}</code></pre>')
+                i += 1
+                continue
+
+            # Fenced ``` blocks
+            fence = re.match(r'^```([\w+-]*)\s*$', line)
+            if fence:
+                lang = fence.group(1)
+                code_lines = []
+                i += 1
+                while i < len(raw_lines) and not raw_lines[i].startswith('```'):
+                    code_lines.append(raw_lines[i])
+                    i += 1
+                code = '\n'.join(code_lines)
+                result.append(_SENTINEL + (_highlight_code(code, lang) if lang else f'<pre><code>{_html.escape(code)}</code></pre>'))
+                i += 1
+                continue
+
+            # Space-indented preformatted line (MediaWiki: leading space = <pre>)
+            if line.startswith(' ') and line.strip():
+                code_lines = []
+                while i < len(raw_lines) and raw_lines[i].startswith(' ') and raw_lines[i].strip():
+                    code_lines.append(raw_lines[i][1:])  # strip one leading space
+                    i += 1
+                code = _html.escape('\n'.join(code_lines))
+                result.append(_SENTINEL + f'<pre><code>{code}</code></pre>')
+                continue
+
+            result.append(line)
+            i += 1
+        return result
+
+    lines = _process_code_blocks(lines)
 
     # ── inline markup ────────────────────────────────────────────────────────
 

@@ -32,10 +32,23 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 
 ## Key architecture notes
 - `get_settings()` is `@lru_cache` — call `get_settings.cache_clear()` if overriding in tests
-- `RENDERER_VERSION = 5` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
+- `RENDERER_VERSION = 7` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
 - `slugify()` is public in `app/services/pages.py`
 - `/admin` UI route does **not** exist — the nav "Admin" link points to `/special`
 - First registered user auto-becomes admin (`users.py` counts existing users at registration)
+
+## Renderer pipeline (`app/services/renderer.py`)
+- Supports three formats: `markdown` (mistune), `rst` (docutils), `wikitext` (custom)
+- **Syntax highlighting**: `_highlight_code()` via Pygments; fenced blocks in Markdown, `<syntaxhighlight>`/fenced/`<pre>`/space-indent in wikitext, `syntax_highlight="short"` for RST
+- **TOC**: `_add_toc()` post-processor runs on all rendered HTML — adds `id=` to every heading, injects `<div class="toc">` before first heading when ≥ `TOC_MIN_HEADINGS` (3) headings present
+- **Pygments CSS**: `app/static/css/pygments.css` (friendly theme), linked in `base.html`
+- Post-processors run in order: `_add_external_link_targets()` → `_add_toc()`
+- `render()` returns `_CACHE_STAMP + html`; `is_cache_valid()` checks the stamp
+
+## Search (`app/services/pages.py`)
+- `search_pages()` detects dialect via `_db_dialect()`: uses `tsvector`/`plainto_tsquery`/`ts_rank` on PostgreSQL, `ILIKE` fallback on SQLite
+- GIN indexes: migration `58579c489d29` adds `ix_page_versions_fts` and `ix_pages_title_fts`; created `CONCURRENTLY` in autocommit — run `make db-upgrade` on deploy
+- `SearchResult` schema includes `rank: float` field
 
 ## Category system
 - Categories are derived from `[[Category:Name]]` tags in page content (no separate DB model)
@@ -55,6 +68,8 @@ make db-downgrade # alembic downgrade -1
 make db-revision MSG="description"  # create new migration
 make db-history   # show migration history
 make db-current   # show current migration
+make db-reset-dev # drop + recreate dev DB
+make import-mw XML=path/to/export.xml [ARGS="--dry-run --limit 10"]  # MediaWiki XML import
 ```
 
 ## Release Process

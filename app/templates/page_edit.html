@@ -130,7 +130,7 @@
   async function updatePreview() {
     const content = editor.value;
     const fmt = document.getElementById('fmt-input').value;
-    const params = new URLSearchParams({ content: content, format: fmt, namespace: WIKI_NS });
+    const params = new URLSearchParams({ content: content, format: fmt, namespace: WIKI_NS, slug: WIKI_SLUG });
     try {
       const res = await fetch('/api/v1/render?' + params.toString());
       if (res.ok) {

@@ -341,22 +341,35 @@ def _render_wikitext(
         )
 
         # [[File:name.png]], [[File:name.png|thumb]], [[File:name.png|thumb|Caption]]
+        # Supports: |200px  |x150px  |300x200px  (width x height)
+        _SIZE_RE = re.compile(r'^(\d+)?x?(\d+)px$', re.IGNORECASE)
         def _file(m: re.Match) -> str:
             parts   = [p.strip() for p in m.group(0)[2:-2].split("|")]
             name    = parts[0][5:].strip()   # strip "File:"
             opts    = {p.lower() for p in parts[1:] if p.lower() in ("thumb", "thumbnail", "frame", "frameless", "border", "left", "right", "center", "none")}
-            caption = next((p for p in parts[1:] if p.lower() not in opts), "")
+            # Extract size modifier: 200px / x150px / 300x200px
+            width = height = ""
+            for p in parts[1:]:
+                sm = _SIZE_RE.match(p.strip())
+                if sm:
+                    if sm.group(1): width  = sm.group(1)
+                    if sm.group(2): height = sm.group(2)
+                    break
+            caption = next((p for p in parts[1:] if p.lower() not in opts and not _SIZE_RE.match(p.strip())), "")
             url     = (_attachments or {}).get(name, "")
             if not url:
                 return f'<span class="missing-file">[[{m.group(0)[2:-2]}]]</span>'
             thumb   = "thumb" in opts or "thumbnail" in opts or "frame" in opts
             align_class = next((f"img-{o}" for o in ("left", "right", "center") if o in opts), "img-right" if thumb else "")
+            size_attrs  = (f' width="{width}"'  if width  else "") + \
+                          (f' height="{height}"' if height else "")
+            img_class   = "wiki-thumb" if thumb else "wiki-img"
+            img_tag     = f'<img src="{url}" alt="{caption}" class="{img_class}"{size_attrs} loading="lazy" />'
             if thumb:
-                inner = f'<img src="{url}" alt="{caption}" class="wiki-thumb" loading="lazy" />'
                 cap_html = f'<figcaption>{caption}</figcaption>' if caption else ''
-                return f'<figure class="wiki-figure {align_class}">{inner}{cap_html}</figure>'
+                return f'<figure class="wiki-figure {align_class}">{img_tag}{cap_html}</figure>'
             else:
-                return f'<img src="{url}" alt="{caption}" class="wiki-img {align_class}" loading="lazy" />'
+                return f'<img src="{url}" alt="{caption}" class="{img_class} {align_class}"{size_attrs} loading="lazy" />'
         text = re.sub(r"\[\[File:[^\]|][^\]]*(?:\|[^\]]*)*\]\]", _file, text, flags=re.IGNORECASE)
 
         # WikiLinks: [[Page|Label]] / [[Page]]

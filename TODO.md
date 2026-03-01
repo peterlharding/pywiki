@@ -16,6 +16,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Image size modifiers (Wikitext)** — `[[File:name.png|200px]]`, `[[File:name.png|300x200px]]`, `[[File:name.png|x150px]]`; sets `width`/`height` on rendered `<img>`.
 - [x] **Image size suffix (Markdown)** — `![alt](attachment:file.png|200x150)` / `|200` / `|x150` emits `<img width height>` at render time.
 - [x] **Live preview resolves attachments** — `/api/v1/render` passes attachment map so `[[File:]]` and `attachment:` refs display correctly in preview.
+- [ ] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support.
 - [ ] **Live preview debounce** — reduce preview API calls; currently fires on every
       keystroke.
 
@@ -49,7 +50,8 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 - [x] **User profile page** — display name, avatar, contribution history.
 - [x] **Attachment upload auth** — upload API accepts browser `httponly` cookie token or Bearer token; fixes "Not authenticated" error in editor panel.
-
+- [ ] **Email verification** — send verification link on registration.
+- [ ] **Password reset** — forgot-password flow via email.
 
 ---
 

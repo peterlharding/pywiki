@@ -11,7 +11,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] **Wikitext → Markdown/RST conversion tool** — one-shot converter to migrate
       existing wikitext pages to Markdown or RST; expose as an admin API endpoint
       and a UI button on the edit page.
-- [ ] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support.
 
 
 ---
@@ -29,8 +28,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## Authentication & Users
 
-- [ ] **Email verification** — send verification link on registration.
-- [ ] **Password reset** — forgot-password flow via email.
 - [ ] **Per-namespace permissions** — grant read/write access per user or group.
 - [ ] **OAuth / SSO login** — GitHub, Google, or generic OIDC provider.
 - [ ] **API tokens** — long-lived personal access tokens for scripting/bots.

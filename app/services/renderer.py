@@ -24,8 +24,12 @@ from typing import Optional
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 8
+RENDERER_VERSION = 9
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
+
+# Sentinel injected by _expand_macros() in place of {{toc}} / __TOC__.
+# Must be something that survives all three renderers unchanged.
+_TOC_SENTINEL = '<!--PYWIKI-TOC-PLACEHOLDER-->'
 
 
 # -----------------------------------------------------------------------------
@@ -741,12 +745,34 @@ def parse_redirect(content: str) -> str | None:
 
 
 # -----------------------------------------------------------------------------
+# Macro pre-processor
+# -----------------------------------------------------------------------------
+
+# Matches {{toc}}, {{TOC}}, {{ toc }}, etc.
+_MACRO_TOC_RE = re.compile(r'\{\{\s*[Tt][Oo][Cc]\s*\}\}')
+# MediaWiki magic word (any capitalisation)
+_MAGIC_TOC_RE = re.compile(r'__TOC__')
+
+
+def _expand_macros(content: str) -> str:
+    """Replace TOC macro invocations with an HTML sentinel before rendering.
+
+    Recognised forms (all formats):
+      - ``{{toc}}`` / ``{{TOC}}`` / ``{{ Toc }}`` — general macro syntax
+      - ``__TOC__`` — MediaWiki magic word (primarily wikitext)
+    """
+    content = _MACRO_TOC_RE.sub(_TOC_SENTINEL, content)
+    content = _MAGIC_TOC_RE.sub(_TOC_SENTINEL, content)
+    return content
+
+
+# -----------------------------------------------------------------------------
 # TOC post-processor
 # -----------------------------------------------------------------------------
 
 _HEADING_RE = re.compile(r'<(h[1-6])(?:\s[^>]*)?>(.+?)</h[1-6]>', re.IGNORECASE | re.DOTALL)
 _STRIP_TAGS_RE = re.compile(r'<[^>]+>')
-TOC_MIN_HEADINGS = 3   # show TOC only when page has at least this many headings
+TOC_MIN_HEADINGS = 3   # retained for backward-compat import; no longer used internally
 
 
 def _slugify_anchor(text: str) -> str:
@@ -760,11 +786,12 @@ def _slugify_anchor(text: str) -> str:
 
 
 def _add_toc(html: str) -> str:
-    """Add heading anchor IDs and inject a TOC block before the first heading.
+    """Add heading anchor IDs and inject a TOC block at the sentinel position.
 
-    - All h1-h6 get a unique ``id`` attribute for deep-linking.
-    - A ``<div class="toc">`` is injected before the first heading when the
-      page has at least TOC_MIN_HEADINGS headings (MediaWiki convention).
+    - All h1-h6 always get a unique ``id`` attribute for deep-linking.
+    - A ``<div class="toc">`` is injected only where the ``_TOC_SENTINEL``
+      placeholder appears (placed there by ``_expand_macros()``).  If no
+      sentinel is present the TOC is not rendered, regardless of heading count.
     - Nesting mirrors heading depth: h2 → top-level, h3 → one indent, etc.
     """
     headings = list(_HEADING_RE.finditer(html))
@@ -799,8 +826,18 @@ def _add_toc(html: str) -> str:
         html = html.replace(old, new, 1)
 
     # ── build TOC ─────────────────────────────────────────────────────────────
-    if len(heading_data) < TOC_MIN_HEADINGS:
+    # docutils (RST) HTML-escapes the sentinel inside a <p> tag; normalise it.
+    _TOC_SENTINEL_ESC = _TOC_SENTINEL.replace('<', '&lt;').replace('>', '&gt;')
+    _SENTINEL_P_RE = re.compile(
+        r'<p>' + re.escape(_TOC_SENTINEL_ESC) + r'</p>'
+    )
+    html = _SENTINEL_P_RE.sub(_TOC_SENTINEL, html)
+
+    if _TOC_SENTINEL not in html:
         return html
+
+    if not heading_data:
+        return html.replace(_TOC_SENTINEL, '')
 
     # Determine base level (smallest h-level present) for relative nesting
     base_level = min(level for level, _, _ in heading_data)
@@ -829,14 +866,8 @@ def _add_toc(html: str) -> str:
     toc_lines.append('</div>')
     toc_html = '\n'.join(toc_lines)
 
-    # Inject TOC before the first heading tag (after id= was added)
-    first_anchor = heading_data[0][1]
-    insert_marker = f' id="{first_anchor}"'
-    insert_pos = html.find(insert_marker)
-    # Walk back to the opening < of the heading tag
-    tag_start = html.rfind('<', 0, insert_pos)
-    if tag_start >= 0:
-        html = html[:tag_start] + toc_html + '\n' + html[tag_start:]
+    # Replace the sentinel with the generated TOC block
+    html = html.replace(_TOC_SENTINEL, toc_html)
 
     return html
 
@@ -886,6 +917,7 @@ def render(
                   ``![alt](attachment:name.png)`` (markdown).
     """
     fmt = fmt.lower()
+    content = _expand_macros(content)
 
     if fmt == "markdown":
         processed = _preprocess_wikilinks_md(content, namespace, base_url, attachments)

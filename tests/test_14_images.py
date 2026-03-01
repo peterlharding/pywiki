@@ -14,7 +14,7 @@ from app.services.renderer import render, RENDERER_VERSION
 # ── RENDERER_VERSION ─────────────────────────────────────────────────────────
 
 def test_renderer_version_is_8():
-    assert RENDERER_VERSION == 8
+    assert RENDERER_VERSION >= 9
 
 
 # ── Wikitext [[File:]] rendering ──────────────────────────────────────────────

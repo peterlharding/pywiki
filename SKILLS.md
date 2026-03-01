@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.3.1)
+# PyWiki — Session Primer (v0.4.0)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -25,6 +25,7 @@ Always run tests via `wsl.exe` from PowerShell using the Makefile to get live ou
 wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 ```
 - `PYTHONUNBUFFERED=1` is set in the Makefile `test` target for live streaming through the Windows pipe
+- **247 tests passing**
 - Tests use **SQLite in-memory** — `conftest.py` sets `ALLOW_REGISTRATION=true` and `DATABASE_URL` env vars and clears `get_settings()` lru_cache before imports
 - Never use `wsl.exe ... | tail -N` — the pipe swallows intermediate output
 
@@ -36,7 +37,7 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 
 ## Key architecture notes
 - `get_settings()` is `@lru_cache` — call `get_settings.cache_clear()` if overriding in tests
-- `RENDERER_VERSION = 8` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
+- `RENDERER_VERSION = 9` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
 - `slugify()` is public in `app/services/pages.py`
 - `/admin` UI route does **not** exist — the nav "Admin" link points to `/special`
 - First registered user auto-becomes admin (`users.py` counts existing users at registration)
@@ -44,9 +45,10 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 ## Renderer pipeline (`app/services/renderer.py`)
 - Supports three formats: `markdown` (mistune), `rst` (docutils), `wikitext` (custom)
 - **Syntax highlighting**: `_highlight_code()` via Pygments; fenced blocks in Markdown, `<syntaxhighlight>`/fenced/`<pre>`/space-indent in wikitext, `syntax_highlight="short"` for RST
-- **TOC**: `_add_toc()` post-processor runs on all rendered HTML — adds `id=` to every heading, injects `<div class="toc">` before first heading when ≥ `TOC_MIN_HEADINGS` (3) headings present
+- **Macro pre-processor**: `_expand_macros()` runs first on raw source; replaces `{{toc}}` / `__TOC__` with sentinel `<!--PYWIKI-TOC-PLACEHOLDER-->`
+- **TOC**: opt-in via `{{toc}}` or `__TOC__` macro — heading `id=` attributes are always added; `<div class="toc">` only injected at sentinel position; `TOC_MIN_HEADINGS` retained for import compat only
 - **Pygments CSS**: `app/static/css/pygments.css` (friendly theme), linked in `base.html`
-- Post-processors run in order: `_add_external_link_targets()` → `_add_toc()`
+- Pipeline order: `_expand_macros()` → format render → `_add_external_link_targets()` → `_add_toc()`
 - `render()` returns `_CACHE_STAMP + html`; `is_cache_valid()` checks the stamp
 
 ## Search (`app/services/pages.py`)

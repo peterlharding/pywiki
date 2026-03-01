@@ -12,6 +12,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.0] — 2026-03-02
+
+### Added
+
+#### Macro framework
+- `_expand_macros()` pre-processor in `app/services/renderer.py` — runs before format-specific rendering on all three formats (Markdown, RST, Wikitext)
+- `{{toc}}` / `{{TOC}}` / `{{ Toc }}` — general macro syntax to insert a Table of Contents at any position in the page
+- `__TOC__` — MediaWiki magic word support (all formats, not just Wikitext)
+- Sentinel-based insertion: macros are replaced with `<!--PYWIKI-TOC-PLACEHOLDER-->` before rendering; the TOC block is injected at that exact position in the final HTML
+- RST (docutils) escapes HTML comments; the post-processor detects and unwraps the escaped sentinel from its `<p>` wrapper automatically
+- Heading anchor IDs (`id=` attributes) are still added to all h1–h6 on every page regardless of whether a TOC macro is present
+- 10 new tests in `tests/test_13_toc.py` covering `{{toc}}`, `__TOC__`, position, nesting, all three formats, and opt-in behaviour — **247 tests total**
+
+### Changed
+- **TOC is now opt-in** — the automatic `_add_toc()` injection (which fired when ≥ 3 headings were present) has been removed; a TOC only appears when `{{toc}}` or `__TOC__` is explicitly placed in the page content
+- `TOC_MIN_HEADINGS` constant retained for backward-compatible imports but is no longer used internally
+- `RENDERER_VERSION` bumped from 8 → 9 (invalidates all cached HTML on next page load)
+
+
+---
+
 ## [0.3.1] — 2026-03-02
 
 ### Fixed

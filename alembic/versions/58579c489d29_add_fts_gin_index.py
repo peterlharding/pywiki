@@ -30,19 +30,17 @@ def upgrade() -> None:
         return
 
     # CONCURRENTLY requires running outside a transaction block
-    conn.execution_options(isolation_level="AUTOCOMMIT")
-
-    conn.execute(sa.text("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_page_versions_fts
-        ON page_versions
-        USING GIN (to_tsvector('english', coalesce(content, '')))
-    """))
-
-    conn.execute(sa.text("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_pages_title_fts
-        ON pages
-        USING GIN (to_tsvector('english', coalesce(title, '')))
-    """))
+    with op.get_context().autocommit_block():
+        conn.execute(sa.text("""
+            CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_page_versions_fts
+            ON page_versions
+            USING GIN (to_tsvector('english', coalesce(content, '')))
+        """))
+        conn.execute(sa.text("""
+            CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_pages_title_fts
+            ON pages
+            USING GIN (to_tsvector('english', coalesce(title, '')))
+        """))
 
 
 def downgrade() -> None:
@@ -51,6 +49,6 @@ def downgrade() -> None:
     if conn.dialect.name != "postgresql":
         return
 
-    conn.execution_options(isolation_level="AUTOCOMMIT")
-    conn.execute(sa.text("DROP INDEX CONCURRENTLY IF EXISTS ix_page_versions_fts"))
-    conn.execute(sa.text("DROP INDEX CONCURRENTLY IF EXISTS ix_pages_title_fts"))
+    with op.get_context().autocommit_block():
+        conn.execute(sa.text("DROP INDEX CONCURRENTLY IF EXISTS ix_page_versions_fts"))
+        conn.execute(sa.text("DROP INDEX CONCURRENTLY IF EXISTS ix_pages_title_fts"))

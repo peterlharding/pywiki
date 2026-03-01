@@ -19,21 +19,18 @@
   </div>
 </div>
 
-<div class="two-col" style="gap:2rem;align-items:flex-start;">
+<div>
 
-  <div style="min-width:220px;max-width:280px;">
-    <table class="wiki-table">
-      <tbody>
-        <tr><td><strong>Username</strong></td><td>{{ profile.username }}</td></tr>
-        <tr><td><strong>Display name</strong></td><td>{{ profile.display_name }}</td></tr>
-        <tr><td><strong>Member since</strong></td><td>{{ profile.created_at.strftime('%d %b %Y') }}</td></tr>
-        <tr><td><strong>Total edits</strong></td><td>{{ edit_count }}</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <table class="wiki-table" style="margin-bottom:2rem;">
+    <tbody>
+      <tr><td><strong>Username</strong></td><td>{{ profile.username }}</td></tr>
+      <tr><td><strong>Display name</strong></td><td>{{ profile.display_name }}</td></tr>
+      <tr><td><strong>Member since</strong></td><td>{{ profile.created_at.strftime('%d %b %Y') }}</td></tr>
+      <tr><td><strong>Total edits</strong></td><td>{{ edit_count }}</td></tr>
+    </tbody>
+  </table>
 
-  <div style="flex:1;">
-    <h2>Recent contributions</h2>
+  <h2>Recent contributions</h2>
     {% if contributions %}
     <table class="wiki-table">
       <thead>
@@ -66,7 +63,6 @@
     {% else %}
     <p class="muted">No contributions yet.</p>
     {% endif %}
-  </div>
 
 </div>
 {% endblock %}

@@ -39,8 +39,11 @@ async def _register_ui(client, username="uiuser", email="ui@example.com",
 @pytest.mark.asyncio
 async def test_send_email_no_smtp_prints_stdout(capsys):
     """When SMTP is not configured, email is printed to stdout (no crash)."""
-    from app.services.email import send_email
-    await send_email("user@example.com", "Test subject", "Test body")
+    with patch.dict("os.environ", {"SMTP_HOST": ""}):
+        get_settings.cache_clear()
+        from app.services.email import send_email
+        await send_email("user@example.com", "Test subject", "Test body")
+    get_settings.cache_clear()
     captured = capsys.readouterr()
     assert "Test subject" in captured.out
     assert "user@example.com" in captured.out
@@ -48,8 +51,11 @@ async def test_send_email_no_smtp_prints_stdout(capsys):
 
 @pytest.mark.asyncio
 async def test_send_verification_email_no_smtp(capsys):
-    from app.services.email import send_verification_email
-    await send_verification_email("u@example.com", "alice", "tok123")
+    with patch.dict("os.environ", {"SMTP_HOST": ""}):
+        get_settings.cache_clear()
+        from app.services.email import send_verification_email
+        await send_verification_email("u@example.com", "alice", "tok123")
+    get_settings.cache_clear()
     captured = capsys.readouterr()
     assert "tok123" in captured.out
     assert "alice" in captured.out
@@ -57,8 +63,11 @@ async def test_send_verification_email_no_smtp(capsys):
 
 @pytest.mark.asyncio
 async def test_send_reset_email_no_smtp(capsys):
-    from app.services.email import send_password_reset_email
-    await send_password_reset_email("u@example.com", "bob", "resettok")
+    with patch.dict("os.environ", {"SMTP_HOST": ""}):
+        get_settings.cache_clear()
+        from app.services.email import send_password_reset_email
+        await send_password_reset_email("u@example.com", "bob", "resettok")
+    get_settings.cache_clear()
     captured = capsys.readouterr()
     assert "resettok" in captured.out
     assert "bob" in captured.out

@@ -18,6 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # Force test-safe settings before any app module caches them
 os.environ.setdefault("ALLOW_REGISTRATION", "true")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ["REQUIRE_EMAIL_VERIFICATION"] = "false"
+os.environ["SMTP_HOST"] = ""
 
 from app.core.config import get_settings
 get_settings.cache_clear()

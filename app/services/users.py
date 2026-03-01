@@ -138,11 +138,27 @@ async def get_user_contributions(
 ) -> list[dict]:
     from sqlalchemy import select as sa_select, func
     from app.models import PageVersion, Page, Namespace
+
+    # Subquery: latest version number the user authored per page
+    latest_sq = (
+        sa_select(
+            PageVersion.page_id,
+            func.max(PageVersion.version).label("max_version"),
+        )
+        .where(PageVersion.author_id == user_id)
+        .group_by(PageVersion.page_id)
+        .subquery()
+    )
+
     result = await db.execute(
         sa_select(PageVersion, Page, Namespace)
         .join(Page, PageVersion.page_id == Page.id)
         .join(Namespace, Page.namespace_id == Namespace.id)
-        .where(PageVersion.author_id == user_id)
+        .join(
+            latest_sq,
+            (PageVersion.page_id == latest_sq.c.page_id)
+            & (PageVersion.version == latest_sq.c.max_version),
+        )
         .order_by(PageVersion.created_at.desc())
         .limit(limit)
     )

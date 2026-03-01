@@ -46,15 +46,24 @@ async def send_email(to: str, subject: str, body_text: str, body_html: str | Non
 
     import aiosmtplib
 
-    await aiosmtplib.send(
-        msg,
-        hostname=settings.smtp_host,
-        port=settings.smtp_port,
-        username=settings.smtp_user or None,
-        password=settings.smtp_password or None,
-        use_tls=settings.smtp_ssl,
-        start_tls=settings.smtp_tls,
-    )
+    try:
+        await aiosmtplib.send(
+            msg,
+            hostname=settings.smtp_host,
+            port=settings.smtp_port,
+            username=settings.smtp_user or None,
+            password=settings.smtp_password or None,
+            use_tls=settings.smtp_ssl,
+            start_tls=settings.smtp_tls,
+        )
+    except Exception as exc:
+        log.error("SMTP send failed (%s) — falling back to stdout", exc)
+        print(f"\n{'='*60}")
+        print(f"TO:      {to}")
+        print(f"SUBJECT: {subject}")
+        print(f"{'='*60}")
+        print(body_text)
+        print(f"{'='*60}\n")
 
 
 # -----------------------------------------------------------------------------

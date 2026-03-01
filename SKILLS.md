@@ -36,7 +36,7 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 
 ## Key architecture notes
 - `get_settings()` is `@lru_cache` — call `get_settings.cache_clear()` if overriding in tests
-- `RENDERER_VERSION = 7` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
+- `RENDERER_VERSION = 8` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
 - `slugify()` is public in `app/services/pages.py`
 - `/admin` UI route does **not** exist — the nav "Admin" link points to `/special`
 - First registered user auto-becomes admin (`users.py` counts existing users at registration)
@@ -51,7 +51,7 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 
 ## Search (`app/services/pages.py`)
 - `search_pages()` detects dialect via `_db_dialect()`: uses `tsvector`/`plainto_tsquery`/`ts_rank` on PostgreSQL, `ILIKE` fallback on SQLite
-- GIN indexes: migration `58579c489d29` adds `ix_page_versions_fts` and `ix_pages_title_fts`; created `CONCURRENTLY` in autocommit — run `make db-upgrade` on deploy
+- GIN indexes: migration `58579c489d29` adds `ix_page_versions_fts` and `ix_pages_title_fts`; created `CONCURRENTLY` using `autocommit_block()` — run `make db-upgrade` on deploy
 - `SearchResult` schema includes `rank: float` field
 
 ## Category system
@@ -85,6 +85,19 @@ When cutting a new release (e.g. vX.Y.Z):
 5. Commit all four files: `git commit -m "chore: bump version to vX.Y.Z"`
 6. Tag: `git tag vX.Y.Z` (use `git tag -f vX.Y.Z HEAD` if re-tagging after post-release doc commits)
 7. Push tag: `git push origin vX.Y.Z` (use `--force` if the tag was moved after initial creation)
+
+## Email System (`app/services/email.py`)
+- `send_email(to, subject, body_text, body_html)` — sends via `aiosmtplib`; prints to stdout when `SMTP_HOST` is empty (dev mode)
+- `send_verification_email()` and `send_password_reset_email()` — convenience wrappers
+- SMTP config in `Settings`: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`, `smtp_ssl`
+- `REQUIRE_EMAIL_VERIFICATION=false` (default) — set `true` to block login until email verified; admins are always exempt
+- User model: `email_verified`, `verification_token`, `reset_token`, `reset_token_expires` columns (migration `a1b2c3d4e5f6`)
+- Service helpers: `set_verification_token`, `verify_email_token`, `set_reset_token`, `consume_reset_token` in `users.py`
+- Routes: `GET /verify-email?token=...`, `GET+POST /forgot-password`, `GET+POST /reset-password`
+- Reset tokens expire after **1 hour**; timezone-naive datetimes from SQLite handled by `.replace(tzinfo=utc)`
+
+
+---
 
 ## User Style Conventions
 - **Markdown section endings**: always two blank lines before the closing `---` separator (i.e. two blank lines at the end of each section body)

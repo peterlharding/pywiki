@@ -122,29 +122,34 @@
 
   // Live preview via API
   let previewTimer = null;
+  let previewAbort = null;
   const editor = document.getElementById('source-editor');
   const previewContent = document.getElementById('preview-content');
   const WIKI_NS   = "{{ namespace_name }}";
   const WIKI_SLUG = "{{ page.slug }}";
 
   async function updatePreview() {
+    if (previewAbort) previewAbort.abort();
+    previewAbort = new AbortController();
     const content = editor.value;
     const fmt = document.getElementById('fmt-input').value;
     const params = new URLSearchParams({ content: content, format: fmt, namespace: WIKI_NS, slug: WIKI_SLUG });
     try {
-      const res = await fetch('/api/v1/render?' + params.toString());
+      const res = await fetch('/api/v1/render?' + params.toString(), { signal: previewAbort.signal });
       if (res.ok) {
         const data = await res.json();
         previewContent.innerHTML = data.html;
       }
     } catch (e) {
-      previewContent.innerHTML = '<em class="muted">Preview unavailable</em>';
+      if (e.name !== 'AbortError') {
+        previewContent.innerHTML = '<em class="muted">Preview unavailable</em>';
+      }
     }
   }
 
   editor.addEventListener('input', () => {
     clearTimeout(previewTimer);
-    previewTimer = setTimeout(updatePreview, 800);
+    previewTimer = setTimeout(updatePreview, 400);
   });
 
   // Render initial preview on page load

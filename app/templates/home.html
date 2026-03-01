@@ -2,18 +2,6 @@
 
 {% block title %}{{ site_name }} — Home{% endblock %}
 
-{% block sidebar_extra %}
-<div class="sidebar-section">
-  <h3>Namespaces</h3>
-  <ul>
-    {% for ns in namespaces %}
-    <li><a href="/wiki/{{ ns.name }}">{{ ns.name }}</a></li>
-    {% else %}
-    <li><em>No namespaces yet</em></li>
-    {% endfor %}
-  </ul>
-</div>
-{% endblock %}
 
 {% block content %}
 {% if featured_page %}

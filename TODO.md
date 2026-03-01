@@ -10,15 +10,14 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Wikitext: tables** — `{| ... |}` MediaWiki table syntax rendered to `<table>`.
 - [x] **Wikitext: `<code>` and `<pre>` blocks** — verbatim / syntax-highlighted blocks.
 - [x] **Syntax highlighting** — Pygments server-side; fenced blocks in Markdown, `<syntaxhighlight>` / fenced / `<pre>` / space-indent in wikitext, code-block in RST. CSS served as `/static/css/pygments.css`.
-- [ ] **Math rendering** — LaTeX via MathJax or KaTeX for `$...$` / `$$...$$`
-      (Markdown) and `:math:` role (RST).
 - [x] **Wikitext: image embedding** — `[[File:name.png|thumb|Caption]]` syntax; alignment modifiers; `<figure>` with caption or inline `<img>`; missing-file placeholder.
 - [x] **Image size modifiers (Wikitext)** — `[[File:name.png|200px]]`, `[[File:name.png|300x200px]]`, `[[File:name.png|x150px]]`; sets `width`/`height` on rendered `<img>`.
 - [x] **Image size suffix (Markdown)** — `![alt](attachment:file.png|200x150)` / `|200` / `|x150` emits `<img width height>` at render time.
 - [x] **Live preview resolves attachments** — `/api/v1/render` passes attachment map so `[[File:]]` and `attachment:` refs display correctly in preview.
 - [ ] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support.
-- [ ] **Live preview debounce** — reduce preview API calls; currently fires on every
-      keystroke.
+- [ ] **Live preview debounce** — reduce preview API calls; currently fires on every keystroke.
+- [x] **Table of Contents** — opt-in via `{{toc}}` or `__TOC__` macro; no longer auto-injected (v0.4.0)
+
 
 ---
 

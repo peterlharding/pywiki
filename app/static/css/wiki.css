@@ -94,7 +94,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 }
 .nav-links a { color: rgba(255,255,255,.85); font-size: 0.9rem; }
 .nav-links a:hover { color: #fff; text-decoration: none; }
-.nav-user { font-size: 0.9rem; color: rgba(255,255,255,.7); }
+.nav-user { font-weight: 500; }
 
 /* ─── Page wrapper ───────────────────────────────────────────────────────── */
 

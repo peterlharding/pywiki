@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.security import get_current_user_id
+from app.core.security import get_current_user_id_bearer_or_cookie as get_current_user_id
 from app.schemas import AttachmentResponse, OKResponse
 from app.services.attachments import (
     attachment_url, delete_attachment,

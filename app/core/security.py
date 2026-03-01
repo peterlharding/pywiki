@@ -133,6 +133,38 @@ async def get_optional_user_id(token: str | None = Depends(_oauth2_optional)) ->
 
 
 # ----------------------------------------------------------------------------
+# FastAPI dependency — API or UI (Bearer token OR cookie)
+# ----------------------------------------------------------------------------
+
+async def get_current_user_id_bearer_or_cookie(
+    request: Request,
+    token: str | None = Depends(OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)),
+) -> str:
+    """Accept a Bearer token (API clients) or an access_token cookie (browser UI)."""
+    # 1. Bearer token from Authorization header
+    if token:
+        payload = decode_token(token)
+        if payload.get("type") == "access":
+            return payload["sub"]
+
+    # 2. Cookie (browser UI — httponly so JS can't read it, but browser sends it)
+    cookie_token = request.cookies.get("access_token")
+    if cookie_token:
+        try:
+            payload = decode_token(cookie_token)
+            if payload.get("type") == "access":
+                return payload["sub"]
+        except HTTPException:
+            pass
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+# ----------------------------------------------------------------------------
 # FastAPI dependencies — UI (session cookie)
 # ----------------------------------------------------------------------------
 

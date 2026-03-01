@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.2.4)
+# PyWiki — Session Primer (v0.2.5)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -84,6 +84,9 @@ When cutting a new release (e.g. vX.Y.Z):
 5. Commit all four files: `git commit -m "chore: bump version to vX.Y.Z"`
 6. Tag: `git tag vX.Y.Z` (use `git tag -f vX.Y.Z HEAD` if re-tagging after post-release doc commits)
 7. Push tag: `git push origin vX.Y.Z` (use `--force` if the tag was moved after initial creation)
+
+## User Style Conventions
+- **Markdown section endings**: always two blank lines before the closing `---` separator (i.e. two blank lines at the end of each section body)
 
 ## Git
 - Branch: `devel`

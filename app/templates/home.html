@@ -5,14 +5,27 @@
 
 {% block content %}
 {% if featured_page %}
+<div class="page-header" style="margin-bottom:0.5rem;">
+  <h1>{{ featured_page.page.title }}</h1>
+  <div class="page-actions">
+    {% if user %}
+    <a class="btn btn-primary" href="/wiki/{{ featured_page.namespace }}/{{ featured_page.page.slug }}/edit">✏️ Edit</a>
+    {% endif %}
+  </div>
+</div>
 <div class="featured-page wiki-content">
   {{ featured_page.rendered | safe }}
 </div>
 {% else %}
 <div class="page-header">
   <h1>Welcome to {{ site_name }}</h1>
+  <div class="page-actions">
+    {% if user %}
+    <a class="btn btn-primary" href="/create?namespace=Main&title=Main+Page">✏️ Create main page</a>
+    {% endif %}
+  </div>
 </div>
-<p>This wiki has no main page yet. <a href="/create?namespace=Main&title=Main+Page">Create one</a> or browse using the navigation on the left.</p>
+<p class="muted">This wiki has no main page yet. Create one or browse using the navigation on the left.</p>
 {% endif %}
 
 <p class="muted" style="margin-top:2rem; font-size:0.875rem;">

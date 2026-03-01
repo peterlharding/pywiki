@@ -9,6 +9,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+
+---
+
+## [0.2.5] — 2026-03-01
+
+### Added
+- **`/special/status`** — new site info page: statistics (pages, revisions, users, namespaces, app version, renderer version), namespace list, recent changes (last 20)
+- **Sidebar** — "Site status" link added between "Recent changes" and "Special pages"
+- **Rename button** — 🚚 Rename button added to the page-actions bar (next to Edit) on every page view
+- **Image size modifiers** — `[[File:photo.png|200px]]`, `[[File:photo.png|300x200px]]`, `[[File:photo.png|x150px]]` set `width`/`height` on rendered `<img>` tags in Wikitext
+- **Markdown attachment size suffix** — `![alt](attachment:photo.png|200x150)` / `|200` / `|x150` emits `<img width="..." height="...">` at render time
+- **Live preview resolves attachments** — `/api/v1/render` now accepts `slug` query param, loads page attachments from DB, passes them to `render()` so images show correctly in editor preview
+- **Home page Edit button** — ✏️ Edit button shown on home page when a `Main/main-page` exists and user is logged in; "Create main page" button shown when no main page exists
+- 9 new tests for size modifiers (Markdown and Wikitext) — **220 tests total**
+
+### Fixed
+- **Attachment upload auth** — upload API now accepts the browser's `httponly` cookie token in addition to Bearer tokens; fixes "Not authenticated" error when uploading via the editor panel
+- **Create page namespace default** — namespace selector now correctly defaults to `Main` instead of the first alphabetical namespace (was defaulting to `Go`)
+- **Duplicate `DATABASE_URL`** in `.env` — documented; second entry takes precedence
+
+### Changed
+- **Home page** is now fully customisable — renders `Main/main-page` wiki page as content; recent changes and namespace list moved to `/special/status`
+- `get_current_user_id_bearer_or_cookie` dependency added to `security.py` — used by attachment routes to support both API (Bearer) and UI (cookie) auth
+
+
 ---
 
 ## [0.2.4] — 2026-03-01
@@ -431,7 +456,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/your-org/pywiki/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/your-org/pywiki/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/your-org/pywiki/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/your-org/pywiki/compare/v0.2.1...v0.2.2

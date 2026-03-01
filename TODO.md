@@ -50,8 +50,8 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 - [x] **User profile page** — display name, avatar, contribution history.
 - [x] **Attachment upload auth** — upload API accepts browser `httponly` cookie token or Bearer token; fixes "Not authenticated" error in editor panel.
-- [ ] **Email verification** — send verification link on registration.
-- [ ] **Password reset** — forgot-password flow via email.
+- [x] **Email verification** — `REQUIRE_EMAIL_VERIFICATION=true` sends a verification link on registration; login blocked until verified (admins exempt).
+- [x] **Password reset** — `/forgot-password` and `/reset-password` flow; tokens expire after 1 hour; email sent via `aiosmtplib` (stdout fallback when SMTP not configured).
 
 ---
 

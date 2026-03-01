@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.2.5)
+# PyWiki — Session Primer (v0.3.0)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -14,6 +14,7 @@
 ```bash
 cd /mnt/c/src/projects/pywiki
 .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
 # or via make:
 make dev
 ```

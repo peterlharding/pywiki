@@ -12,6 +12,35 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.0] — 2026-03-01
+
+### Added
+
+#### Email Verification
+- New `REQUIRE_EMAIL_VERIFICATION` setting (default `false`) — when enabled, newly registered users receive a verification email before they can log in; admins are exempt
+- `GET /verify-email?token=...` — validates token, marks user verified, logs them in automatically
+- `verify_pending.html` template shown after registration when verification is required
+- New `User` columns: `email_verified`, `verification_token`, `reset_token`, `reset_token_expires`
+- Alembic migration `a1b2c3d4e5f6` adds the four new columns
+
+#### Password Reset
+- `GET/POST /forgot-password` — accepts email address, sends a reset link (always returns success to prevent email enumeration)
+- `GET/POST /reset-password?token=...` — validates token expiry (1 hour), sets new password, redirects to login
+- `forgot_password.html` and `reset_password.html` templates
+- "Forgot password?" link added to `login.html`; success banner shown after a reset
+
+#### Email Service
+- `app/services/email.py` — async SMTP mailer using `aiosmtplib`
+- Falls back to stdout print when `SMTP_HOST` is not configured (safe for development)
+- SMTP config in `Settings`: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`, `smtp_ssl`
+- 17 new tests in `tests/test_15_email.py` covering unit helpers, UI routes, and full end-to-end flows — **237 tests total**
+
+### Fixed
+- Alembic FTS migration (`58579c489d29`) used `conn.execution_options(isolation_level="AUTOCOMMIT")` inside an active transaction, causing `InvalidRequestError` on fresh runs; fixed to use `op.get_context().autocommit_block()`
+
+
+---
+
 ## [0.2.5] — 2026-03-01
 
 ### Added
@@ -456,7 +485,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/your-org/pywiki/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/your-org/pywiki/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/your-org/pywiki/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/your-org/pywiki/compare/v0.2.2...v0.2.3

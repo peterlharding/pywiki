@@ -142,14 +142,33 @@ def _preprocess_wikilinks_md(
     content = re.sub(r"\[\[Category:[^\]]+\]\]\n?", "", content, flags=re.IGNORECASE)
 
     # Rewrite attachment:filename shorthand: ![alt](attachment:name.png)
+    # Optional size suffix:  attachment:name.png|200x150  |200  |x150
+    # Size pattern: 200x150 | 200x | x150 | 200  (no 'px' suffix in MD variant)
+    # Groups: (1=W,2=H) | (3=Wonly+x) | (4=Honly) | (5=Wonly)
+    _ATT_SIZE_RE = re.compile(r'^(?:(\d+)x(\d+)|(\d+)x|x(\d+)|(\d+))$')
     if attachments:
         def _att_img(m: re.Match) -> str:
-            alt      = m.group(1)
-            filename = m.group(2)
-            url      = attachments.get(filename, "")
-            if url:
-                return f'![{alt}]({url})'
-            return m.group(0)   # leave unchanged if not found
+            import html as _html
+            alt       = m.group(1)
+            raw       = m.group(2)          # e.g. "photo.png|200x150" or "photo.png"
+            parts     = raw.split("|", 1)
+            filename  = parts[0].strip()
+            size_str  = parts[1].strip() if len(parts) > 1 else ""
+            url       = attachments.get(filename, "")
+            if not url:
+                return m.group(0)           # leave unchanged if not found
+            # Parse optional size
+            width = height = ""
+            if size_str:
+                sm = _ATT_SIZE_RE.match(size_str)
+                if sm:
+                    width  = sm.group(1) or sm.group(3) or sm.group(5) or ""
+                    height = sm.group(2) or sm.group(4) or ""
+            if width or height:
+                w_attr = f' width="{width}"'   if width  else ""
+                h_attr = f' height="{height}"' if height else ""
+                return f'<img src="{url}" alt="{_html.escape(alt)}"{w_attr}{h_attr} loading="lazy" />'
+            return f'![{alt}]({url})'
         content = re.sub(
             r'!\[([^\]]*)\]\(attachment:([^)]+)\)',
             _att_img,
@@ -342,18 +361,19 @@ def _render_wikitext(
 
         # [[File:name.png]], [[File:name.png|thumb]], [[File:name.png|thumb|Caption]]
         # Supports: |200px  |x150px  |300x200px  (width x height)
-        _SIZE_RE = re.compile(r'^(\d+)?x?(\d+)px$', re.IGNORECASE)
+        _SIZE_RE = re.compile(r'^(?:(\d+)x(\d+)|(\d+)x|x(\d+)|(\d+))px$', re.IGNORECASE)
         def _file(m: re.Match) -> str:
             parts   = [p.strip() for p in m.group(0)[2:-2].split("|")]
             name    = parts[0][5:].strip()   # strip "File:"
             opts    = {p.lower() for p in parts[1:] if p.lower() in ("thumb", "thumbnail", "frame", "frameless", "border", "left", "right", "center", "none")}
-            # Extract size modifier: 200px / x150px / 300x200px
+            # Extract size modifier: 200px / x150px / 300x200px / 200x0px
+            # Groups: (1=W,2=H) | (3=Wonly+x) | (4=Honly) | (5=Wonly)
             width = height = ""
             for p in parts[1:]:
                 sm = _SIZE_RE.match(p.strip())
                 if sm:
-                    if sm.group(1): width  = sm.group(1)
-                    if sm.group(2): height = sm.group(2)
+                    width  = sm.group(1) or sm.group(3) or sm.group(5) or ""
+                    height = sm.group(2) or sm.group(4) or ""
                     break
             caption = next((p for p in parts[1:] if p.lower() not in opts and not _SIZE_RE.match(p.strip())), "")
             url     = (_attachments or {}).get(name, "")

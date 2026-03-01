@@ -129,6 +129,76 @@ def test_md_multiple_attachments():
     assert "/attachments/def/diagram.gif" in html
 
 
+# ── Markdown attachment: size suffix ─────────────────────────────────────────
+
+def test_md_attachment_width_only():
+    md = "![photo](attachment:photo.png|200)"
+    html = render(md, fmt="markdown", attachments=ATT)
+    assert 'width="200"' in html
+    assert 'src="/api/v1/attachments/abc/photo.png"' in html
+    assert 'height=' not in html
+
+
+def test_md_attachment_height_only():
+    md = "![photo](attachment:photo.png|x150)"
+    html = render(md, fmt="markdown", attachments=ATT)
+    assert 'height="150"' in html
+    assert 'width=' not in html
+
+
+def test_md_attachment_width_and_height():
+    md = "![photo](attachment:photo.png|300x200)"
+    html = render(md, fmt="markdown", attachments=ATT)
+    assert 'width="300"' in html
+    assert 'height="200"' in html
+
+
+def test_md_attachment_no_size_stays_markdown_img():
+    md = "![photo](attachment:photo.png)"
+    html = render(md, fmt="markdown", attachments=ATT)
+    assert '<img' in html
+    assert 'width=' not in html
+    assert 'height=' not in html
+
+
+def test_md_attachment_size_missing_file_unchanged():
+    md = "![photo](attachment:notfound.png|200x100)"
+    html = render(md, fmt="markdown", attachments=ATT)
+    assert "notfound.png" in html
+    assert 'width=' not in html
+
+
+# ── Wikitext [[File:]] size modifiers ────────────────────────────────────────
+
+def test_wikitext_file_width_only():
+    wt = "[[File:photo.png|200px]]"
+    html = render(wt, fmt="wikitext", attachments=ATT)
+    assert 'width="200"' in html
+    assert 'height=' not in html
+
+
+def test_wikitext_file_height_only():
+    wt = "[[File:photo.png|x150px]]"
+    html = render(wt, fmt="wikitext", attachments=ATT)
+    assert 'height="150"' in html
+    assert 'width=' not in html
+
+
+def test_wikitext_file_width_and_height():
+    wt = "[[File:photo.png|300x200px]]"
+    html = render(wt, fmt="wikitext", attachments=ATT)
+    assert 'width="300"' in html
+    assert 'height="200"' in html
+
+
+def test_wikitext_file_thumb_with_size():
+    wt = "[[File:photo.png|thumb|200px|My caption]]"
+    html = render(wt, fmt="wikitext", attachments=ATT)
+    assert "<figure" in html
+    assert 'width="200"' in html
+    assert "My caption" in html
+
+
 # ── No attachments — no regressions ──────────────────────────────────────────
 
 def test_wikitext_no_file_syntax_unaffected():

@@ -185,6 +185,13 @@
   }
   window.insertAttachment = insertAttachment;
 
+  function getAuthHeader() {
+    const token = document.cookie.split('; ')
+      .find(r => r.startsWith('access_token='))
+      ?.split('=')[1];
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
   async function uploadFiles(files) {
     for (const file of files) {
       status.textContent = `Uploading ${file.name}…`;
@@ -195,7 +202,7 @@
         const res = await fetch(UPLOAD_URL, {
           method: 'POST',
           body: fd,
-          credentials: 'same-origin',
+          headers: getAuthHeader(),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));

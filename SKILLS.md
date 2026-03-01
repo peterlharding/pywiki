@@ -2,10 +2,13 @@
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
+- **Host OS**: Windows 11
+- **Dev environment**: WSL2 (Ubuntu) + Docker Desktop (configured to start on login)
 - **Stack**: FastAPI + SQLAlchemy (async) + Jinja2 + PostgreSQL (prod) / SQLite (tests)
 - **Python env**: `.venv` inside the project root (managed by `uv`)
 - **uv path**: `/home/plh/.local/bin/uv` — not on default WSL PATH
 - **Install packages**: `/home/plh/.local/bin/uv pip install <pkg> --python .venv/bin/python`
+- **PostgreSQL**: runs in Docker Desktop on `localhost:5432`; if the app fails to start with `ConnectionRefusedError`, Docker isn't running — start Docker Desktop first
 
 ## Running the app (from WSL)
 ```bash

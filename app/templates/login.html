@@ -6,6 +6,10 @@
 <div class="auth-box">
   <h1>Log in</h1>
 
+  {% if request.query_params.get('reset') %}
+  <div class="alert alert-info">Password reset successfully. You can now log in.</div>
+  {% endif %}
+
   {% if error %}
   <div class="alert alert-error">{{ error }}</div>
   {% endif %}
@@ -32,6 +36,7 @@
 
   <p class="auth-links">
     Don't have an account? <a href="/register">Register</a>
+    &nbsp;·&nbsp; <a href="/forgot-password">Forgot password?</a>
   </p>
 </div>
 {% endblock %}

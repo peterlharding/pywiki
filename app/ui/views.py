@@ -47,7 +47,10 @@ from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
     list_users, get_user_by_username, update_user, set_admin, set_active,
     get_user_contributions, get_user_edit_count,
+    set_verification_token, verify_email_token,
+    set_reset_token, consume_reset_token,
 )
+from app.services.email import send_verification_email, send_password_reset_email
 
 
 # -----------------------------------------------------------------------------
@@ -651,6 +654,14 @@ async def login_submit(
             status_code=401,
         )
 
+    settings2 = get_settings()
+    if settings2.require_email_verification and not user.email_verified and not user.is_admin:
+        return templates.TemplateResponse(
+            request,
+            "verify_pending.html",
+            _ctx(None, email=user.email),
+        )
+
     settings = get_settings()
     token = create_access_token(user.id, extra={"username": user.username})
     refresh = create_refresh_token(user.id)
@@ -717,6 +728,15 @@ async def register_submit(
             display_name=display_name,
         )
         user = await create_user(db, data)
+        if settings.require_email_verification:
+            vtoken = await set_verification_token(db, user)
+            await db.commit()
+            await send_verification_email(user.email, user.username, vtoken)
+            return templates.TemplateResponse(
+                request,
+                "verify_pending.html",
+                _ctx(None, email=user.email),
+            )
     except Exception as e:
         error_msg = str(e)
         if hasattr(e, "detail"):
@@ -746,6 +766,94 @@ async def register_submit(
         samesite="lax",
     )
     return response
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Email verification
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/verify-email", response_class=HTMLResponse)
+async def verify_email(request: Request, token: str, db: AsyncSession = Depends(get_db)):
+    try:
+        user = await verify_email_token(db, token)
+        await db.commit()
+    except HTTPException as e:
+        return templates.TemplateResponse(
+            request,
+            "verify_pending.html",
+            _ctx(None, email=None, error=e.detail),
+            status_code=400,
+        )
+    settings = get_settings()
+    access_token = create_access_token(user.id, extra={"username": user.username})
+    refresh = create_refresh_token(user.id)
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(key="access_token", value=access_token, httponly=True,
+                        max_age=settings.access_token_expire_minutes * 60, samesite="lax")
+    response.set_cookie(key="refresh_token", value=refresh, httponly=True,
+                        max_age=settings.refresh_token_expire_days * 86400, samesite="lax")
+    return response
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Forgot / reset password
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_form(request: Request, db: AsyncSession = Depends(get_db)):
+    user, _ = await _current_user(request, db)
+    return templates.TemplateResponse(request, "forgot_password.html", _ctx(user, error=None, sent=False))
+
+
+@router.post("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_submit(
+    request: Request,
+    email: str       = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    user, _ = await _current_user(request, db)
+    try:
+        account, rtoken = await set_reset_token(db, email)
+        await db.commit()
+        await send_password_reset_email(account.email, account.username, rtoken)
+    except HTTPException:
+        pass  # Don't reveal whether the email exists
+    return templates.TemplateResponse(
+        request, "forgot_password.html", _ctx(user, error=None, sent=True)
+    )
+
+
+@router.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_form(request: Request, token: str, db: AsyncSession = Depends(get_db)):
+    user, _ = await _current_user(request, db)
+    return templates.TemplateResponse(request, "reset_password.html", _ctx(user, token=token, error=None))
+
+
+@router.post("/reset-password", response_class=HTMLResponse)
+async def reset_password_submit(
+    request: Request,
+    token: str        = Form(...),
+    password: str     = Form(...),
+    password2: str    = Form(...),
+    db: AsyncSession  = Depends(get_db),
+):
+    user, _ = await _current_user(request, db)
+    if password != password2:
+        return templates.TemplateResponse(
+            request, "reset_password.html",
+            _ctx(user, token=token, error="Passwords do not match"),
+            status_code=400,
+        )
+    try:
+        await consume_reset_token(db, token, password)
+        await db.commit()
+    except HTTPException as e:
+        return templates.TemplateResponse(
+            request, "reset_password.html",
+            _ctx(user, token=token, error=e.detail),
+            status_code=400,
+        )
+    return RedirectResponse(url="/login?reset=1", status_code=303)
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

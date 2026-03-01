@@ -9,6 +9,8 @@ User service — create, authenticate, and manage user accounts.
 
 from __future__ import annotations
 
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -167,6 +169,61 @@ async def get_user_edit_count(db: AsyncSession, user_id: str) -> int:
         select(func.count()).select_from(PageVersion).where(PageVersion.author_id == user_id)
     )
     return result.scalar_one()
+
+
+# -----------------------------------------------------------------------------
+
+async def set_verification_token(db: AsyncSession, user: User) -> str:
+    token = secrets.token_urlsafe(32)
+    user.verification_token = token
+    await db.flush()
+    return token
+
+
+# -----------------------------------------------------------------------------
+
+async def verify_email_token(db: AsyncSession, token: str) -> User:
+    result = await db.execute(select(User).where(User.verification_token == token))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+    user.email_verified = True
+    user.verification_token = None
+    await db.flush()
+    return user
+
+
+# -----------------------------------------------------------------------------
+
+async def set_reset_token(db: AsyncSession, email: str) -> tuple[User, str]:
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account with that email address")
+    token = secrets.token_urlsafe(32)
+    user.reset_token = token
+    user.reset_token_expires = datetime.now(tz=timezone.utc) + timedelta(hours=1)
+    await db.flush()
+    return user, token
+
+
+# -----------------------------------------------------------------------------
+
+async def consume_reset_token(db: AsyncSession, token: str, new_password: str) -> User:
+    result = await db.execute(select(User).where(User.reset_token == token))
+    user = result.scalar_one_or_none()
+    if not user or not user.reset_token_expires:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+    expires = user.reset_token_expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if datetime.now(tz=timezone.utc) > expires:
+        raise HTTPException(status_code=400, detail="Reset link has expired")
+    user.password_hash = hash_password(new_password)
+    user.reset_token = None
+    user.reset_token_expires = None
+    await db.flush()
+    return user
 
 
 # -----------------------------------------------------------------------------

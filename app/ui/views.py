@@ -529,13 +529,14 @@ async def create_page_form(
     # Category namespace is internal — hide from dropdown unless explicitly prefilled
     visible_namespaces = [ns for ns in all_namespaces if ns.name != "Category"]
     ns_format_map = {ns.name: ns.default_format for ns in all_namespaces}
+    default_ns = namespace or get_settings().default_namespace
     resp = templates.TemplateResponse(
         request,
         "page_create.html",
         _ctx(user,
              namespaces=visible_namespaces,
              ns_format_map=ns_format_map,
-             prefill_namespace=namespace,
+             prefill_namespace=default_ns,
              prefill_title=title,
              error=None),
     )

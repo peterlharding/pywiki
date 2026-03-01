@@ -49,6 +49,7 @@
   <div class="page-actions">
     {% if user %}
     <a class="btn btn-primary" href="/wiki/{{ namespace_name }}/{{ page.slug }}/edit">✏️ Edit</a>
+    <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}/move">🚚 Rename</a>
     {% endif %}
     <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}/history">📜 History</a>
   </div>

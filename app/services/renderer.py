@@ -24,7 +24,7 @@ from typing import Optional
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 7
+RENDERER_VERSION = 8
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 
@@ -131,10 +131,30 @@ def _rewrite_wikilinks(html: str, namespace: str, base_url: str = "") -> str:
     return _WIKILINK_RE.sub(_replace, html)
 
 
-def _preprocess_wikilinks_md(content: str, namespace: str, base_url: str = "") -> str:
-    """Convert [[...]] wikilinks to markdown links before rendering."""
+def _preprocess_wikilinks_md(
+    content: str,
+    namespace: str,
+    base_url: str = "",
+    attachments: dict[str, str] | None = None,
+) -> str:
+    """Convert [[...]] wikilinks and attachment: image refs to markdown before rendering."""
     # Strip category tags first so they don't appear in rendered output
     content = re.sub(r"\[\[Category:[^\]]+\]\]\n?", "", content, flags=re.IGNORECASE)
+
+    # Rewrite attachment:filename shorthand: ![alt](attachment:name.png)
+    if attachments:
+        def _att_img(m: re.Match) -> str:
+            alt      = m.group(1)
+            filename = m.group(2)
+            url      = attachments.get(filename, "")
+            if url:
+                return f'![{alt}]({url})'
+            return m.group(0)   # leave unchanged if not found
+        content = re.sub(
+            r'!\[([^\]]*)\]\(attachment:([^)]+)\)',
+            _att_img,
+            content,
+        )
 
     def _replace(m: re.Match) -> str:
         target = m.group(1).strip()
@@ -182,7 +202,12 @@ def _slugify(text: str) -> str:
 _CATEGORY_RE = re.compile(r"\[\[Category:([^\]]+)\]\]", re.IGNORECASE)
 
 
-def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
+def _render_wikitext(
+    content: str,
+    namespace: str,
+    base_url: str = "",
+    attachments: dict[str, str] | None = None,
+) -> str:
     """
     Convert a subset of MediaWiki wikitext to HTML.
 
@@ -208,6 +233,7 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
     lines = content.splitlines()
     out: list[str] = []
     categories: list[str] = []
+    _attachments = attachments or {}
 
     # Sentinel prefix used to pass already-rendered HTML through the main loop
     _SENTINEL = "\x00HTML\x00"
@@ -314,10 +340,32 @@ def _render_wikitext(content: str, namespace: str, base_url: str = "") -> str:
             text,
         )
 
+        # [[File:name.png]], [[File:name.png|thumb]], [[File:name.png|thumb|Caption]]
+        def _file(m: re.Match) -> str:
+            parts   = [p.strip() for p in m.group(0)[2:-2].split("|")]
+            name    = parts[0][5:].strip()   # strip "File:"
+            opts    = {p.lower() for p in parts[1:] if p.lower() in ("thumb", "thumbnail", "frame", "frameless", "border", "left", "right", "center", "none")}
+            caption = next((p for p in parts[1:] if p.lower() not in opts), "")
+            url     = (_attachments or {}).get(name, "")
+            if not url:
+                return f'<span class="missing-file">[[{m.group(0)[2:-2]}]]</span>'
+            thumb   = "thumb" in opts or "thumbnail" in opts or "frame" in opts
+            align_class = next((f"img-{o}" for o in ("left", "right", "center") if o in opts), "img-right" if thumb else "")
+            if thumb:
+                inner = f'<img src="{url}" alt="{caption}" class="wiki-thumb" loading="lazy" />'
+                cap_html = f'<figcaption>{caption}</figcaption>' if caption else ''
+                return f'<figure class="wiki-figure {align_class}">{inner}{cap_html}</figure>'
+            else:
+                return f'<img src="{url}" alt="{caption}" class="wiki-img {align_class}" loading="lazy" />'
+        text = re.sub(r"\[\[File:[^\]|][^\]]*(?:\|[^\]]*)*\]\]", _file, text, flags=re.IGNORECASE)
+
         # WikiLinks: [[Page|Label]] / [[Page]]
         def _wl(m: re.Match) -> str:
             target = m.group(1).strip()
             label  = (m.group(2) or target).strip()
+            # Skip if it's a File: link (already handled above)
+            if target.lower().startswith("file:"):
+                return m.group(0)
             slug   = _slugify(target)
             href   = f"{base_url}/wiki/{namespace}/{slug}"
             return f'<a href="{href}" class="wikilink">{label}</a>'
@@ -784,28 +832,37 @@ def _add_external_link_targets(html: str) -> str:
 # Public render function
 # -----------------------------------------------------------------------------
 
-def render(content: str, fmt: str, namespace: str = "Main", base_url: str = "") -> str:
+def render(
+    content: str,
+    fmt: str,
+    namespace: str = "Main",
+    base_url: str = "",
+    attachments: dict[str, str] | None = None,
+) -> str:
     """
     Render *content* to HTML.
 
     Parameters
     ----------
-    content   : raw source text
-    fmt       : "markdown" or "rst"
-    namespace : wiki namespace name (used for wikilink URL construction)
-    base_url  : site base URL prefix for wikilinks
+    content     : raw source text
+    fmt         : "markdown", "rst", or "wikitext"
+    namespace   : wiki namespace name (used for wikilink URL construction)
+    base_url    : site base URL prefix for wikilinks
+    attachments : optional mapping of filename → URL for inline image resolution.
+                  Used by ``[[File:name.png]]`` (wikitext) and
+                  ``![alt](attachment:name.png)`` (markdown).
     """
     fmt = fmt.lower()
 
     if fmt == "markdown":
-        processed = _preprocess_wikilinks_md(content, namespace, base_url)
+        processed = _preprocess_wikilinks_md(content, namespace, base_url, attachments)
         renderer  = _get_md_renderer()
         html      = renderer(processed)
     elif fmt == "rst":
         processed = _preprocess_wikilinks_rst(content, namespace, base_url)
         html      = _render_rst(processed)
     elif fmt == "wikitext":
-        html = _render_wikitext(content, namespace, base_url)
+        html = _render_wikitext(content, namespace, base_url, attachments)
     else:
         # Fallback — treat as plain text wrapped in <pre>
         import html as _html

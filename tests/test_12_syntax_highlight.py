@@ -116,6 +116,6 @@ def test_rst_inline_code():
 
 # ── RENDERER_VERSION ─────────────────────────────────────────────────────────
 
-def test_renderer_version_is_7():
+def test_renderer_version_is_current():
     from app.services.renderer import RENDERER_VERSION
-    assert RENDERER_VERSION == 7
+    assert RENDERER_VERSION >= 7

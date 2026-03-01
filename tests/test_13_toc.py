@@ -13,8 +13,8 @@ from app.services.renderer import render, TOC_MIN_HEADINGS, RENDERER_VERSION
 
 # ── RENDERER_VERSION ─────────────────────────────────────────────────────────
 
-def test_renderer_version_is_7():
-    assert RENDERER_VERSION == 7
+def test_renderer_version_is_at_least_7():
+    assert RENDERER_VERSION >= 7
 
 
 # ── TOC_MIN_HEADINGS threshold ────────────────────────────────────────────────

@@ -17,6 +17,19 @@
   .format-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
   .format-tab { padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; background: var(--bg); }
   .format-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Image upload panel */
+  .upload-panel { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: 4px; padding: 1rem; }
+  .upload-panel h4 { margin: 0 0 0.75rem; font-size: 0.95rem; }
+  .upload-drop-zone { border: 2px dashed var(--border); border-radius: 4px; padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+  .upload-drop-zone.dragover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .upload-drop-zone input[type=file] { display: none; }
+  .upload-progress { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+  .att-list { list-style: none; padding: 0; margin: 0.75rem 0 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .att-item { display: flex; align-items: center; gap: 0.4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0.3rem 0.6rem; font-size: 0.85rem; }
+  .att-item img.thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 2px; }
+  .att-insert-btn { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 0.8rem; padding: 0; }
+  .att-insert-btn:hover { text-decoration: underline; }
 </style>
 {% endblock %}
 
@@ -70,6 +83,33 @@
   </div>
 
 </form>
+
+<div class="upload-panel">
+  <h4>📎 Attachments</h4>
+  <div class="upload-drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept="image/*" multiple />
+    <span>Drop images here or <strong>click to upload</strong></span>
+  </div>
+  <div class="upload-progress" id="upload-status"></div>
+  <ul class="att-list" id="att-list">
+    {% for att in attachments %}
+    <li class="att-item" id="att-{{ att.filename | replace('.', '-') }}">
+      {% set is_image = att.filename.lower().endswith(('.png','.jpg','.jpeg','.gif','.webp','.svg','.bmp')) %}
+      {% if is_image %}
+      <img class="thumb" src="{{ att_map[att.filename] }}" alt="{{ att.filename }}" />
+      {% else %}
+      <span>📄</span>
+      {% endif %}
+      <span>{{ att.filename }}</span>
+      <button class="att-insert-btn" type="button"
+              data-filename="{{ att.filename }}"
+              data-image="{{ 'true' if is_image else 'false' }}">
+        Insert
+      </button>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -109,5 +149,97 @@
 
   // Render initial preview on page load
   updatePreview();
+
+  // ── Image upload ──────────────────────────────────────────────────────────
+  const UPLOAD_URL = `/api/v1/namespaces/${WIKI_NS}/pages/${WIKI_SLUG}/attachments`;
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const status     = document.getElementById('upload-status');
+  const attList    = document.getElementById('att-list');
+
+  const IMAGE_EXTS = new Set(['.png','.jpg','.jpeg','.gif','.webp','.svg','.bmp']);
+
+  function insertAttachment(filename, isImage) {
+    const fmt = document.getElementById('fmt-input').value;
+    let syntax;
+    if (isImage) {
+      if (fmt === 'wikitext') {
+        syntax = `[[File:${filename}|thumb|${filename}]]`;
+      } else if (fmt === 'rst') {
+        syntax = `\n.. image:: attachment:${filename}\n   :alt: ${filename}\n`;
+      } else {
+        syntax = `![${filename}](attachment:${filename})`;
+      }
+    } else {
+      if (fmt === 'wikitext') syntax = `[[Media:${filename}]]`;
+      else if (fmt === 'rst')  syntax = `\`${filename} <attachment:${filename}>\`_`;
+      else                     syntax = `[${filename}](attachment:${filename})`;
+    }
+    const ta = document.getElementById('source-editor');
+    const pos = ta.selectionEnd;
+    ta.value = ta.value.slice(0, pos) + syntax + ta.value.slice(pos);
+    ta.selectionStart = ta.selectionEnd = pos + syntax.length;
+    ta.focus();
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreview, 800);
+  }
+  window.insertAttachment = insertAttachment;
+
+  async function uploadFiles(files) {
+    for (const file of files) {
+      status.textContent = `Uploading ${file.name}…`;
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('comment', 'Uploaded via editor');
+      try {
+        const res = await fetch(UPLOAD_URL, {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin',
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          status.textContent = `Error: ${err.detail || res.statusText}`;
+          continue;
+        }
+        const att = await res.json();
+        status.textContent = `Uploaded: ${att.filename}`;
+        addAttToList(att);
+      } catch (e) {
+        status.textContent = `Upload failed: ${e.message}`;
+      }
+    }
+  }
+
+  function addAttToList(att) {
+    const isImage = IMAGE_EXTS.has(att.filename.slice(att.filename.lastIndexOf('.')).toLowerCase());
+    const li = document.createElement('li');
+    li.className = 'att-item';
+    li.id = `att-${att.filename.replace(/\./g, '-')}`;
+    if (isImage) {
+      li.innerHTML = `<img class="thumb" src="${att.url}" alt="${att.filename}" />`;
+    } else {
+      li.innerHTML = `<span>📄</span>`;
+    }
+    li.innerHTML += `<span>${att.filename}</span>`
+      + `<button class="att-insert-btn" type="button"`
+      + ` data-filename="${att.filename}" data-image="${isImage}">Insert</button>`;
+    attList.appendChild(li);
+  }
+
+  attList.addEventListener('click', e => {
+    const btn = e.target.closest('.att-insert-btn');
+    if (btn) insertAttachment(btn.dataset.filename, btn.dataset.image === 'true');
+  });
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => uploadFiles(fileInput.files));
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    uploadFiles(e.dataTransfer.files);
+  });
 </script>
 {% endblock %}

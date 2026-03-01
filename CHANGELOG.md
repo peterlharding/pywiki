@@ -11,6 +11,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.4] — 2026-03-01
+
+### Added
+
+#### Image Upload & Inline Embedding
+- `render()` accepts an optional `attachments: dict[str, str]` parameter (filename → URL map)
+- **Wikitext**: `[[File:name.png]]`, `[[File:name.png|thumb]]`, `[[File:name.png|thumb|Caption]]` inline image embedding; supports `left`/`right`/`center` alignment modifiers; renders as `<figure class="wiki-figure">` (thumb) or `<img class="wiki-img">` (inline); missing files show a `<span class="missing-file">` placeholder
+- **Markdown**: `![alt](attachment:filename)` shorthand resolves against the page’s attachment map at render time; unknown filenames left unchanged
+- **Image upload panel** on the edit page: drag-and-drop / file-picker uploads to the existing attachment API via fetch; newly uploaded files appear instantly in the attachment list
+- **Insert syntax button** on each attachment: inserts format-appropriate syntax at cursor position (`[[File:...]]` for wikitext, `![...](attachment:...)` for Markdown, `.. image::` for RST)
+- **Image gallery** on page view: shows thumbnails of all image attachments below page content
+- **Lightbox**: click any gallery thumbnail to view full-size; close with `×` button, backdrop click, or Escape key
+- CSS: `.wiki-figure`, `.wiki-thumb`, `.wiki-img`, `.wiki-gallery-*`, `.lightbox-*`, `.missing-file` added to `wiki.css`
+- `tests/test_14_images.py` — 20 new tests: `[[File:]]` thumb/inline/align/missing/case-insensitive/multi, `attachment:` shorthand resolved/missing/unchanged, regression tests
+- **Total: 211 tests** (was 193 at v0.2.3)
+
+### Changed
+- `RENDERER_VERSION` bumped to `8` — invalidates cached HTML so pages re-render with image support
+- Version assertions in `test_12` / `test_13` made forward-compatible (`>= 7` instead of `== 7`)
+- `view_page` in `views.py` now loads page attachments and passes them to `render()` and template; cache bypass when attachments are present
+- `edit_page_form` in `views.py` now loads attachments for the upload panel
+
+
+---
+
 ## [0.2.3] — 2026-02-28
 
 ### Added
@@ -406,7 +431,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/your-org/pywiki/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/your-org/pywiki/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/your-org/pywiki/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/your-org/pywiki/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/your-org/pywiki/compare/v0.2.0...v0.2.1

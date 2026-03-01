@@ -41,6 +41,7 @@ from app.core.security import (
 from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, UserUpdate, NamespaceCreate, NamespaceUpdate
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
+from app.services.attachments import attachment_url, list_attachments
 from app.services.renderer import render as render_markup, extract_categories, parse_redirect, is_cache_valid
 from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
@@ -270,15 +271,25 @@ async def view_page(
             _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
             return resp
 
-    if is_cache_valid(ver.rendered) and version is None:
+    atts = await list_attachments(db, namespace_name, slug)
+    att_map = {a.filename: attachment_url(a, settings.base_url) for a in atts}
+    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+    images = [
+        {"filename": a.filename, "url": attachment_url(a, settings.base_url)}
+        for a in atts
+        if any(a.filename.lower().endswith(ext) for ext in image_exts)
+    ]
+
+    if is_cache_valid(ver.rendered) and version is None and not att_map:
         rendered = ver.rendered
     else:
         rendered = render_markup(
             ver.content, ver.format,
             namespace=namespace_name,
             base_url=settings.base_url,
+            attachments=att_map if att_map else None,
         )
-        if version is None:
+        if version is None and not att_map:
             ver.rendered = rendered
 
     categories = extract_categories(ver.content, ver.format)
@@ -293,7 +304,9 @@ async def view_page(
              namespace_name=namespace_name,
              viewing_version=version,
              categories=categories,
-             redirected_from=redirected_from),
+             redirected_from=redirected_from,
+             images=images,
+             attachments=atts),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp
@@ -315,6 +328,8 @@ async def edit_page_form(
         return _login_redirect(f"/wiki/{namespace_name}/{slug}/edit")
 
     page, ver = await page_svc.get_page(db, namespace_name, slug)
+    atts = await list_attachments(db, namespace_name, slug)
+    att_map = {a.filename: attachment_url(a, get_settings().base_url) for a in atts}
 
     resp = templates.TemplateResponse(
         request,
@@ -323,6 +338,8 @@ async def edit_page_form(
              page=page,
              ver=ver,
              namespace_name=namespace_name,
+             attachments=atts,
+             att_map=att_map,
              error=None),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)

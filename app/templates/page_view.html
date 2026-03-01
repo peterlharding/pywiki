@@ -76,4 +76,55 @@
   {% endfor %}
 </div>
 {% endif %}
+
+{% if images %}
+<div class="wiki-images">
+  <h4 class="wiki-images-title">Images ({{ images|length }})</h4>
+  <div class="wiki-images-grid">
+    {% for img in images %}
+    <a href="{{ img.url }}" class="lightbox-trigger" data-src="{{ img.url }}" data-caption="{{ img.filename }}">
+      <img src="{{ img.url }}" alt="{{ img.filename }}" class="wiki-gallery-thumb" loading="lazy" />
+      <span class="wiki-gallery-name">{{ img.filename }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if images %}
+<div id="lightbox-overlay" class="lightbox-overlay" style="display:none;" role="dialog" aria-modal="true">
+  <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
+  <div class="lightbox-inner">
+    <img id="lightbox-img" src="" alt="" />
+    <p id="lightbox-caption" class="lightbox-caption"></p>
+  </div>
+</div>
+<script>
+  const overlay = document.getElementById('lightbox-overlay');
+  const lbImg   = document.getElementById('lightbox-img');
+  const lbCap   = document.getElementById('lightbox-caption');
+
+  document.querySelectorAll('.lightbox-trigger').forEach(el => {
+    el.addEventListener('click', e => {
+      e.preventDefault();
+      lbImg.src = el.dataset.src;
+      lbCap.textContent = el.dataset.caption;
+      overlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeLightbox(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  function closeLightbox() {
+    overlay.style.display = 'none';
+    lbImg.src = '';
+    document.body.style.overflow = '';
+  }
+</script>
+{% endif %}
 {% endblock %}

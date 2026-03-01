@@ -16,61 +16,18 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>Welcome to {{ site_name }}</h1>
-</div>
-
 {% if featured_page %}
 <div class="featured-page wiki-content">
   {{ featured_page.rendered | safe }}
 </div>
-<hr />
+{% else %}
+<div class="page-header">
+  <h1>Welcome to {{ site_name }}</h1>
+</div>
+<p>This wiki has no main page yet. <a href="/create?namespace=Main&title=Main+Page">Create one</a> or browse using the navigation on the left.</p>
 {% endif %}
 
-<section class="home-section">
-  <h2>Recent Changes</h2>
-  {% if recent %}
-  <table class="wiki-table">
-    <thead>
-      <tr>
-        <th>Page</th>
-        <th>Namespace</th>
-        <th>Ver</th>
-        <th>Author</th>
-        <th>Updated</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in recent %}
-      <tr>
-        <td><a href="/wiki/{{ item.namespace }}/{{ item.slug }}">{{ item.title }}</a></td>
-        <td><a href="/wiki/{{ item.namespace }}">{{ item.namespace }}</a></td>
-        <td>{{ item.version }}</td>
-        <td>{% if item.author and item.author != 'anonymous' %}<a href="/user/{{ item.author }}">{{ item.author }}</a>{% else %}{{ item.author }}{% endif %}</td>
-        <td class="ts">{{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="muted">No pages yet. <a href="/create">Create the first page!</a></p>
-  {% endif %}
-</section>
-
-<section class="home-section">
-  <h2>Namespaces</h2>
-  {% if namespaces %}
-  <ul class="ns-list">
-    {% for ns in namespaces %}
-    <li>
-      <a href="/wiki/{{ ns.name }}"><strong>{{ ns.name }}</strong></a>
-      <span class="badge">{{ ns.default_format }}</span>
-      {% if ns.description %}<span class="muted"> — {{ ns.description }}</span>{% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="muted">No namespaces have been created yet.</p>
-  {% endif %}
-</section>
+<p class="muted" style="margin-top:2rem; font-size:0.875rem;">
+  <a href="/special/status">→ Site status &amp; recent changes</a>
+</p>
 {% endblock %}

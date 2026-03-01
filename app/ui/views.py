@@ -42,7 +42,7 @@ from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, UserUpda
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
 from app.services.attachments import attachment_url, list_attachments
-from app.services.renderer import render as render_markup, extract_categories, parse_redirect, is_cache_valid
+from app.services.renderer import render as render_markup, extract_categories, parse_redirect, is_cache_valid, RENDERER_VERSION as renderer_version
 from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
     list_users, get_user_by_username, update_user, set_admin, set_active,
@@ -126,18 +126,11 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     except HTTPException:
         pass
 
-    # Recent changes: last 10 across all namespaces
-    recent = await page_svc.get_recent_changes(db, limit=10)
-
-    namespaces = await ns_svc.list_namespaces(db)
-
     resp = templates.TemplateResponse(
         request,
         "home.html",
         _ctx(user,
-             featured_page=featured_page,
-             recent=recent,
-             namespaces=namespaces),
+             featured_page=featured_page),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp
@@ -822,6 +815,40 @@ async def special_pages(request: Request, db: AsyncSession = Depends(get_db)):
              total_users=total_users,
              namespaces=namespaces,
              all_categories=all_categories),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Site status page
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/status", response_class=HTMLResponse)
+async def site_status(request: Request, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    settings = get_settings()
+
+    from sqlalchemy import func, select as sa_select
+    from app.models import Page, PageVersion, User as UserModel
+
+    total_pages    = (await db.execute(sa_select(func.count()).select_from(Page))).scalar_one()
+    total_versions = (await db.execute(sa_select(func.count()).select_from(PageVersion))).scalar_one()
+    total_users    = (await db.execute(sa_select(func.count()).select_from(UserModel))).scalar_one()
+    namespaces     = await ns_svc.list_namespaces(db)
+    recent         = await page_svc.get_recent_changes(db, limit=20)
+
+    resp = templates.TemplateResponse(
+        request,
+        "special_status.html",
+        _ctx(user,
+             total_pages=total_pages,
+             total_versions=total_versions,
+             total_users=total_users,
+             namespaces=namespaces,
+             recent=recent,
+             app_version=settings.app_version,
+             renderer_version=renderer_version),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp

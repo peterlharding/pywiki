@@ -12,6 +12,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.1] — 2026-03-02
+
+### Fixed
+- **SMTP fallback** — any SMTP error (auth failure, connection refused, TLS mismatch) is now caught, logged, and falls back to stdout; prevents HTTP 500 on mail send failure
+- **Nav username link** — username in the top nav bar is now a clickable link to `/user/{username}` instead of a plain `<span>`
+- **Profile page layout** — replaced cramped two-column layout with a single-column layout: details table on top, Recent Contributions below; table now uses full content width
+- **Profile contributions** — Recent Contributions now shows only the most recent version the user authored per page (was listing every version separately)
+- **Profile summary dash** — empty edit summaries now render as a muted `—` instead of the raw HTML string `<span class="muted">—</span>`
+- **Test isolation** — `conftest.py` now forces `REQUIRE_EMAIL_VERIFICATION=false` and `SMTP_HOST=""` so live `.env` values no longer leak into the test suite
+
+
+---
+
 ## [0.3.0] — 2026-03-01
 
 ### Added

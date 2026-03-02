@@ -24,7 +24,7 @@ from typing import Optional
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 9
+RENDERER_VERSION = 10
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 # Sentinel injected by _expand_macros() in place of {{toc}} / __TOC__.
@@ -651,10 +651,18 @@ def _render_wikitext(
     in_dl = False
     para_buf: list[str] = []
 
+    _BLOCK_START_RE = re.compile(r"^\s*<(figure|div|table|blockquote|ul|ol|dl|pre|hr)\b", re.IGNORECASE)
+
     def _flush_para():
-        if para_buf:
-            out.append(f"<p>{'<br>'.join(_inline(l) for l in para_buf)}</p>")
-            para_buf.clear()
+        if not para_buf:
+            return
+        rendered = [_inline(l) for l in para_buf]
+        para_buf.clear()
+        # If the buffer is a single line that rendered to a block element, emit unwrapped
+        if len(rendered) == 1 and _BLOCK_START_RE.match(rendered[0]):
+            out.append(rendered[0])
+        else:
+            out.append(f"<p>{'<br>'.join(rendered)}</p>")
 
     def _close_lists():
         nonlocal in_dl

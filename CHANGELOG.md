@@ -12,6 +12,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0] — 2026-03-02
+
+### Added
+- **Production deployment** — `deploy/` directory with all files needed to stand up PyWiki on a live server:
+  - `deploy/README.md` — 11-step guide covering system user, code deploy, venv, PostgreSQL setup, migrations, systemd, certbot SSL, nginx, firewall, and first-admin bootstrap
+  - `deploy/pywiki.service` — systemd unit; runs uvicorn on `127.0.0.1:8700` as the `pywiki` system user, restarts on failure
+  - `deploy/nginx-pywiki.conf` — HTTPS on port 443 → `127.0.0.1:8700`; HTTP→HTTPS redirect; ACME challenge pass-through; static files served by nginx; 55 MB upload limit
+  - `deploy/.env.example` — all configuration keys with production-appropriate defaults for `expanse.performiq.com`
+
+
+---
+
 ## [0.4.0] — 2026-03-02
 
 ### Added

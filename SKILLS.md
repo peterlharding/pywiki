@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.4.0)
+# PyWiki — Session Primer (v0.5.0)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -103,6 +103,12 @@ When cutting a new release (e.g. vX.Y.Z):
 
 ## User Style Conventions
 - **Markdown section endings**: always two blank lines before the closing `---` separator (i.e. two blank lines at the end of each section body)
+
+## Deployment
+- **Production target**: `https://expanse.performiq.com`
+- Deploy files in `deploy/`: `README.md`, `pywiki.service`, `nginx-pywiki.conf`, `.env.example`
+- Uvicorn listens on `127.0.0.1:8700`; nginx proxies from port 443
+- Recent releases: v0.3.1 (SMTP fallback, profile fixes), v0.4.0 (macro framework, TOC opt-in, `<ref>`, live preview debounce), v0.5.0 (production deploy/ directory)
 
 ## Git
 - Branch: `devel`

@@ -49,17 +49,17 @@ cause a `SyntaxError` at startup.
 sudo -u pywiki bash -c "
   cd /opt/pywiki
   python3 -m venv --clear .venv
-  .venv/bin/pip install --upgrade pip
-  .venv/bin/pip install -e .
+  .venv/bin/pip install --upgrade pip setuptools wheel
+  .venv/bin/pip install -r deploy/requirements.txt
 "
 ```
 
-> If `uv` is available on the server it is faster and avoids the shadowing issue:
+> If `uv` is available on the server it is faster:
 > ```bash
 > sudo -u pywiki bash -c "
 >   cd /opt/pywiki
 >   python3 -m venv --clear .venv
->   uv pip install -e . --python .venv/bin/python
+>   uv pip install -r deploy/requirements.txt --python .venv/bin/python
 > "
 > ```
 

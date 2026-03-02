@@ -107,6 +107,12 @@ When cutting a new release (e.g. vX.Y.Z):
 
 ---
 
+## Working Practices
+- **Update `TODO.md` when work is completed** — mark items `[x]` with a brief note of what was done and the version. Do this at the end of each session or when a feature/fix is confirmed working.
+
+
+---
+
 ## User Style Conventions
 - **Markdown section endings**: always two blank lines before the closing `---` separator (i.e. two blank lines at the end of each section body)
 

@@ -1106,6 +1106,7 @@ async def ns_create_submit(
         await ns_svc.create_namespace(db, NamespaceCreate(
             name=name, description=description, default_format=default_format
         ))
+        await db.commit()
         resp = RedirectResponse(url="/special/namespaces", status_code=303)
     except (HTTPException, PydanticValidationError) as e:
         error_msg = e.detail if isinstance(e, HTTPException) else e.errors()[0]["msg"]
@@ -1156,6 +1157,7 @@ async def ns_edit_submit(
         await ns_svc.update_namespace(db, ns_name, NamespaceUpdate(
             description=description, default_format=default_format
         ))
+        await db.commit()
         resp = RedirectResponse(url="/special/namespaces", status_code=303)
     except HTTPException as e:
         resp = templates.TemplateResponse(
@@ -1179,6 +1181,7 @@ async def ns_delete_submit(
     if not user or not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin only")
     await ns_svc.delete_namespace(db, ns_name)
+    await db.commit()
     resp = RedirectResponse(url="/special/namespaces", status_code=303)
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp

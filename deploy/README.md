@@ -34,7 +34,7 @@ rsync -av \
     --exclude='.env' \
     --exclude='data/' \
     --exclude='.git' \
-    ./ pywiki@<server>:/opt/pywiki/
+    ./ user@<server>:/opt/pywiki/
 ```
 
 ---
@@ -172,7 +172,7 @@ sudo certbot certonly --nginx -d expanse.example.com
 ```bash
 sudo cp /opt/pywiki/deploy/nginx-pywiki.conf \
     /etc/nginx/sites-available/expanse.example.com
-sudo ln -s /etc/nginx/sites-available/expanse.performiq.com \
+sudo ln -s /etc/nginx/sites-available/expanse.example.com \
     /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```

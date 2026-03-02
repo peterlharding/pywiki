@@ -66,6 +66,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Inline image rendering (RST)** — `.. image::` / `.. figure::` directives with server-side attachment URL resolution; `:width:` / `:align:` options supported (v0.5.0)
 - [x] **Deleting Images** — red × button on thumbnail hover; calls DELETE API; removes item from DOM and updates count without page reload (v0.5.1)
 
+
 ---
 
 ## Attachments
@@ -80,6 +81,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Table of contents** — auto-generated from headings for all three formats; injected before first heading when ≥ 3 headings; heading anchors always added.
 - [x] **Customisable home page** — `/` renders `Main/main-page` wiki page; Edit button for logged-in users; "Create main page" prompt when absent.
 - [x] **Site status page** — `/special/status` shows stats, namespaces, and recent changes; linked from sidebar and Special Pages.
+- [x] **Default namespace preference** — per-user `pref_namespace` cookie; auto-updated on page create; ⭐ Set default button on namespace list; current default highlighted with badge (v0.5.2)
 
 ---
 

@@ -274,6 +274,8 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .badge-markdown { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
 .badge-rst      { background: #fff3e0; border-color: #ffcc80; color: #e65100; }
 .badge-wikitext { background: #e8eaf6; border-color: #9fa8da; color: #283593; }
+.badge-default  { background: #fff8e1; border-color: #ffe082; color: #f57f17; }
+.ns-default-row { background: color-mix(in srgb, var(--accent) 4%, var(--bg)); }
 
 /* ─── Categories ─────────────────────────────────────────────────────────── */
 

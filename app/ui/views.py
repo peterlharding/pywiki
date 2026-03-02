@@ -533,7 +533,8 @@ async def create_page_form(
     # Category namespace is internal — hide from dropdown unless explicitly prefilled
     visible_namespaces = [ns for ns in all_namespaces if ns.name != "Category"]
     ns_format_map = {ns.name: ns.default_format for ns in all_namespaces}
-    default_ns = namespace or get_settings().default_namespace
+    pref_ns = request.cookies.get("pref_namespace", "")
+    default_ns = namespace or pref_ns or get_settings().default_namespace
     resp = templates.TemplateResponse(
         request,
         "page_create.html",
@@ -599,6 +600,7 @@ async def create_page_submit(
         redirect_url = f"/wiki/{namespace_name}/{page.slug}"
     resp = RedirectResponse(url=redirect_url, status_code=303)
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    resp.set_cookie("pref_namespace", namespace_name, max_age=60*60*24*365, samesite="lax")
     return resp
 
 
@@ -1066,12 +1068,28 @@ async def ns_list_view(request: Request, db: AsyncSession = Depends(get_db)):
             "default_format": ns.default_format,
             "page_count": count,
         })
+    pref_ns = request.cookies.get("pref_namespace", get_settings().default_namespace)
     resp = templates.TemplateResponse(
         request,
         "ns_list.html",
-        _ctx(user, namespaces=ns_rows),
+        _ctx(user, namespaces=ns_rows, pref_namespace=pref_ns),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/namespaces/{ns_name}/set-default", response_class=HTMLResponse)
+async def ns_set_default(
+    request: Request,
+    ns_name: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=403, detail="Login required")
+    resp = RedirectResponse(url="/special/namespaces", status_code=303)
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    resp.set_cookie("pref_namespace", ns_name, max_age=60*60*24*365, samesite="lax")
     return resp
 
 

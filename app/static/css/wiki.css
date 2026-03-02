@@ -278,6 +278,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 /* ─── Categories ─────────────────────────────────────────────────────────── */
 
 .wiki-categories-bar {
+  clear: both;
   margin-top: 1.5rem;
   padding: 0.5rem 0.75rem;
   border-top: 1px solid var(--border);
@@ -345,6 +346,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 /* ─── Wiki content (rendered output) ────────────────────────────────────── */
 
 .wiki-content { line-height: 1.7; }
+.wiki-content::after { content: ''; display: table; clear: both; }
 .wiki-content h1, .wiki-content h2, .wiki-content h3,
 .wiki-content h4, .wiki-content h5, .wiki-content h6 {
   clear: both;

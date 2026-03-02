@@ -118,7 +118,8 @@ When cutting a new release (e.g. vX.Y.Z):
 - **Inline `.env` comments**: pydantic-settings parses the whole line as the value — never put `# comment` on the same line as a value (e.g. `KEY=value  # comment` will fail int/bool parsing)
 - **`systemctl restart` vs stop+start**: `restart` can leave old workers running if the master is stuck; use `systemctl stop && systemctl start` to guarantee a clean reload
 - **Install sequence on server**: `stop service` → `git pull` → `pip install -r deploy/requirements.txt` → `alembic upgrade head` → `start service`
-- **nginx `proxy_pass` port**: must match the uvicorn port in `pywiki.service` — both must be `8700`. A mismatch (e.g. 8222 vs 8700) causes 502 for all dynamic requests while static files still load (served directly by nginx), making the site appear partially functional
+- **nginx `proxy_pass` port**: must match the uvicorn port in `pywiki.service` — both are `8222`. A mismatch causes 502 for all dynamic requests while static files still load (served directly by nginx), making the site appear partially functional
+- **`BASE_URL` must be the external HTTPS URL** (e.g. `https://expanse.performiq.com`), not `http://localhost:8222`. Uvicorn's internal port is only relevant to nginx's `proxy_pass` — `BASE_URL` controls what gets embedded in attachment URLs in rendered HTML, so it must be browser-reachable
 
 ## Git
 - Branch: `devel`

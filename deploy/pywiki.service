@@ -9,6 +9,8 @@ User=pywiki
 Group=pywiki
 WorkingDirectory=/opt/pywiki
 EnvironmentFile=/opt/pywiki/.env
+Environment=PYTHONPATH=/opt/pywiki
+Environment=PATH=/opt/pywiki/.venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/opt/pywiki/.venv/bin/uvicorn \
     app.main:app \
     --host 127.0.0.1 \

@@ -83,10 +83,17 @@
   <h4 class="wiki-images-title">Images ({{ images|length }})</h4>
   <div class="wiki-images-grid">
     {% for img in images %}
-    <a href="{{ img.url }}" class="lightbox-trigger" data-src="{{ img.url }}" data-caption="{{ img.filename }}">
-      <img src="{{ img.url }}" alt="{{ img.filename }}" class="wiki-gallery-thumb" loading="lazy" />
-      <span class="wiki-gallery-name">{{ img.filename }}</span>
-    </a>
+    <div class="wiki-gallery-item">
+      <a href="{{ img.url }}" class="lightbox-trigger" data-src="{{ img.url }}" data-caption="{{ img.filename }}">
+        <img src="{{ img.url }}" alt="{{ img.filename }}" class="wiki-gallery-thumb" loading="lazy" />
+        <span class="wiki-gallery-name">{{ img.filename }}</span>
+      </a>
+      {% if user %}
+      <button class="wiki-gallery-delete" data-filename="{{ img.filename }}"
+              data-namespace="{{ namespace_name }}" data-slug="{{ page.slug }}"
+              title="Delete {{ img.filename }}" aria-label="Delete">&times;</button>
+      {% endif %}
+    </div>
     {% endfor %}
   </div>
 </div>
@@ -106,6 +113,39 @@
   const overlay = document.getElementById('lightbox-overlay');
   const lbImg   = document.getElementById('lightbox-img');
   const lbCap   = document.getElementById('lightbox-caption');
+
+  document.querySelectorAll('.wiki-gallery-delete').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const filename  = btn.dataset.filename;
+      const namespace = btn.dataset.namespace;
+      const slug      = btn.dataset.slug;
+      if (!confirm(`Delete attachment "${filename}"?`)) return;
+      try {
+        const resp = await fetch(
+          `/api/v1/namespaces/${namespace}/pages/${slug}/attachments/${encodeURIComponent(filename)}`,
+          { method: 'DELETE', credentials: 'same-origin' }
+        );
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          alert(`Delete failed: ${err.detail || resp.statusText}`);
+          return;
+        }
+        const item = btn.closest('.wiki-gallery-item');
+        item.remove();
+        const grid  = document.querySelector('.wiki-images-grid');
+        const remaining = grid.querySelectorAll('.wiki-gallery-item').length;
+        const section   = document.querySelector('.wiki-images');
+        if (remaining === 0) {
+          section.remove();
+        } else {
+          document.querySelector('.wiki-images-title').textContent = `Images (${remaining})`;
+        }
+      } catch (err) {
+        alert(`Delete failed: ${err.message}`);
+      }
+    });
+  });
 
   document.querySelectorAll('.lightbox-trigger').forEach(el => {
     el.addEventListener('click', e => {

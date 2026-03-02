@@ -307,6 +307,29 @@ async def delete_page(
 
 # -----------------------------------------------------------------------------
 
+async def check_slugs_exist(
+    db: AsyncSession,
+    namespace_name: str,
+    slugs: list[str],
+) -> set[str]:
+    """Return the subset of *slugs* that exist in *namespace_name*."""
+    if not slugs:
+        return set()
+    try:
+        ns = await get_namespace_by_name(db, namespace_name)
+    except HTTPException:
+        return set()
+    result = await db.execute(
+        select(Page.slug).where(
+            Page.namespace_id == ns.id,
+            Page.slug.in_(slugs),
+        )
+    )
+    return {row[0] for row in result.all()}
+
+
+# -----------------------------------------------------------------------------
+
 async def list_pages(
     db: AsyncSession,
     namespace_name: str,

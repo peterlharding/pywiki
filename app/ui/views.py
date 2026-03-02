@@ -25,6 +25,7 @@ POST /create                    — create new page
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
@@ -289,6 +290,26 @@ async def view_page(
             ver.rendered = rendered
 
     categories = extract_categories(ver.content, ver.format)
+
+    # Red-link detection: mark wikilinks to non-existent pages with class="wikilink missing"
+    _wl_href_re = re.compile(
+        r'href="(?:' + re.escape(settings.base_url) + r')?/wiki/' + re.escape(namespace_name) + r'/([^"]+)"'
+    )
+    linked_slugs = list({m.group(1).split("?")[0] for m in _wl_href_re.finditer(rendered)})
+    if linked_slugs:
+        existing = await page_svc.check_slugs_exist(db, namespace_name, linked_slugs)
+        def _mark_missing(m: re.Match) -> str:
+            full = m.group(0)
+            slug_part = m.group(1).split("?")[0]
+            if slug_part not in existing:
+                return full.replace('class="wikilink"', 'class="wikilink missing"')
+            return full
+        _link_re = re.compile(
+            r'<a\s[^>]*class="wikilink"[^>]*href="(?:'
+            + re.escape(settings.base_url)
+            + r')?/wiki/' + re.escape(namespace_name) + r'/([^"]+)"[^>]*>'
+        )
+        rendered = _link_re.sub(_mark_missing, rendered)
 
     resp = templates.TemplateResponse(
         request,

@@ -418,6 +418,8 @@ async def edit_page_submit(
     except Exception:
         pass  # page is saved; it will be rendered fresh on first view
 
+    await db.commit()
+
     resp = RedirectResponse(url=f"/wiki/{namespace_name}/{slug}", status_code=303)
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp
@@ -636,6 +638,8 @@ async def create_page_submit(
         ver.rendered = rendered
     except Exception:
         pass  # page is saved; it will be rendered on first view
+
+    await db.commit()
 
     if namespace_name == "Category":
         redirect_url = f"/category/{title}"

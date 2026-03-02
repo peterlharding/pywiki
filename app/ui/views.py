@@ -377,7 +377,9 @@ async def edit_page_submit(
 
     # Render separately — a render failure must NOT roll back the DB transaction
     try:
-        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
+        atts = await list_attachments(db, namespace_name, slug)
+        att_map = {a.filename: attachment_url(a, settings.base_url) for a in atts} or None
+        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url, attachments=att_map)
         ver.rendered = rendered
     except Exception:
         pass  # page is saved; it will be rendered fresh on first view
@@ -584,7 +586,9 @@ async def create_page_submit(
 
     # Render separately — a render failure must NOT roll back the page creation
     try:
-        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
+        atts = await list_attachments(db, namespace_name, page.slug)
+        att_map = {a.filename: attachment_url(a, settings.base_url) for a in atts} or None
+        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url, attachments=att_map)
         ver.rendered = rendered
     except Exception:
         pass  # page is saved; it will be rendered on first view

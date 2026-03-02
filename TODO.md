@@ -15,6 +15,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Image size suffix (Markdown)** — `![alt](attachment:file.png|200x150)` / `|200` / `|x150` emits `<img width height>` at render time.
 - [x] **Live preview resolves attachments** — `/api/v1/render` passes attachment map so `[[File:]]` and `attachment:` refs display correctly in preview.
 - [x] **RST image embedding** — `.. image:: attachment:file.png` and `.. figure:: attachment:file.png` directives resolve to real URLs; `` `label <attachment:file>`_ `` links also resolved (v0.5.0)
+- [x] **Special:Upload** — `/special/upload` page; select namespace + page slug, upload file, shows embed syntax for all three formats after success
 - [x] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support; named refs, back-references, anchor IDs, inline markup in notes (v0.4.0)
 - [x] **Live preview debounce** — 400ms debounce + `AbortController` cancels in-flight requests on new input (v0.4.0)
 - [x] **Table of Contents** — opt-in via `{{toc}}` or `__TOC__` macro; no longer auto-injected (v0.4.0)

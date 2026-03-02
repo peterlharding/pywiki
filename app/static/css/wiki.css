@@ -277,6 +277,16 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 
 /* ─── Categories ─────────────────────────────────────────────────────────── */
 
+.wiki-categories {
+  clear: both;
+  margin-top: 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
 .wiki-categories-bar {
   clear: both;
   margin-top: 1.5rem;
@@ -587,9 +597,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
 
 .wiki-thumb { max-width: 220px; display: block; height: auto; }
 .wiki-img   { max-width: 100%; height: auto; }
-.img-right  { float: right; margin-left: 1rem; }
-.img-left   { float: left;  margin-right: 1rem; }
-.img-center { display: block; margin: 0 auto; }
+.img-right  { float: right; margin-left: 1rem; margin-bottom: 1rem; }
+.img-left   { float: left;  margin-right: 1rem; margin-bottom: 1rem; }
+.img-center { display: block; margin: 0 auto; clear: both; }
 
 .missing-file {
   color: var(--danger, #c00);

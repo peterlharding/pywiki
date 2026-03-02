@@ -14,7 +14,7 @@ Environment=PATH=/opt/pywiki/.venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/opt/pywiki/.venv/bin/uvicorn \
     app.main:app \
     --host 127.0.0.1 \
-    --port 8700 \
+    --port 8222 \
     --workers 4 \
     --log-level info \
     --access-log

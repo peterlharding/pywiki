@@ -198,6 +198,13 @@ cython_debug/
 # PyWiki runtime files
 pywiki.db
 
+# SSL certificates and private keys — never commit these
+*.key
+*.crt
+*.pem
+*.p12
+*.pfx
+
 # PyPI configuration file
 .pypirc
 

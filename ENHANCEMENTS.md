@@ -11,14 +11,16 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] **Wikitext → Markdown/RST conversion tool** — one-shot converter to migrate
       existing wikitext pages to Markdown or RST; expose as an admin API endpoint
       and a UI button on the edit page.
+- [ ] **Math rendering** — LaTeX via MathJax or KaTeX for `$...$` / `$$...$$` (Markdown) and `:math:` role (RST).
+- [ ] **Page history** — view revision history and restore previous versions.
+- [ ] **Macro system** - Implement a macro framework that allows users to create custom macros.
 
 
 ---
 
 ## Page Management
 
-- [ ] **Wikitext-to-Markdown migration** — admin batch job to convert all wikitext
-      pages in a namespace to Markdown.
+- [ ] **Wikitext-to-Markdown migration** — admin batch job to convert all wikitext pages in a namespace to Markdown.
 - [ ] **Page locking** — allow admins to mark a page as read-only.
 - [ ] **Page protection levels** — per-page edit permission: any user / logged-in / admin only.
 - [ ] **Soft delete / undelete** — mark pages as deleted rather than hard-removing them; admin UI to restore.
@@ -37,8 +39,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## Attachments
 
-- [ ] **Attachment versioning** — keep old file versions on re-upload rather than
-      overwriting.
+- [ ] **Attachment versioning** — keep old file versions on re-upload rather than overwriting.
 - [ ] **S3 / object-storage backend** — configurable storage driver so attachments
       can be stored in S3-compatible stores instead of local filesystem.
 - [ ] **Virus scan hook** — pluggable pre-upload scanner.
@@ -76,11 +77,9 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] **Structured logging** — replace print/uvicorn default logging with structlog.
 - [ ] **Docker / docker-compose** — add `Dockerfile` and `docker-compose.yml` for one-command local development.
 - [ ] **Test coverage** — target ≥ 80 % line coverage; add attachment and UI route tests.
-- [ ] **Caching layer** — Redis-backed cache for rendered HTML (invalidate on
-      page update).
+- [ ] **Caching layer** — Redis-backed cache for rendered HTML (invalidate on page update).
 - [ ] **Rate limiting** — per-IP and per-user request throttling via a middleware.
-- [ ] **Health check endpoint improvements** — include DB connectivity and version
-      info in `/api/health`.
+- [ ] **Health check endpoint improvements** — include DB connectivity and version info in `/api/health`.
 - [ ] **CI pipeline** — GitHub Actions workflow: lint → type-check → test.
 - [ ] **Type annotations** — run `mypy` in strict mode; fix remaining gaps.
 - [ ] **OpenAPI docs polish** — add response examples and tag descriptions.

@@ -311,6 +311,8 @@ async def view_page(
         )
         rendered = _link_re.sub(_mark_missing, rendered)
 
+    back_url = request.cookies.get("back_url", "")
+
     resp = templates.TemplateResponse(
         request,
         "page_view.html",
@@ -323,9 +325,12 @@ async def view_page(
              categories=categories,
              redirected_from=redirected_from,
              images=images,
-             attachments=atts),
+             attachments=atts,
+             back_url=back_url),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    if back_url:
+        resp.delete_cookie("back_url")
     return resp
 
 
@@ -545,6 +550,7 @@ async def create_page_form(
     request: Request,
     namespace: Optional[str] = None,
     title: Optional[str] = None,
+    back: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -556,6 +562,9 @@ async def create_page_form(
     ns_format_map = {ns.name: ns.default_format for ns in all_namespaces}
     pref_ns = request.cookies.get("pref_namespace", "")
     default_ns = namespace or pref_ns or get_settings().default_namespace
+    # Use explicit ?back= param, else fall back to HTTP Referer (only for /wiki/ pages)
+    referer = request.headers.get("referer", "")
+    back_url = back or (referer if "/wiki/" in referer else "")
     resp = templates.TemplateResponse(
         request,
         "page_create.html",
@@ -564,6 +573,7 @@ async def create_page_form(
              ns_format_map=ns_format_map,
              prefill_namespace=default_ns,
              prefill_title=title,
+             back_url=back_url,
              error=None),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
@@ -578,6 +588,7 @@ async def create_page_submit(
     content: str         = Form(default=""),
     fmt: str             = Form(default="markdown"),
     comment: str         = Form(default=""),
+    back_url: str        = Form(default=""),
     db: AsyncSession     = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -600,6 +611,7 @@ async def create_page_submit(
                  ns_format_map=ns_format_map,
                  prefill_namespace=namespace_name,
                  prefill_title=title,
+                 back_url=back_url,
                  error=e.detail),
             status_code=400,
         )
@@ -622,6 +634,8 @@ async def create_page_submit(
     resp = RedirectResponse(url=redirect_url, status_code=303)
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     resp.set_cookie("pref_namespace", namespace_name, max_age=60*60*24*365, samesite="lax")
+    if back_url:
+        resp.set_cookie("back_url", back_url, max_age=3600, samesite="lax")
     return resp
 
 

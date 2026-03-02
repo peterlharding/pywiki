@@ -190,6 +190,8 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .btn-primary:hover { background: var(--accent-hov); color: #fff; }
 .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
 .btn-danger:hover { background: #b91c1c; color: #fff; }
+.btn-back { border-color: var(--muted); color: var(--muted); }
+.btn-back:hover { border-color: var(--accent); color: var(--accent); }
 .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
 
 /* ─── Forms ──────────────────────────────────────────────────────────────── */

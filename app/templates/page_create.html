@@ -26,6 +26,7 @@
 {% endif %}
 
 <form method="post" action="/create">
+  <input type="hidden" name="back_url" value="{{ back_url or '' }}" />
 
   {% if prefill_namespace == 'Category' %}
   <input type="hidden" name="namespace_name" value="Category" />

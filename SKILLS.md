@@ -109,6 +109,7 @@ When cutting a new release (e.g. vX.Y.Z):
 
 ## Working Practices
 - **Update `TODO.md` when work is completed** — mark items `[x]` with a brief note of what was done and the version. Do this at the end of each session or when a feature/fix is confirmed working.
+- **Push to origin after each session** — run `git push origin devel` before finishing. Never commit directly on the server; always push from Windows and pull on the server. If `git pull` on the server says "already up to date" but fixes aren't showing, check that the Windows commits were actually pushed (`git log --oneline origin/devel | head -5`).
 
 
 ---

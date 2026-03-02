@@ -105,10 +105,19 @@ When cutting a new release (e.g. vX.Y.Z):
 - **Markdown section endings**: always two blank lines before the closing `---` separator (i.e. two blank lines at the end of each section body)
 
 ## Deployment
-- **Production target**: `https://expanse.performiq.com`
-- Deploy files in `deploy/`: `README.md`, `pywiki.service`, `nginx-pywiki.conf`, `.env.example`
+- Deploy files in `deploy/`: `README.md`, `pywiki.service`, `nginx-pywiki.conf`, `.env.example`, `requirements.txt`
 - Uvicorn listens on `127.0.0.1:8700`; nginx proxies from port 443
+- SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
+- `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
 - Recent releases: v0.3.1 (SMTP fallback, profile fixes), v0.4.0 (macro framework, TOC opt-in, `<ref>`, live preview debounce), v0.5.0 (production deploy/ directory)
+
+### Production gotchas (lessons learned)
+- **Stale system `jose` package**: some distros have a Python 2 `jose.py` at `/usr/local/lib/python3.12/dist-packages/` that shadows `python-jose`; fix: `pip install --force-reinstall "python-jose[cryptography]>=3.3.0"` into the venv
+- **`setuptools.backends.legacy` unavailable**: older setuptools doesn't support this build backend — use `pip install -r deploy/requirements.txt` instead of `pip install -e .`; `pyproject.toml` now uses `setuptools.build_meta`
+- **`PYTHONPATH` inheritance**: systemd service sets `Environment=PYTHONPATH=/opt/pywiki` and `PATH=...` explicitly to prevent root's custom path leaking in
+- **Inline `.env` comments**: pydantic-settings parses the whole line as the value — never put `# comment` on the same line as a value (e.g. `KEY=value  # comment` will fail int/bool parsing)
+- **`systemctl restart` vs stop+start**: `restart` can leave old workers running if the master is stuck; use `systemctl stop && systemctl start` to guarantee a clean reload
+- **Install sequence on server**: `stop service` → `git pull` → `pip install -r deploy/requirements.txt` → `alembic upgrade head` → `start service`
 
 ## Git
 - Branch: `devel`

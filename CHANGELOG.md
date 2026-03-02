@@ -23,12 +23,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Sentinel-based insertion: macros are replaced with `<!--PYWIKI-TOC-PLACEHOLDER-->` before rendering; the TOC block is injected at that exact position in the final HTML
 - RST (docutils) escapes HTML comments; the post-processor detects and unwraps the escaped sentinel from its `<p>` wrapper automatically
 - Heading anchor IDs (`id=` attributes) are still added to all h1–h6 on every page regardless of whether a TOC macro is present
-- 10 new tests in `tests/test_13_toc.py` covering `{{toc}}`, `__TOC__`, position, nesting, all three formats, and opt-in behaviour — **247 tests total**
+- 10 new tests in `tests/test_13_toc.py` covering `{{toc}}`, `__TOC__`, position, nesting, all three formats, and opt-in behaviour
+- `<ref>text</ref>` / `<references />` — MediaWiki inline footnote/citation support in Wikitext: plain refs, named refs (`<ref name="...">`) and back-references (`<ref name="..." />`), inline markup inside note text, `↑` back-link, CSS styled `.references` block
+- 15 new tests in `tests/test_16_refs.py` — **262 tests total**
 
 ### Changed
 - **TOC is now opt-in** — the automatic `_add_toc()` injection (which fired when ≥ 3 headings were present) has been removed; a TOC only appears when `{{toc}}` or `__TOC__` is explicitly placed in the page content
 - `TOC_MIN_HEADINGS` constant retained for backward-compatible imports but is no longer used internally
 - `RENDERER_VERSION` bumped from 8 → 9 (invalidates all cached HTML on next page load)
+- Live preview debounce reduced from 800ms → 400ms; `AbortController` now cancels in-flight render requests when new input arrives, preventing stale responses overwriting fresher ones
 
 
 ---

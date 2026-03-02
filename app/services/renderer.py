@@ -338,6 +338,59 @@ def _render_wikitext(
 
     lines = _process_code_blocks(lines)
 
+    # ── <ref> pre-pass: collect footnotes, replace with superscript markers ──
+
+    _ref_notes: list[str]      = []   # ordered footnote texts
+    _ref_names: dict[str, int] = {}   # name → 1-based index
+
+    _REF_NAMED_RE  = re.compile(r'<ref\s+name=["\']([^"\']+)["\'][^>]*>(.*?)</ref>', re.IGNORECASE | re.DOTALL)
+    _REF_EMPTY_RE  = re.compile(r'<ref\s+name=["\']([^"\']+)["\'][^/]*/>', re.IGNORECASE)
+    _REF_PLAIN_RE  = re.compile(r'<ref>(.*?)</ref>', re.IGNORECASE | re.DOTALL)
+
+    def _make_sup(idx: int) -> str:
+        return f'<sup class="reference"><a href="#cite-note-{idx}" id="cite-ref-{idx}">[{idx}]</a></sup>'
+
+    def _sub_refs(text: str) -> str:
+        # Named ref with content: <ref name="foo">text</ref>
+        def _named(m: re.Match) -> str:
+            name = m.group(1)
+            note = m.group(2).strip()
+            if name in _ref_names:
+                idx = _ref_names[name]
+            else:
+                _ref_notes.append(note)
+                idx = len(_ref_notes)
+                _ref_names[name] = idx
+            return _make_sup(idx)
+        text = _REF_NAMED_RE.sub(_named, text)
+
+        # Back-reference: <ref name="foo" /> — reuse existing named ref
+        def _backref(m: re.Match) -> str:
+            name = m.group(1)
+            idx  = _ref_names.get(name)
+            if idx is None:
+                return m.group(0)   # unknown name — leave as-is
+            return _make_sup(idx)
+        text = _REF_EMPTY_RE.sub(_backref, text)
+
+        # Plain ref: <ref>text</ref>
+        def _plain(m: re.Match) -> str:
+            note = m.group(1).strip()
+            _ref_notes.append(note)
+            idx = len(_ref_notes)
+            return _make_sup(idx)
+        text = _REF_PLAIN_RE.sub(_plain, text)
+
+        return text
+
+    # Run ref substitution across the whole content as a single string
+    # (refs can span conceptual lines; operate before line-splitting for the
+    # block loop, but after code-block sentinels are in place so we don't
+    # touch code inside pre blocks)
+    raw_joined = "\n".join(lines)
+    raw_joined = _sub_refs(raw_joined)
+    lines = raw_joined.splitlines()
+
     # ── inline markup ────────────────────────────────────────────────────────
 
     def _inline(text: str) -> str:
@@ -608,6 +661,20 @@ def _render_wikitext(
             _flush_para()
             _close_lists()
             out.append("<hr>")
+            continue
+
+        # <references /> — render collected footnote list
+        if re.match(r"^\s*<references\s*/>\s*$", stripped, re.IGNORECASE):
+            _flush_para()
+            _close_lists()
+            if _ref_notes:
+                items = "\n".join(
+                    f'<li id="cite-note-{i}">'
+                    f'<a href="#cite-ref-{i}">↑</a> {_inline(note)}'
+                    f'</li>'
+                    for i, note in enumerate(_ref_notes, 1)
+                )
+                out.append(f'<div class="references"><ol>{items}</ol></div>')
             continue
 
         # Templates: {{...}} — render as a notice box

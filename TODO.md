@@ -14,7 +14,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Image size modifiers (Wikitext)** — `[[File:name.png|200px]]`, `[[File:name.png|300x200px]]`, `[[File:name.png|x150px]]`; sets `width`/`height` on rendered `<img>`.
 - [x] **Image size suffix (Markdown)** — `![alt](attachment:file.png|200x150)` / `|200` / `|x150` emits `<img width height>` at render time.
 - [x] **Live preview resolves attachments** — `/api/v1/render` passes attachment map so `[[File:]]` and `attachment:` refs display correctly in preview.
-- [ ] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support.
+- [x] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support; named refs, back-references, anchor IDs, inline markup in notes (v0.4.0)
 - [x] **Live preview debounce** — 400ms debounce + `AbortController` cancels in-flight requests on new input (v0.4.0)
 - [x] **Table of Contents** — opt-in via `{{toc}}` or `__TOC__` macro; no longer auto-injected (v0.4.0)
 

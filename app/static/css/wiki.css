@@ -403,6 +403,20 @@ table.wikitable caption {
 .wiki-content a.wikilink { color: var(--accent); }
 .wiki-content a.wikilink.missing { color: var(--danger); }
 
+/* ─── Footnote references ────────────────────────────────────────────────── */
+
+.references {
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+.references ol { margin: 0; padding-left: 1.5em; }
+.references li { margin: 0.25em 0; color: var(--text); }
+sup.reference { font-size: 0.75em; line-height: 1; }
+sup.reference a { color: var(--accent); text-decoration: none; }
+sup.reference a:hover { text-decoration: underline; }
+
 /* ─── Version banner ─────────────────────────────────────────────────────── */
 
 .version-banner {

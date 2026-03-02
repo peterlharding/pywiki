@@ -63,8 +63,8 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Inline image rendering (Markdown)** — `![alt](attachment:filename)` shorthand resolved to attachment URL at render time.
 - [x] **Inline image rendering (Wikitext)** — `[[File:name.png|thumb|Caption]]` renders as `<figure><img …></figure>`; inline variant also supported.
 - [x] **Lightbox / full-size view** — click an inline thumbnail to open the full image; close with ×, backdrop click, or Escape.
-- [ ] **Inline image rendering (RST)** — `.. image::` / `.. figure::` directives with server-side attachment URL resolution.
-
+- [x] **Inline image rendering (RST)** — `.. image::` / `.. figure::` directives with server-side attachment URL resolution; `:width:` / `:align:` options supported (v0.5.0)
+- [x] **Deleting Images** — red × button on thumbnail hover; calls DELETE API; removes item from DOM and updates count without page reload (v0.5.1)
 
 ---
 

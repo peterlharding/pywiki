@@ -1,0 +1,26 @@
+[Unit]
+Description=PyWiki (FastAPI/uvicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=pywiki
+Group=pywiki
+WorkingDirectory=/opt/pywiki
+EnvironmentFile=/opt/pywiki/.env
+ExecStart=/opt/pywiki/.venv/bin/uvicorn \
+    app.main:app \
+    --host 127.0.0.1 \
+    --port 8700 \
+    --workers 4 \
+    --log-level info \
+    --access-log
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pywiki
+
+[Install]
+WantedBy=multi-user.target

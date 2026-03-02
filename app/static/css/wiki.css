@@ -347,6 +347,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .wiki-content { line-height: 1.7; }
 .wiki-content h1, .wiki-content h2, .wiki-content h3,
 .wiki-content h4, .wiki-content h5, .wiki-content h6 {
+  clear: both;
   margin: 1.25em 0 0.5em;
   font-weight: 600;
 }
@@ -572,9 +573,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
   font-size: 0.85rem;
 }
 
-.wiki-figure.img-right { float: right; margin-left: 1.5rem; }
-.wiki-figure.img-left  { float: left;  margin-right: 1.5rem; }
-.wiki-figure.img-center { display: block; margin: 0.75rem auto; }
+.wiki-figure.img-right { float: right; margin-left: 1.5rem; margin-bottom: 1rem; }
+.wiki-figure.img-left  { float: left;  margin-right: 1.5rem; margin-bottom: 1rem; }
+.wiki-figure.img-center { display: block; margin: 0.75rem auto; clear: both; }
 
 .wiki-figure figcaption {
   text-align: center;

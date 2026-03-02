@@ -24,7 +24,7 @@ from typing import Optional
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 10
+RENDERER_VERSION = 11
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 # Sentinel injected by _expand_macros() in place of {{toc}} / __TOC__.
@@ -105,6 +105,8 @@ def _render_rst(content: str) -> str:
             "input_encoding": "unicode",
             "output_encoding": "unicode",
             "syntax_highlight": "short",
+            "doctitle_xform": False,
+            "sectsubtitle_xform": False,
         },
     )
     return parts["body"]

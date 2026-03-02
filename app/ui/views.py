@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -892,7 +892,7 @@ async def special_upload_submit(
     request: Request,
     namespace_name: str  = Form(...),
     slug: str            = Form(...),
-    file: UploadFile     = Form(...),
+    file: UploadFile     = File(...),
     comment: str         = Form(default=""),
     db: AsyncSession     = Depends(get_db),
 ):

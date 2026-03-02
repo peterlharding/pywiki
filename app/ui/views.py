@@ -360,11 +360,6 @@ async def edit_page_submit(
     settings = get_settings()
     try:
         page, ver = await page_svc.update_page(db, namespace_name, slug, data, author_id=user.id)
-        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
-        ver.rendered = rendered
-        resp = RedirectResponse(url=f"/wiki/{namespace_name}/{slug}", status_code=303)
-        _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
-        return resp
     except HTTPException as e:
         page, ver_old = await page_svc.get_page(db, namespace_name, slug)
         resp = templates.TemplateResponse(
@@ -379,6 +374,17 @@ async def edit_page_submit(
         )
         _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
         return resp
+
+    # Render separately — a render failure must NOT roll back the DB transaction
+    try:
+        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
+        ver.rendered = rendered
+    except Exception:
+        pass  # page is saved; it will be rendered fresh on first view
+
+    resp = RedirectResponse(url=f"/wiki/{namespace_name}/{slug}", status_code=303)
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -558,16 +564,6 @@ async def create_page_submit(
     settings = get_settings()
     try:
         page, ver = await page_svc.create_page(db, namespace_name, data, author_id=user.id)
-        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
-        ver.rendered = rendered
-        # Category description pages redirect back to the category page, not the wiki page
-        if namespace_name == "Category":
-            redirect_url = f"/category/{title}"
-        else:
-            redirect_url = f"/wiki/{namespace_name}/{page.slug}"
-        resp = RedirectResponse(url=redirect_url, status_code=303)
-        _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
-        return resp
     except HTTPException as e:
         all_namespaces = await ns_svc.list_namespaces(db)
         visible_namespaces = [ns for ns in all_namespaces if ns.name != "Category"]
@@ -585,6 +581,21 @@ async def create_page_submit(
         )
         _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
         return resp
+
+    # Render separately — a render failure must NOT roll back the page creation
+    try:
+        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
+        ver.rendered = rendered
+    except Exception:
+        pass  # page is saved; it will be rendered on first view
+
+    if namespace_name == "Category":
+        redirect_url = f"/category/{title}"
+    else:
+        redirect_url = f"/wiki/{namespace_name}/{page.slug}"
+    resp = RedirectResponse(url=redirect_url, status_code=303)
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

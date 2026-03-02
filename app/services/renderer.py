@@ -451,7 +451,7 @@ def _render_wikitext(
         )
         # Bare URLs not already inside an anchor or brackets
         text = re.sub(
-            r'(?<!["\'>=\[])(https?://[^\s<>\'"]+ )',
+            r'(?<!["\'>=\[])(https?://[^\s<>\'"]+)(?=[\s<>\'"]|$)',
             lambda m: f'<a href="{m.group(1)}" class="external">{m.group(1)}</a>',
             text,
         )

@@ -112,10 +112,17 @@ When cutting a new release (e.g. vX.Y.Z):
 
 ## Deployment
 - Deploy files in `deploy/`: `README.md`, `pywiki.service`, `nginx-pywiki.conf`, `.env.example`, `requirements.txt`
-- Uvicorn listens on `127.0.0.1:8700`; nginx proxies from port 443
+- Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
 - Recent releases: v0.3.1 (SMTP fallback, profile fixes), v0.4.0 (macro framework, TOC opt-in, `<ref>`, live preview debounce), v0.5.0 (production deploy/ directory)
+
+### Pending Linux-only issues (as of 2026-03-02, server may not yet have latest pull)
+These issues work on Windows dev but fail on Linux server. Root cause is likely server not yet running latest commits — pull + restart first before debugging further:
+- **"Page not found" after Create Page** — page is actually created; fixed in commit `dc350b4` (render failure no longer rolls back DB transaction). If persists after pull+restart, check server logs for docutils exceptions on RST content.
+- **Drag-drop image thumbnail shows broken icon** in editor attachment panel — `att.url` in API response uses `BASE_URL`; if `BASE_URL` was `http://localhost:8222` the src is unreachable from browser. Fixed once `.env` `BASE_URL=https://expanse.performiq.com` and service restarted.
+- **RST page shows missing image icon after save** — stale cached render with `http://localhost:8222/...` attachment URLs. RENDERER_VERSION 11 (commit `6f4427e`) busts cache on first page view. Fixed once service restarted.
+- **Verification command**: `journalctl -u pywiki -n 50 --no-pager | grep -i 'error\|exception'`
 
 ### Production gotchas (lessons learned)
 - **Stale system `jose` package**: some distros have a Python 2 `jose.py` at `/usr/local/lib/python3.12/dist-packages/` that shadows `python-jose`; fix: `pip install --force-reinstall "python-jose[cryptography]>=3.3.0"` into the venv

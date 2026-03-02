@@ -189,11 +189,49 @@ def _preprocess_wikilinks_md(
     return _WIKILINK_RE.sub(_replace, content)
 
 
-def _preprocess_wikilinks_rst(content: str, namespace: str, base_url: str = "") -> str:
-    """Convert [[...]] wikilinks to RST hyperlinks before rendering."""
+def _preprocess_wikilinks_rst(
+    content: str,
+    namespace: str,
+    base_url: str = "",
+    attachments: dict[str, str] | None = None,
+) -> str:
+    """Convert [[...]] wikilinks and attachment: image refs to RST before rendering."""
     # Strip category tags (both wikitext-style and RST-style) before rendering
     content = re.sub(r"\[\[Category:[^\]]+\]\]\n?", "", content, flags=re.IGNORECASE)
     content = re.sub(r"\.\. category::.*\n?", "", content, flags=re.IGNORECASE)
+
+    # Resolve attachment: URLs in .. image:: and .. figure:: directives
+    # Matches:  .. image:: attachment:filename.png
+    #           .. figure:: attachment:filename.png
+    if attachments:
+        def _att_directive(m: re.Match) -> str:
+            directive = m.group(1)   # "image" or "figure"
+            filename  = m.group(2)
+            url       = attachments.get(filename, "")
+            if not url:
+                return m.group(0)    # leave unchanged if not found
+            return f'.. {directive}:: {url}'
+        content = re.sub(
+            r'\.\.\s+(image|figure)::\s+attachment:(\S+)',
+            _att_directive,
+            content,
+            flags=re.IGNORECASE,
+        )
+
+        # Also resolve bare `attachment:filename` hyperlink targets used as
+        # non-image file links: `label <attachment:file.pdf>`_
+        def _att_link(m: re.Match) -> str:
+            label    = m.group(1)
+            filename = m.group(2)
+            url      = attachments.get(filename, "")
+            if not url:
+                return m.group(0)
+            return f'`{label} <{url}>`_'
+        content = re.sub(
+            r'`([^`]+)\s+<attachment:([^>]+)>`_',
+            _att_link,
+            content,
+        )
 
     def _replace(m: re.Match) -> str:
         target = m.group(1).strip()
@@ -991,7 +1029,7 @@ def render(
         renderer  = _get_md_renderer()
         html      = renderer(processed)
     elif fmt == "rst":
-        processed = _preprocess_wikilinks_rst(content, namespace, base_url)
+        processed = _preprocess_wikilinks_rst(content, namespace, base_url, attachments)
         html      = _render_rst(processed)
     elif fmt == "wikitext":
         html = _render_wikitext(content, namespace, base_url, attachments)

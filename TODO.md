@@ -14,6 +14,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Image size modifiers (Wikitext)** — `[[File:name.png|200px]]`, `[[File:name.png|300x200px]]`, `[[File:name.png|x150px]]`; sets `width`/`height` on rendered `<img>`.
 - [x] **Image size suffix (Markdown)** — `![alt](attachment:file.png|200x150)` / `|200` / `|x150` emits `<img width height>` at render time.
 - [x] **Live preview resolves attachments** — `/api/v1/render` passes attachment map so `[[File:]]` and `attachment:` refs display correctly in preview.
+- [x] **RST image embedding** — `.. image:: attachment:file.png` and `.. figure:: attachment:file.png` directives resolve to real URLs; `` `label <attachment:file>`_ `` links also resolved (v0.5.0)
 - [x] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support; named refs, back-references, anchor IDs, inline markup in notes (v0.4.0)
 - [x] **Live preview debounce** — 400ms debounce + `AbortController` cancels in-flight requests on new input (v0.4.0)
 - [x] **Table of Contents** — opt-in via `{{toc}}` or `__TOC__` macro; no longer auto-injected (v0.4.0)
@@ -52,6 +53,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Email verification** — `REQUIRE_EMAIL_VERIFICATION=true` sends a verification link on registration; login blocked until verified (admins exempt).
 - [x] **Password reset** — `/forgot-password` and `/reset-password` flow; tokens expire after 1 hour; email sent via `aiosmtplib` (stdout fallback when SMTP not configured).
 
+
 ---
 
 ## Image Upload & Embedding
@@ -59,8 +61,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Image upload UI** — drag-and-drop / file-picker on the edit page; AJAX upload; Insert button injects format-appropriate syntax at cursor.
 - [x] **Inline image rendering (Markdown)** — `![alt](attachment:filename)` shorthand resolved to attachment URL at render time.
 - [x] **Inline image rendering (Wikitext)** — `[[File:name.png|thumb|Caption]]` renders as `<figure><img …></figure>`; inline variant also supported.
-- [ ] **Image resizing / thumbnails** — server-side thumbnail generation on upload
-      (e.g. via Pillow); serve `?width=N` variants.
 - [x] **Lightbox / full-size view** — click an inline thumbnail to open the full image; close with ×, backdrop click, or Escape.
 - [ ] **Inline image rendering (RST)** — `.. image::` / `.. figure::` directives with server-side attachment URL resolution.
 

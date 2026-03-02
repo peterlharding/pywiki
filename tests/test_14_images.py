@@ -212,3 +212,50 @@ def test_md_no_attachment_syntax_unaffected():
     md = "## Hello\n\nJust text with **bold**.\n\n## Bye\n\n## Three"
     html = render(md, fmt="markdown", attachments=ATT)
     assert "<img" not in html
+
+
+# ── RST attachment: image / figure directives ────────────────────────────────
+
+def test_rst_image_directive_resolved():
+    rst = ".. image:: attachment:photo.png\n   :alt: A photo\n"
+    html = render(rst, fmt="rst", attachments=ATT)
+    assert "/api/v1/attachments/abc/photo.png" in html
+    assert "attachment:photo.png" not in html
+
+
+def test_rst_figure_directive_resolved():
+    rst = ".. figure:: attachment:photo.png\n\n   A caption.\n"
+    html = render(rst, fmt="rst", attachments=ATT)
+    assert "/api/v1/attachments/abc/photo.png" in html
+    assert "attachment:photo.png" not in html
+
+
+def test_rst_image_directive_missing_file_unchanged():
+    rst = ".. image:: attachment:notfound.png\n   :alt: Missing\n"
+    html = render(rst, fmt="rst", attachments=ATT)
+    assert "attachment:notfound.png" in html
+
+
+def test_rst_image_directive_no_attachments_unchanged():
+    rst = ".. image:: attachment:photo.png\n   :alt: A photo\n"
+    html = render(rst, fmt="rst", attachments=None)
+    assert "attachment:photo.png" in html
+
+
+def test_rst_attachment_link_resolved():
+    rst = "`Download diagram <attachment:diagram.gif>`_\n"
+    html = render(rst, fmt="rst", attachments=ATT)
+    assert "/api/v1/attachments/def/diagram.gif" in html
+    assert "attachment:diagram.gif" not in html
+
+
+def test_rst_attachment_link_missing_file_unchanged():
+    rst = "`Download file <attachment:notfound.pdf>`_\n"
+    html = render(rst, fmt="rst", attachments=ATT)
+    assert "attachment:notfound.pdf" in html
+
+
+def test_rst_image_case_insensitive_directive():
+    rst = ".. IMAGE:: attachment:photo.png\n"
+    html = render(rst, fmt="rst", attachments=ATT)
+    assert "/api/v1/attachments/abc/photo.png" in html

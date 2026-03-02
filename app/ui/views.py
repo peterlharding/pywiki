@@ -276,7 +276,7 @@ async def view_page(
         if any(a.filename.lower().endswith(ext) for ext in image_exts)
     ]
 
-    if is_cache_valid(ver.rendered) and version is None and not att_map:
+    if is_cache_valid(ver.rendered) and version is None:
         rendered = ver.rendered
     else:
         rendered = render_markup(
@@ -285,7 +285,7 @@ async def view_page(
             base_url=settings.base_url,
             attachments=att_map if att_map else None,
         )
-        if version is None and not att_map:
+        if version is None:
             ver.rendered = rendered
 
     categories = extract_categories(ver.content, ver.format)

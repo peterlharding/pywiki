@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Upload File — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Upload File</h1>
+  <p class="muted">Attach a file to an existing wiki page.</p>
+</div>
+
+{% if success %}
+<div class="flash flash-ok" style="margin-bottom:1.5rem;">
+  <strong>Uploaded:</strong> {{ success.filename }}
+  — <a href="{{ success.url }}">{{ success.url }}</a>
+  <div style="margin-top:0.75rem;font-size:0.875rem;">
+    <strong>Embed syntax:</strong><br>
+    <code>Markdown:</code> <code>![{{ success.filename }}](attachment:{{ success.filename }})</code><br>
+    <code>Wikitext:</code> <code>[[File:{{ success.filename }}|thumb|Caption]]</code><br>
+    <code>RST:</code> <code>.. image:: attachment:{{ success.filename }}</code>
+  </div>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="flash flash-error" style="margin-bottom:1.5rem;">
+  <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" style="max-width:540px;">
+
+  <div class="form-group">
+    <label for="namespace_name">Namespace</label>
+    <select id="namespace_name" name="namespace_name" class="form-control" required>
+      <option value="">— select —</option>
+      {% for ns in namespaces %}
+      <option value="{{ ns.name }}"{% if ns.name == sel_namespace %} selected{% endif %}>{{ ns.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="slug">Page slug</label>
+    <input type="text" id="slug" name="slug" class="form-control"
+           value="{{ sel_page }}" placeholder="e.g. my-page" required>
+    <small class="muted">The page the file will be attached to. It must already exist.</small>
+  </div>
+
+  <div class="form-group">
+    <label for="file">File</label>
+    <input type="file" id="file" name="file" class="form-control" required>
+    <small class="muted">Maximum {{ (max_attachment_mb or 50)|int }} MB.</small>
+  </div>
+
+  <div class="form-group">
+    <label for="comment">Comment <span class="muted">(optional)</span></label>
+    <input type="text" id="comment" name="comment" class="form-control"
+           placeholder="Brief description of this file">
+  </div>
+
+  <button type="submit" class="btn btn-primary">Upload</button>
+  <a href="/special" class="btn btn-secondary" style="margin-left:0.5rem;">Cancel</a>
+
+</form>
+{% endblock %}

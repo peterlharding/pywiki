@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +41,7 @@ from app.core.security import (
 from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, UserUpdate, NamespaceCreate, NamespaceUpdate
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
-from app.services.attachments import attachment_url, list_attachments
+from app.services.attachments import attachment_url, list_attachments, upload_attachment
 from app.services.renderer import render as render_markup, extract_categories, parse_redirect, is_cache_valid, RENDERER_VERSION as renderer_version
 from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
@@ -854,6 +854,78 @@ async def reset_password_submit(
             status_code=400,
         )
     return RedirectResponse(url="/login?reset=1", status_code=303)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Special:Upload
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/upload", response_class=HTMLResponse)
+async def special_upload_form(
+    request: Request,
+    namespace: Optional[str] = None,
+    page: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    namespaces = await ns_svc.list_namespaces(db)
+    settings = get_settings()
+    resp = templates.TemplateResponse(
+        request,
+        "special_upload.html",
+        _ctx(user,
+             namespaces=namespaces,
+             sel_namespace=namespace or "",
+             sel_page=page or "",
+             success=None,
+             error=None,
+             max_attachment_mb=settings.max_attachment_bytes // (1024 * 1024)),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/upload", response_class=HTMLResponse)
+async def special_upload_submit(
+    request: Request,
+    namespace_name: str  = Form(...),
+    slug: str            = Form(...),
+    file: UploadFile     = Form(...),
+    comment: str         = Form(default=""),
+    db: AsyncSession     = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    namespaces = await ns_svc.list_namespaces(db)
+    settings = get_settings()
+    success = error = None
+    try:
+        att = await upload_attachment(
+            db, namespace_name, slug, file,
+            comment=comment, uploaded_by=str(user.id),
+        )
+        url = attachment_url(att, settings.base_url)
+        success = {"filename": att.filename, "url": url}
+    except HTTPException as e:
+        error = e.detail
+    except Exception as e:
+        error = str(e)
+    resp = templates.TemplateResponse(
+        request,
+        "special_upload.html",
+        _ctx(user,
+             namespaces=namespaces,
+             sel_namespace=namespace_name,
+             sel_page=slug,
+             success=success,
+             error=error,
+             max_attachment_mb=settings.max_attachment_bytes // (1024 * 1024)),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

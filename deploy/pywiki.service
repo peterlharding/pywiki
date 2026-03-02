@@ -12,7 +12,7 @@ EnvironmentFile=/opt/pywiki/.env
 ExecStart=/opt/pywiki/.venv/bin/uvicorn \
     app.main:app \
     --host 127.0.0.1 \
-    --port 8700 \
+    --port 8222 \
     --workers 4 \
     --log-level info \
     --access-log
@@ -24,3 +24,4 @@ SyslogIdentifier=pywiki
 
 [Install]
 WantedBy=multi-user.target
+

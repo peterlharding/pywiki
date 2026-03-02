@@ -311,6 +311,14 @@ async def view_page(
         )
         rendered = _link_re.sub(_mark_missing, rendered)
 
+    # Enrich missing-file upload links with namespace, page slug and back URL
+    _page_back = f"/wiki/{namespace_name}/{slug}"
+    rendered = re.sub(
+        r'href="/special/upload\?filename=([^"]+)"',
+        lambda m: f'href="/special/upload?namespace={namespace_name}&page={slug}&filename={m.group(1)}&back={_page_back}"',
+        rendered,
+    )
+
     back_url = request.cookies.get("back_url", "")
 
     resp = templates.TemplateResponse(
@@ -562,9 +570,11 @@ async def create_page_form(
     ns_format_map = {ns.name: ns.default_format for ns in all_namespaces}
     pref_ns = request.cookies.get("pref_namespace", "")
     default_ns = namespace or pref_ns or get_settings().default_namespace
-    # Use explicit ?back= param, else fall back to HTTP Referer (only for /wiki/ pages)
+    # Use explicit ?back= param, else fall back to HTTP Referer (plain wiki page views only)
     referer = request.headers.get("referer", "")
-    back_url = back or (referer if "/wiki/" in referer else "")
+    _excluded = ("/edit", "/history", "/move", "/diff", "/print", "/create")
+    _referer_ok = "/wiki/" in referer and not any(referer.endswith(s) or f"{s}?" in referer for s in _excluded)
+    back_url = back or (referer if _referer_ok else "")
     resp = templates.TemplateResponse(
         request,
         "page_create.html",
@@ -636,6 +646,8 @@ async def create_page_submit(
     resp.set_cookie("pref_namespace", namespace_name, max_age=60*60*24*365, samesite="lax")
     if back_url:
         resp.set_cookie("back_url", back_url, max_age=3600, samesite="lax")
+    else:
+        resp.delete_cookie("back_url")
     return resp
 
 
@@ -917,6 +929,8 @@ async def special_upload_form(
     request: Request,
     namespace: Optional[str] = None,
     page: Optional[str] = None,
+    filename: Optional[str] = None,
+    back: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -931,6 +945,8 @@ async def special_upload_form(
              namespaces=namespaces,
              sel_namespace=namespace or "",
              sel_page=page or "",
+             sel_filename=filename or "",
+             back_url=back or "",
              success=None,
              error=None,
              max_attachment_mb=settings.max_attachment_bytes // (1024 * 1024)),
@@ -946,6 +962,7 @@ async def special_upload_submit(
     slug: str            = Form(...),
     file: UploadFile     = File(...),
     comment: str         = Form(default=""),
+    back_url: str        = Form(default=""),
     db: AsyncSession     = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -972,6 +989,8 @@ async def special_upload_submit(
              namespaces=namespaces,
              sel_namespace=namespace_name,
              sel_page=slug,
+             sel_filename="",
+             back_url=back_url,
              success=success,
              error=error,
              max_attachment_mb=settings.max_attachment_bytes // (1024 * 1024)),

@@ -475,7 +475,8 @@ def _render_wikitext(
             caption = next((p for p in parts[1:] if p.lower() not in opts and not _SIZE_RE.match(p.strip())), "")
             url     = (_attachments or {}).get(name, "")
             if not url:
-                return f'<span class="missing-file">[[{m.group(0)[2:-2]}]]</span>'
+                upload_href = f"/special/upload?filename={name}"
+                return f'<a href="{upload_href}" class="missing-file" title="Upload {name}">[[{m.group(0)[2:-2]}]]</a>'
             thumb   = "thumb" in opts or "thumbnail" in opts or "frame" in opts
             align_class = next((f"img-{o}" for o in ("left", "right", "center") if o in opts), "img-right" if thumb else "")
             size_attrs  = (f' width="{width}"'  if width  else "") + \
@@ -487,14 +488,14 @@ def _render_wikitext(
                 return f'<figure class="wiki-figure {align_class}">{img_tag}{cap_html}</figure>'
             else:
                 return f'<img src="{url}" alt="{caption}" class="{img_class} {align_class}"{size_attrs} loading="lazy" />'
-        text = re.sub(r"\[\[File:[^\]|][^\]]*(?:\|[^\]]*)*\]\]", _file, text, flags=re.IGNORECASE)
+        text = re.sub(r"\[\[(?:File|Image):[^\]|][^\]]*(?:\|[^\]]*)*\]\]", _file, text, flags=re.IGNORECASE)
 
         # WikiLinks: [[Page|Label]] / [[Page]]
         def _wl(m: re.Match) -> str:
             target = m.group(1).strip()
             label  = (m.group(2) or target).strip()
-            # Skip if it's a File: link (already handled above)
-            if target.lower().startswith("file:"):
+            # Skip if it's a File:/Image: link (already handled above)
+            if target.lower().startswith("file:") or target.lower().startswith("image:"):
                 return m.group(0)
             slug   = _slugify(target)
             href   = f"{base_url}/wiki/{namespace}/{slug}"

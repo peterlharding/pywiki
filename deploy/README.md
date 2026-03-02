@@ -41,19 +41,47 @@ rsync -av \
 
 ## 3. Create virtual environment and install dependencies
 
+The venv **must not** inherit system site-packages — some distributions ship
+a stale Python 2 `jose` package globally that will shadow `python-jose` and
+cause a `SyntaxError` at startup.
+
 ```bash
 sudo -u pywiki bash -c "
   cd /opt/pywiki
-  python3 -m venv .venv
+  python3 -m venv --clear .venv
   .venv/bin/pip install --upgrade pip
   .venv/bin/pip install -e .
 "
 ```
 
-> If `uv` is available on the server it can replace pip:
+> If `uv` is available on the server it is faster and avoids the shadowing issue:
 > ```bash
-> uv pip install -e . --python .venv/bin/python
+> sudo -u pywiki bash -c "
+>   cd /opt/pywiki
+>   python3 -m venv --clear .venv
+>   uv pip install -e . --python .venv/bin/python
+> "
 > ```
+
+**Verify the install is clean before continuing:**
+
+```bash
+sudo -u pywiki /opt/pywiki/.venv/bin/python -c "
+from jose import JWTError, jwt; print('jose OK')
+from fastapi import FastAPI; print('fastapi OK')
+import asyncpg; print('asyncpg OK')
+"
+```
+
+If `jose` reports a `SyntaxError`, a stale system package is shadowing it:
+
+```bash
+# Remove the offending system package
+sudo pip3 uninstall jose
+
+# Re-install the correct one into the venv
+sudo -u pywiki /opt/pywiki/.venv/bin/pip install --force-reinstall "python-jose[cryptography]>=3.3.0"
+```
 
 ---
 

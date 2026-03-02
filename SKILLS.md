@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.5.0)
+# PyWiki — Session Primer (v0.5.2)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -25,7 +25,7 @@ Always run tests via `wsl.exe` from PowerShell using the Makefile to get live ou
 wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 ```
 - `PYTHONUNBUFFERED=1` is set in the Makefile `test` target for live streaming through the Windows pipe
-- **269 tests passing**
+- **269 tests passing** (as of v0.5.2)
 - Tests use **SQLite in-memory** — `conftest.py` sets `ALLOW_REGISTRATION=true` and `DATABASE_URL` env vars and clears `get_settings()` lru_cache before imports
 - Never use `wsl.exe ... | tail -N` — the pipe swallows intermediate output
 
@@ -35,12 +35,26 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 - **Tests**: SQLite in-memory, managed by `conftest.py` fixtures — never touches production DB
 - **Seeding**: `_seed_defaults()` in `app/main.py` creates `Main` and `Category` namespaces on startup if absent
 
+## Key architecture notes — DB commit before redirect (CRITICAL)
+- **Always `await db.commit()` before any `RedirectResponse`** in POST handlers. The `get_db` dependency commits *after* the response is sent, but the browser follows a `303` redirect immediately — so the next GET arrives before the session commits, causing "Page not found" or stale namespace list.
+- Routes that already have explicit commit: `ns_create_submit`, `ns_edit_submit`, `ns_delete_submit`, `create_page_submit`, `edit_page_submit`.
+- Pattern: call `await db.commit()` after all DB work, just before building the `RedirectResponse`.
+
 ## Key architecture notes
 - `get_settings()` is `@lru_cache` — call `get_settings.cache_clear()` if overriding in tests
-- `RENDERER_VERSION = 9` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
-- `slugify()` is public in `app/services/pages.py`
+- `RENDERER_VERSION = 11` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
+- `slugify()` is public in `app/services/pages.py` — always lowercases; slug is for URL routing only, title is stored separately
+- **Do not apply Jinja2 `| title` filter** to slugs when pre-filling Create Page form — it destroys acronyms (MQ→Mq, PERL→Perl). Use `slug | replace('-', ' ')` only.
 - `/admin` UI route does **not** exist — the nav "Admin" link points to `/special`
 - First registered user auto-becomes admin (`users.py` counts existing users at registration)
+
+## MediaWiki migration helpers
+- **`[[Image:name.png]]`** is a valid alias for `[[File:name.png]]` — both are handled by the wikitext renderer
+- **Missing image/file links** render as `<a class="missing-file">` linking to `/special/upload?filename=...`; `view_page` enriches these with `namespace`, `page` slug and `back` URL so the upload form is pre-filled
+- **Back button after create**: `GET /create` captures HTTP Referer (if it's a `/wiki/` page, not an edit/history/move page) as `back_url`; hidden field threads through POST; short-lived cookie (1 hr) set on save; `page_view` reads cookie, shows `← Back` button once then clears it
+- **Bare URL auto-linking** in wikitext uses lookahead `(?=[\s<>'"]|$)` — matches URLs at end-of-line, not just space-terminated
+- **Red links**: after render, `view_page` batch-queries slug existence via `page_svc.check_slugs_exist()`; missing wikilinks get `class="wikilink missing"` → styled red via `.wiki-content a.wikilink.missing { color: var(--danger) }`
+- **Default namespace**: stored in `pref_namespace` cookie (1 year); auto-updated on page create; explicit ⭐ Set default button on `/special/namespaces`
 
 ## Renderer pipeline (`app/services/renderer.py`)
 - Supports three formats: `markdown` (mistune), `rst` (docutils), `wikitext` (custom)
@@ -122,14 +136,12 @@ When cutting a new release (e.g. vX.Y.Z):
 - Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.3.1 (SMTP fallback, profile fixes), v0.4.0 (macro framework, TOC opt-in, `<ref>`, live preview debounce), v0.5.0 (production deploy/ directory)
+- Recent releases: v0.3.1 (SMTP fallback, profile fixes), v0.4.0 (macro framework, TOC opt-in, `<ref>`, live preview debounce), v0.5.0 (production deploy/ directory), v0.5.1 (RST doctitle fix, attachment caching), v0.5.2 (red links, default namespace, Image: alias, bare URL fix, db.commit race fixes)
 
-### Pending Linux-only issues (as of 2026-03-02, server may not yet have latest pull)
-These issues work on Windows dev but fail on Linux server. Root cause is likely server not yet running latest commits — pull + restart first before debugging further:
-- **"Page not found" after Create Page** — page is actually created; fixed in commit `dc350b4` (render failure no longer rolls back DB transaction). If persists after pull+restart, check server logs for docutils exceptions on RST content.
-- **Drag-drop image thumbnail shows broken icon** in editor attachment panel — `att.url` in API response uses `BASE_URL`; if `BASE_URL` was `http://localhost:8222` the src is unreachable from browser. Fixed once `.env` `BASE_URL=https://expanse.performiq.com` and service restarted.
-- **RST page shows missing image icon after save** — stale cached render with `http://localhost:8222/...` attachment URLs. RENDERER_VERSION 11 (commit `6f4427e`) busts cache on first page view. Fixed once service restarted.
-- **Verification command**: `journalctl -u pywiki -n 50 --no-pager | grep -i 'error\|exception'`
+### Verification command
+```bash
+journalctl -u pywiki -n 50 --no-pager | grep -i 'error\|exception'
+```
 
 ### Production gotchas (lessons learned)
 - **Stale system `jose` package**: some distros have a Python 2 `jose.py` at `/usr/local/lib/python3.12/dist-packages/` that shadows `python-jose`; fix: `pip install --force-reinstall "python-jose[cryptography]>=3.3.0"` into the venv

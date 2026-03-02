@@ -12,6 +12,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.1] — 2026-03-02
+
+### Fixed
+- **RST headings stripped from rendered output** — docutils `doctitle_xform` (enabled by default) was promoting the first `===` heading to a document title and the first `---` heading to a subtitle; both were excluded from `parts["body"]` and silently dropped. Fixed by setting `doctitle_xform=False` and `sectsubtitle_xform=False` in `_render_rst()`.
+- **Page creation lost on render failure** — if `render_markup()` raised an exception (e.g. a docutils error on malformed RST), the `get_db` session middleware called `session.rollback()`, discarding the newly created page. The render call is now isolated in its own `try/except` outside the DB transaction so a render failure never rolls back a page save. Same fix applied to `edit_page_submit`.
+- **Attachment images broken after edit+save** — `edit_page_submit` and `create_page_submit` were calling `render_markup()` without the `attachments` map, so `attachment:filename` refs were not resolved to real URLs. The rendered HTML (with broken src attributes) was then cached and served on the next page view. Both save routes now load `att_map` from the DB before rendering.
+- **Page view never cached renders for pages with attachments** — the cache-write condition `if version is None and not att_map` prevented the rendered HTML from ever being stored when a page had attachments, causing a full re-render on every view. Condition relaxed to `if version is None` — attachment URLs are resolved at render time and are stable.
+- **Image delete button** — red × button added to each image thumbnail in the page gallery (logged-in users only); calls the DELETE API and removes the item from the DOM without a page reload.
+- **Wikitext figures wrapped in `<p>`** — `_flush_para()` now detects lines that render to block-level HTML (`<figure>`, `<div>`, `<table>`) and emits them unwrapped.
+- **CSS float layout** — clearfix `::after` on `.wiki-content`; `clear: both` on headings, `.wiki-categories`, and `.wiki-categories-bar` to prevent floated images overlapping subsequent content.
+
+### Changed
+- `RENDERER_VERSION` bumped from `9` → `11` — invalidates all stale cached HTML on next page view.
+- CSS links in `base.html` now include `?v={{ app_version }}` cache-buster to force browser refresh on deploy.
+
+
+---
+
 ## [0.5.0] — 2026-03-02
 
 ### Added
@@ -534,8 +552,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/your-org/pywiki/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/your-org/pywiki/compare/v0.2.5...v0.3.0
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/peterlharding/pywiki/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/peterlharding/pywiki/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/peterlharding/pywiki/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/peterlharding/pywiki/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/peterlharding/pywiki/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/your-org/pywiki/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/your-org/pywiki/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/your-org/pywiki/compare/v0.2.2...v0.2.3

@@ -44,6 +44,12 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 
 ## Renderer pipeline (`app/services/renderer.py`)
 - Supports three formats: `markdown` (mistune), `rst` (docutils), `wikitext` (custom)
+- **RST image syntax**: `.. image:: attachment:file.jpg` with options indented below:
+  - `:width: 300px` or `:width: 50%` — scales the image
+  - `:align: left|right|center` — positions/floats the image
+  - Use `.. figure::` for a captioned image (blank line between options and caption text)
+- **RST heading levels**: any underline char works; docutils assigns levels by order of first use — `===`, `---`, `~~~`, `^^^` are common
+- **`doctitle_xform=False`**: must be set in `_render_rst` — without it, the first `===` heading is promoted to document title and stripped from `body`; fixed in RENDERER_VERSION 11
 - **Syntax highlighting**: `_highlight_code()` via Pygments; fenced blocks in Markdown, `<syntaxhighlight>`/fenced/`<pre>`/space-indent in wikitext, `syntax_highlight="short"` for RST
 - **Macro pre-processor**: `_expand_macros()` runs first on raw source; replaces `{{toc}}` / `__TOC__` with sentinel `<!--PYWIKI-TOC-PLACEHOLDER-->`
 - **TOC**: opt-in via `{{toc}}` or `__TOC__` macro — heading `id=` attributes are always added; `<div class="toc">` only injected at sentinel position; `TOC_MIN_HEADINGS` retained for import compat only

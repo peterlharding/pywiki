@@ -1,10 +1,10 @@
 # PyWiki — Server Deployment
 
-Target: **https://expanse.example.com**
+Target: **https://pywiki.example.com**
 
 | Service | External URL | Internal address |
 |---------|-------------|------------------|
-| PyWiki  | `https://expanse.example.com` | `127.0.0.1:8222` |
+| PyWiki  | `https://pywiki.example.com` | `127.0.0.1:8222` |
 
 ---
 
@@ -98,7 +98,7 @@ Key values to set:
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string — set the real password |
 | `SECRET_KEY` | Generate: `python3 -c "import secrets; print(secrets.token_hex(64))"` |
-| `BASE_URL` | `https://expanse.example.com` |
+| `BASE_URL` | `https://pywiki.example.com` |
 | `ATTACHMENT_ROOT` | `/opt/pywiki/data/attachments` |
 | `SMTP_*` | Brevo (or other relay) credentials |
 | `ALLOW_REGISTRATION` | `true` until first admin is created, then `false` |
@@ -157,12 +157,12 @@ curl -s http://127.0.0.1:8222/ | head -5
 
 ```bash
 # Ensure port 80 is open and nginx is serving the ACME challenge location
-sudo certbot certonly --nginx -d expanse.example.com
+sudo certbot certonly --nginx -d pywiki.example.com
 ```
 
 > If nginx is not yet installed, use the standalone mode instead:
 > ```bash
-> sudo certbot certonly --standalone -d expanse.example.com
+> sudo certbot certonly --standalone -d pywiki.example.com
 > ```
 
 ---
@@ -171,8 +171,8 @@ sudo certbot certonly --nginx -d expanse.example.com
 
 ```bash
 sudo cp /opt/pywiki/deploy/nginx-pywiki.conf \
-    /etc/nginx/sites-available/expanse.example.com
-sudo ln -s /etc/nginx/sites-available/expanse.example.com \
+    /etc/nginx/sites-available/pywiki.example.com
+sudo ln -s /etc/nginx/sites-available/pywiki.example.com \
     /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
@@ -195,7 +195,7 @@ Port 8700 should **not** be exposed externally — nginx proxies to it on localh
 
 Registration is enabled by default (`ALLOW_REGISTRATION=true`).
 
-1. Open `https://expanse.example.com` and register your admin account.
+1. Open `https://pywiki.example.com` and register your admin account.
 2. Promote it to admin via psql:
 
 ```bash
@@ -236,7 +236,7 @@ sudo systemctl restart pywiki
 
 # Check service health
 sudo systemctl status pywiki
-curl -s https://expanse.example.com/special/status | head -20
+curl -s https://pywiki.example.com/special/status | head -20
 ```
 
 ---

@@ -37,6 +37,13 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ---
 
+## Image Upload & Embedding
+
+- [ ] **Image resizing / thumbnails** — server-side thumbnail generation on upload (e.g. via Pillow); serve `?width=N` variants.
+
+
+---
+
 ## Attachments
 
 - [ ] **Attachment versioning** — keep old file versions on re-upload rather than overwriting.

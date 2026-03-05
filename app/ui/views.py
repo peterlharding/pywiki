@@ -1053,7 +1053,10 @@ async def special_pages(request: Request, db: AsyncSession = Depends(get_db)):
         .join(max_ver_sub,
               (PageVersion.page_id == max_ver_sub.c.page_id)
               & (PageVersion.version == max_ver_sub.c.max_ver))
-        .where(PageVersion.content.ilike("%[[Category:%"))
+        .where(
+            PageVersion.content.ilike("%[[Category:%") |
+            PageVersion.content.ilike("%.. category::%")
+        )
     )
     rows = (await db.execute(q)).all()
     cat_set: set[str] = set()

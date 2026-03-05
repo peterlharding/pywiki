@@ -884,7 +884,8 @@ def extract_categories(content: str, fmt: str) -> list[str]:
     """Return a sorted, deduplicated list of category names declared in *content*.
 
     Markdown / Wikitext : ``[[Category:Name]]``
-    RST                 : ``.. category:: Name``
+    RST                 : ``.. category:: Name``  (preferred)
+                          ``[[Category:Name]]``   (also accepted)
     """
     fmt = fmt.lower()
     names: list[str] = []
@@ -892,6 +893,7 @@ def extract_categories(content: str, fmt: str) -> list[str]:
         names = [m.group(1).strip() for m in _MD_CATEGORY_RE.finditer(content)]
     elif fmt == "rst":
         names = [m.group(1).strip() for m in _RST_CATEGORY_RE.finditer(content)]
+        names += [m.group(1).strip() for m in _MD_CATEGORY_RE.finditer(content)]
     seen: set[str] = set()
     result: list[str] = []
     for n in names:

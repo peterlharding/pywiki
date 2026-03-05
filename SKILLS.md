@@ -144,20 +144,34 @@ journalctl -u pywiki -n 50 --no-pager | grep -i 'error\|exception'
 ```
 
 ### Fresh server install checklist
-Do these steps in order — skipping any one causes hard-to-diagnose errors:
+Do these steps in order:
 ```bash
 cd /opt/pywiki
 git pull origin devel
-pip install -r deploy/requirements.txt      # installs all deps including asyncpg
-cp deploy/.env.example .env                 # then edit .env — set DATABASE_URL, BASE_URL, SECRET_KEY etc.
-alembic upgrade head                         # MUST run — creates all columns incl. page_versions.rendered
-systemctl start pywiki
+pip install -r deploy/requirements.txt
+cp deploy/.env.example .env   # edit: DATABASE_URL, BASE_URL, SECRET_KEY, etc.
+systemctl start pywiki        # create_all_tables() creates schema from ORM models on first start
 journalctl -u pywiki -n 30 --no-pager | grep -iE 'seed|error|exception'
 ```
-- **`alembic upgrade head` is mandatory** even on a brand-new empty database. `create_all_tables()` in `main.py` uses `CREATE TABLE IF NOT EXISTS` and will create bare tables without columns added in later migrations. Running Alembic first is always correct.
-- If you see `UndefinedColumnError: column page_versions.rendered does not exist` → migrations were not run. Run `alembic upgrade head` and restart.
-- If you see `UndefinedColumnError` for `email_verified`, `verification_token`, etc. → same cause.
-- After first start, check `journalctl` for `Seeded 'Main' namespace` and `Seeded Category namespace` to confirm startup seeding ran.
+- **`create_all_tables()`** (called in `lifespan`) issues `CREATE TABLE IF NOT EXISTS` from current ORM model definitions — this correctly creates all tables including all columns for a truly empty database.
+- **Do NOT run `alembic upgrade head` on a fresh install** where `create_all_tables()` already ran — it will try to `CREATE TABLE` tables that already exist and fail.
+- After first start, check `journalctl` for `Seeded 'Main' namespace` and `Seeded Category namespace` to confirm seeding ran.
+
+### Migration troubleshooting (existing DB)
+If you see `UndefinedColumnError` after startup, **first verify the column actually missing** before taking action:
+```bash
+psql $DATABASE_URL -c "\d page_versions"
+```
+- If the column **is present**: the error was transient (from a request that arrived before the table was fully committed on first start). Restart the service — `systemctl stop pywiki && systemctl start pywiki` — and the error will clear.
+- If the column **is genuinely missing** (DB created with an older code version): add it manually, then stamp Alembic and upgrade:
+```bash
+psql $DATABASE_URL -c "ALTER TABLE page_versions ADD COLUMN IF NOT EXISTS rendered TEXT;"
+.venv/bin/alembic stamp b7ed900152d9   # mark DB as being at initial schema
+.venv/bin/alembic upgrade head          # apply only incremental migrations
+systemctl stop pywiki && systemctl start pywiki
+```
+- `alembic stamp <rev>` sets the `alembic_version` row without running SQL — safe when tables already exist.
+- Migration revision IDs: `b7ed900152d9` (initial schema), `a1b2c3d4e5f6` (email verification columns), `58579c489d29` (FTS GIN indexes).
 
 ### Production gotchas (lessons learned)
 - **Stale system `jose` package**: some distros have a Python 2 `jose.py` at `/usr/local/lib/python3.12/dist-packages/` that shadows `python-jose`; fix: `pip install --force-reinstall "python-jose[cryptography]>=3.3.0"` into the venv

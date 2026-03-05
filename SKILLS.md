@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.5.2)
+# PyWiki — Session Primer (v0.6.0)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -145,7 +145,7 @@ When cutting a new release (e.g. vX.Y.Z):
 - Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.3.1 (SMTP fallback, profile fixes), v0.4.0 (macro framework, TOC opt-in, `<ref>`, live preview debounce), v0.5.0 (production deploy/ directory), v0.5.1 (RST doctitle fix, attachment caching), v0.5.2 (red links, default namespace, Image: alias, bare URL fix, db.commit race fixes)
+- Recent releases: v0.5.0 (production deploy/ directory), v0.5.1 (RST doctitle fix, attachment caching), v0.5.2 (red links, default namespace, Image: alias, bare URL fix, db.commit race fixes), v0.6.0 (KaTeX math rendering, RENDERER_VERSION 12)
 
 ### Verification command
 ```bash

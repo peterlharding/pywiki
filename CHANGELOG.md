@@ -12,6 +12,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.0] — 2026-03-06
+
+### Added
+- **Math rendering (KaTeX)** — client-side LaTeX rendering via KaTeX `v0.16.11` (CDN); loaded on every page with the auto-render extension.
+  - **Wikitext**: `<math>expr</math>` (inline) and `<math display="block">expr</math>` (display block); handled server-side in `_render_wikitext()` — converted to `\(...\)` / `\[...\]` KaTeX delimiters.
+  - **Markdown**: `$expr$` (inline) and `$$expr$$` (display) — passed through unchanged by mistune; picked up by KaTeX auto-render client-side.
+  - **RST**: `:math:\`expr\`` role and `.. math::` block directive — pre-processed in `_preprocess_rst_math()` before docutils, preventing MathML output; inline becomes a `.. raw:: html` substitution (`<span class="math-inline">\(expr\)</span>`); block becomes `.. raw:: html \[...\]`.
+  - `raw_enabled: True` added to docutils `settings_overrides`.
+  - Elements with class `no-math` are excluded from auto-render.
+  - 9 new tests in `tests/test_17_math.py` — **278 tests total**.
+
+### Changed
+- `RENDERER_VERSION` bumped from `11` → `12` — invalidates all cached rendered HTML so pages with math re-render with KaTeX delimiters on next view.
+
+
+---
+
 ## [0.5.2] — 2026-03-05
 
 ### Fixed
@@ -573,7 +590,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/peterlharding/pywiki/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/peterlharding/pywiki/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/peterlharding/pywiki/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/peterlharding/pywiki/compare/v0.4.0...v0.5.0

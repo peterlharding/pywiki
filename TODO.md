@@ -83,6 +83,16 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Site status page** — `/special/status` shows stats, namespaces, and recent changes; linked from sidebar and Special Pages.
 - [x] **Default namespace preference** — per-user `pref_namespace` cookie; auto-updated on page create; ⭐ Set default button on namespace list; current default highlighted with badge (v0.5.2)
 
+
+---
+
+## API & Integrations
+
+- [ ] **Search by category** — `Category:Foo` query syntax.
+- [ ] **Search filters** — filter results by author, date range, format.
+- [ ] **Export** — download a namespace as a ZIP of raw source files or HTML.
+
+
 ---
 
 ## Operations & Quality
@@ -91,4 +101,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
       migrations; add initial migration for current schema.
 - [x] **PostgreSQL support** — test and document running against PostgreSQL in
       production (async driver: `asyncpg`).
+- [ ] **Health check endpoint improvements** — include DB connectivity and version info in `/api/health`.
+- [ ] **Review Logs** - Pride a Special Page to review the log
 

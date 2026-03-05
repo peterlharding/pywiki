@@ -69,12 +69,9 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## API & Integrations
 
-- [ ] **Search by category** — `Category:Foo` query syntax.
-- [ ] **Search filters** — filter results by author, date range, format.
 - [ ] **Search result ranking** — score by title match > snippet match > recency.
 - [ ] **Webhooks** — fire a configurable HTTP POST on page create/update/delete.
 - [ ] **Bot API** — rate-limited write endpoints with bot-flagged edits.
-- [ ] **Export** — download a namespace as a ZIP of raw source files or HTML.
 
 
 ---
@@ -86,7 +83,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] **Test coverage** — target ≥ 80 % line coverage; add attachment and UI route tests.
 - [ ] **Caching layer** — Redis-backed cache for rendered HTML (invalidate on page update).
 - [ ] **Rate limiting** — per-IP and per-user request throttling via a middleware.
-- [ ] **Health check endpoint improvements** — include DB connectivity and version info in `/api/health`.
 - [ ] **CI pipeline** — GitHub Actions workflow: lint → type-check → test.
 - [ ] **Type annotations** — run `mypy` in strict mode; fix remaining gaps.
 - [ ] **OpenAPI docs polish** — add response examples and tag descriptions.

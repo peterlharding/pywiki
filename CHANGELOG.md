@@ -12,6 +12,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.2] — 2026-03-05
+
+### Fixed
+- **`Category` namespace becoming default** — `pref_namespace` cookie was set unconditionally after every page create, including pages saved in the `Category` namespace; now skipped when `namespace_name == "Category"`. Same guard added to the ⭐ Set default button endpoint.
+- **Page-not-found race condition on create and edit** — `create_page_submit` and `edit_page_submit` were missing `await db.commit()` before the `303` redirect; the browser followed the redirect before the session committed, causing intermittent "page does not exist" errors. Explicit `await db.commit()` added to both routes (matching the namespace routes fixed in v0.5.1).
+- **Title capitalisation destroys acronyms** — the "Create this page" link on `page_not_found.html` applied Jinja2's `| title` filter to the slug, converting `perl` → `Perl` and `mq` → `Mq`. Filter removed; slug is now only de-hyphenated.
+- **`[[Image:name]]` not rendered** — `[[Image:filename.ext]]` is a valid MediaWiki alias for `[[File:filename.ext]]`; both are now handled identically by the wikitext renderer.
+- **Missing image/file links now link to upload page** — when a `[[File:...]]` or `[[Image:...]]` target has no matching attachment, the placeholder is rendered as a clickable `<a class="missing-file">` link to `/special/upload` pre-filled with the filename, namespace, page slug, and a `back` URL so the user returns to the originating page after upload.
+- **`_seed_defaults()` failures were silent** — startup seeding exceptions were swallowed by a bare `except Exception: rollback`; now logs via `log.exception()` so failures appear in `journalctl`. Successful seeding also logs at INFO level.
+- **`Category` namespace not seeded on fresh install** — on a new server the `Category` namespace was not always present after first start; seeding now logs confirmation so the result is verifiable.
+
+### Added
+- **Back button after page create** — after saving a new page, a one-shot `← Back` button appears in the page header linking to the page the user navigated from. The source URL is captured from the HTTP `Referer` header (plain wiki page views only — edit, history, move, diff, and create pages are excluded), threaded through the create form as a hidden field, and stored as a short-lived (1 hr) cookie cleared after first display.
+- **Upload form pre-fill** — `/special/upload` accepts `namespace`, `page`, `filename`, and `back` query parameters; arriving from a missing-file link pre-selects the namespace, page slug, and shows the expected filename; after a successful upload a `← Back to page` button is shown.
+
+### Changed
+- **Bare URL auto-linking** in wikitext now uses a lookahead `(?=[\s<>'"]|$)` instead of requiring a trailing space, so URLs at end-of-line are correctly linked.
+
+
+---
+
 ## [0.5.1] — 2026-03-02
 
 ### Fixed
@@ -552,7 +573,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/peterlharding/pywiki/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/peterlharding/pywiki/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/peterlharding/pywiki/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/peterlharding/pywiki/compare/v0.3.1...v0.4.0

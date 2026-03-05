@@ -12,6 +12,37 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.1] — 2026-03-06
+
+### Fixed
+- **RST category tags not recognised** — `.. category:: Name` (RST) and `[[Category:Name]]` (wikitext-style in RST) were ignored in three places:
+  - `extract_categories()` in `renderer.py` now checks both patterns for RST format.
+  - `get_pages_in_category()` in `pages.py` now matches RST pages so they appear in the category index.
+  - `special_status` category collection in `views.py` — `ilike` filter extended to catch `.. category::` so RST pages appear in `/special/categories`.
+- **Footer showing wrong version (`v1.0.0`)** — `APP_VERSION=1.0.0` hardcoded in `.env` was overriding the value read from `pyproject.toml`. Removed `APP_VERSION` from `.env.example`; `_version.py` now always reads `pyproject.toml` first (falling back to `importlib.metadata` only when the source tree is absent).
+- **`/api/v1/render` only had GET handler** — docstring declared POST but only GET was registered; large pages would be truncated by URL length limits. Added POST handler accepting a JSON body `{content, format, namespace, slug}`; GET retained for backward compatibility.
+- **`APP_PORT` rename** — Makefile and `.env.example` renamed `PORT` → `APP_PORT` for clarity.
+
+
+---
+
+## [0.6.0] — 2026-03-06
+
+### Added
+- **Math rendering (KaTeX)** — client-side LaTeX rendering via KaTeX `v0.16.11` (CDN); loaded on every page with the auto-render extension.
+  - **Wikitext**: `<math>expr</math>` (inline) and `<math display="block">expr</math>` (display block); handled server-side in `_render_wikitext()` — converted to `\(...\)` / `\[...\]` KaTeX delimiters.
+  - **Markdown**: `$expr$` (inline) and `$$expr$$` (display) — passed through unchanged by mistune; picked up by KaTeX auto-render client-side.
+  - **RST**: `:math:\`expr\`` role and `.. math::` block directive — pre-processed in `_preprocess_rst_math()` before docutils, preventing MathML output; inline becomes a `.. raw:: html` substitution (`<span class="math-inline">\(expr\)</span>`); block becomes `.. raw:: html \[...\]`.
+  - `raw_enabled: True` added to docutils `settings_overrides`.
+  - Elements with class `no-math` are excluded from auto-render.
+  - 9 new tests in `tests/test_17_math.py` — **278 tests total**.
+
+### Changed
+- `RENDERER_VERSION` bumped from `11` → `12` — invalidates all cached rendered HTML so pages with math re-render with KaTeX delimiters on next view.
+
+
+---
+
 ## [0.5.2] — 2026-03-05
 
 ### Fixed
@@ -573,7 +604,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/peterlharding/pywiki/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/peterlharding/pywiki/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/peterlharding/pywiki/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/peterlharding/pywiki/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/peterlharding/pywiki/compare/v0.4.0...v0.5.0

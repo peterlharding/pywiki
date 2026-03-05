@@ -605,16 +605,26 @@ async def get_pages_in_category(
     db: AsyncSession,
     category_name: str,
 ) -> list[dict]:
-    """Return all pages whose latest version content contains [[Category:name]].
+    """Return all pages whose latest version content declares [[Category:name]]
+    (markdown/wikitext) or ``.. category:: name`` (RST).
 
     Case-insensitive match.  Returns dicts with: namespace, title, slug,
     version, format, author, updated_at — sorted alphabetically by title.
     """
     import re as _re
-    pattern = _re.compile(
+    _wiki_pat = _re.compile(
         r"\[\[Category:" + _re.escape(category_name) + r"\]\]",
         _re.IGNORECASE,
     )
+    _rst_pat = _re.compile(
+        r"\.\.\s+category::\s*" + _re.escape(category_name) + r"\s*$",
+        _re.IGNORECASE | _re.MULTILINE,
+    )
+
+    def _matches(content: str, fmt: str) -> bool:
+        if fmt == "rst":
+            return bool(_rst_pat.search(content)) or bool(_wiki_pat.search(content))
+        return bool(_wiki_pat.search(content))
 
     max_ver_sub = (
         select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
@@ -647,7 +657,7 @@ async def get_pages_in_category(
             "updated_at": v.created_at,
         }
         for p, v, ns, u in rows
-        if pattern.search(v.content)
+        if _matches(v.content, v.format)
     ]
 
 

@@ -19,6 +19,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Wikitext: `<ref>` / `<references />`** — inline footnote/citation support; named refs, back-references, anchor IDs, inline markup in notes (v0.4.0)
 - [x] **Live preview debounce** — 400ms debounce + `AbortController` cancels in-flight requests on new input (v0.4.0)
 - [x] **Table of Contents** — opt-in via `{{toc}}` or `__TOC__` macro; no longer auto-injected (v0.4.0)
+- [x] **Math rendering** — KaTeX `v0.16.11` client-side via CDN auto-render; `$...$` / `$$...$$` (Markdown), `:math:`/`.. math::` (RST), `<math>` tag (Wikitext) (RENDERER_VERSION 12)
 
 
 ---

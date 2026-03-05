@@ -1,5 +1,5 @@
 
-PORT   :=  $(shell grep "^PORT=" .env | sed 's/PORT=//')
+APP_PORT   :=  $(shell grep "^APP_PORT=" .env | sed 's/APP_PORT=//')
 
 
 # -----------------------------------------------------------------------------
@@ -11,7 +11,7 @@ PORT   :=  $(shell grep "^PORT=" .env | sed 's/PORT=//')
 # -----------------------------------------------------------------------------
 
 chk-env:
-	@echo "PORT |${PORT}|"
+	@echo "APP_PORT |${APP_PORT}|"
 
 venv:
 	uv venv .venv
@@ -23,10 +23,10 @@ install:
 # -----------------------------------------------------------------------------
 
 run:
-	uvicorn app.main:app --host 127.0.0.1 --port ${PORT}
+	uvicorn app.main:app --host 127.0.0.1 --port ${APP_PORT}
 
 dev:
-	uvicorn app.main:app --host 127.0.0.1 --port ${PORT} --reload
+	uvicorn app.main:app --host 127.0.0.1 --port ${APP_PORT} --reload
 
 test:
 	PYTHONUNBUFFERED=1 .venv/bin/python -u -m pytest tests/

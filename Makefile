@@ -4,7 +4,7 @@ APP_PORT   :=  $(shell grep "^APP_PORT=" .env | sed 's/APP_PORT=//')
 
 # -----------------------------------------------------------------------------
 
-.PHONY: install run dev test lint clean import-mw \
+.PHONY: install run dev test test-v lint clean import-mw \
         db-upgrade db-downgrade db-revision db-history db-current db-reset-dev
 
 
@@ -30,6 +30,9 @@ dev:
 
 test:
 	PYTHONUNBUFFERED=1 .venv/bin/python -u -m pytest tests/
+
+test-v:
+	PYTHONUNBUFFERED=1 .venv/bin/python -u -m pytest tests/ -v
 
 lint:
 	ruff check app/ tests/

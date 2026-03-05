@@ -25,7 +25,7 @@ Always run tests via `wsl.exe` from PowerShell using the Makefile to get live ou
 wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 ```
 - `PYTHONUNBUFFERED=1` is set in the Makefile `test` target for live streaming through the Windows pipe
-- **269 tests passing** (as of v0.5.2)
+- **278 tests passing** (as of math-support merge)
 - Tests use **SQLite in-memory** — `conftest.py` sets `ALLOW_REGISTRATION=true` and `DATABASE_URL` env vars and clears `get_settings()` lru_cache before imports
 - Never use `wsl.exe ... | tail -N` — the pipe swallows intermediate output
 
@@ -42,7 +42,7 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 
 ## Key architecture notes
 - `get_settings()` is `@lru_cache` — call `get_settings.cache_clear()` if overriding in tests
-- `RENDERER_VERSION = 11` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
+- `RENDERER_VERSION = 12` in `app/services/renderer.py` — bump this whenever render output changes to bust cached HTML
 - `slugify()` is public in `app/services/pages.py` — always lowercases; slug is for URL routing only, title is stored separately
 - **Do not apply Jinja2 `| title` filter** to slugs when pre-filling Create Page form — it destroys acronyms (MQ→Mq, PERL→Perl). Use `slug | replace('-', ' ')` only.
 - `/admin` UI route does **not** exist — the nav "Admin" link points to `/special`
@@ -55,6 +55,15 @@ wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 - **Bare URL auto-linking** in wikitext uses lookahead `(?=[\s<>'"]|$)` — matches URLs at end-of-line, not just space-terminated
 - **Red links**: after render, `view_page` batch-queries slug existence via `page_svc.check_slugs_exist()`; missing wikilinks get `class="wikilink missing"` → styled red via `.wiki-content a.wikilink.missing { color: var(--danger) }`
 - **Default namespace**: stored in `pref_namespace` cookie (1 year); auto-updated on page create; explicit ⭐ Set default button on `/special/namespaces`
+
+## Math rendering (KaTeX)
+- KaTeX `v0.16.11` loaded from CDN in `base.html` — CSS in `<head>`, JS + auto-render deferred at `</body>`
+- Auto-render scans `document.body` on load; ignores `<pre>`, `<code>`, `<script>`, `<style>` tags and elements with class `no-math`
+- **Wikitext**: `<math>expr</math>` → `\(expr\)` (inline); `<math display="block">expr</math>` → `\[expr\]` (display) — handled in `_render_wikitext()` block pre-pass + `_inline()` pass
+- **Markdown**: `$expr$` / `$$expr$$` passed through unchanged — mistune doesn't touch them; KaTeX auto-render handles client-side
+- **RST**: `:math:\`expr\`` and `.. math::` pre-processed in `_preprocess_rst_math()` before docutils sees them (prevents MathML output); inline becomes a `.. raw:: html` substitution (`<span class="math-inline">\(expr\)</span>`); block becomes `.. raw:: html \[...\]`
+- `raw_enabled: True` added to docutils `settings_overrides` to allow `.. raw:: html` directives
+- 9 tests in `tests/test_17_math.py`
 
 ## Renderer pipeline (`app/services/renderer.py`)
 - Supports three formats: `markdown` (mistune), `rst` (docutils), `wikitext` (custom)

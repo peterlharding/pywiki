@@ -1159,6 +1159,38 @@ async def special_health(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Log review page (admin only)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/logs", response_class=HTMLResponse)
+async def special_logs(
+    request: Request,
+    level: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.core.logging_buffer import get_records
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        return RedirectResponse(url="/login", status_code=303)
+
+    all_records = get_records()
+    if level:
+        all_records = [r for r in all_records if r["level"] == level.upper()]
+
+    settings = get_settings()
+    resp = templates.TemplateResponse(
+        request,
+        "special_logs.html",
+        _ctx(user,
+             records=all_records,
+             level_filter=level or "",
+             levels=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Namespace management (admin only)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

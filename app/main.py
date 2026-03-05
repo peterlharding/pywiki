@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import get_settings
 from app.core.database import create_all_tables, init_db
+from app.core.logging_buffer import install as install_log_buffer
 from app.routes import auth, namespaces, pages, attachments, search, admin, render
 from app.ui import views
 
@@ -31,6 +32,7 @@ from app.ui import views
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
+    install_log_buffer()        # capture WARNING+ into in-memory ring buffer
     settings = get_settings()
     init_db()
     await create_all_tables()   # safe: CREATE TABLE IF NOT EXISTS

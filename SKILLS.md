@@ -143,13 +143,30 @@ When cutting a new release (e.g. vX.Y.Z):
 journalctl -u pywiki -n 50 --no-pager | grep -i 'error\|exception'
 ```
 
+### Fresh server install checklist
+Do these steps in order — skipping any one causes hard-to-diagnose errors:
+```bash
+cd /opt/pywiki
+git pull origin devel
+pip install -r deploy/requirements.txt      # installs all deps including asyncpg
+cp deploy/.env.example .env                 # then edit .env — set DATABASE_URL, BASE_URL, SECRET_KEY etc.
+alembic upgrade head                         # MUST run — creates all columns incl. page_versions.rendered
+systemctl start pywiki
+journalctl -u pywiki -n 30 --no-pager | grep -iE 'seed|error|exception'
+```
+- **`alembic upgrade head` is mandatory** even on a brand-new empty database. `create_all_tables()` in `main.py` uses `CREATE TABLE IF NOT EXISTS` and will create bare tables without columns added in later migrations. Running Alembic first is always correct.
+- If you see `UndefinedColumnError: column page_versions.rendered does not exist` → migrations were not run. Run `alembic upgrade head` and restart.
+- If you see `UndefinedColumnError` for `email_verified`, `verification_token`, etc. → same cause.
+- After first start, check `journalctl` for `Seeded 'Main' namespace` and `Seeded Category namespace` to confirm startup seeding ran.
+
 ### Production gotchas (lessons learned)
 - **Stale system `jose` package**: some distros have a Python 2 `jose.py` at `/usr/local/lib/python3.12/dist-packages/` that shadows `python-jose`; fix: `pip install --force-reinstall "python-jose[cryptography]>=3.3.0"` into the venv
 - **`setuptools.backends.legacy` unavailable**: older setuptools doesn't support this build backend — use `pip install -r deploy/requirements.txt` instead of `pip install -e .`; `pyproject.toml` now uses `setuptools.build_meta`
 - **`PYTHONPATH` inheritance**: systemd service sets `Environment=PYTHONPATH=/opt/pywiki` and `PATH=...` explicitly to prevent root's custom path leaking in
 - **Inline `.env` comments**: pydantic-settings parses the whole line as the value — never put `# comment` on the same line as a value (e.g. `KEY=value  # comment` will fail int/bool parsing)
 - **`systemctl restart` vs stop+start**: `restart` can leave old workers running if the master is stuck; use `systemctl stop && systemctl start` to guarantee a clean reload
-- **Install sequence on server**: `stop service` → `git pull` → `pip install -r deploy/requirements.txt` → `alembic upgrade head` → `start service`
+- **Install sequence on server** (updates): `stop service` → `git pull` → `pip install -r deploy/requirements.txt` → `alembic upgrade head` → `start service`
+- **`Category` namespace must not become default**: `pref_namespace` cookie is never set to `Category` (fixed v0.5.2+). On older installs where the cookie is already wrong, user clicks ⭐ Set default next to `Main` on `/special/namespaces` to fix it.
 - **nginx `proxy_pass` port**: must match the uvicorn port in `pywiki.service` — both are `8222`. A mismatch causes 502 for all dynamic requests while static files still load (served directly by nginx), making the site appear partially functional
 - **`BASE_URL` must be the external HTTPS URL** (e.g. `https://expanse.performiq.com`), not `http://localhost:8222`. Uvicorn's internal port is only relevant to nginx's `proxy_pass` — `BASE_URL` controls what gets embedded in attachment URLs in rendered HTML, so it must be browser-reachable
 

@@ -191,7 +191,40 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health", tags=["system"])
     async def health():
-        return {"status": "ok", "version": settings.app_version, "app": settings.app_name}
+        from sqlalchemy import text
+        from app.core.database import get_session_factory
+        from app.services.renderer import RENDERER_VERSION
+        import time
+
+        db_status = "ok"
+        db_latency_ms: float | None = None
+        db_error: str | None = None
+        try:
+            factory = get_session_factory()
+            t0 = time.monotonic()
+            async with factory() as session:
+                await session.execute(text("SELECT 1"))
+            db_latency_ms = round((time.monotonic() - t0) * 1000, 1)
+        except Exception as exc:
+            db_status = "error"
+            db_error  = str(exc)
+
+        overall = "ok" if db_status == "ok" else "degraded"
+        payload = {
+            "status":           overall,
+            "app":              settings.app_name,
+            "version":          settings.app_version,
+            "renderer_version": RENDERER_VERSION,
+            "database": {
+                "status":     db_status,
+                "latency_ms": db_latency_ms,
+            },
+        }
+        if db_error:
+            payload["database"]["error"] = db_error
+
+        status_code = 200 if overall == "ok" else 503
+        return JSONResponse(content=payload, status_code=status_code)
 
     return app
 

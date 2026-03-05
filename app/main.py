@@ -9,8 +9,11 @@ PyWiki — FastAPI application factory
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -60,6 +63,7 @@ async def _seed_defaults() -> None:
                     default_format="markdown",
                 ))
                 await session.flush()
+                log.info("Seeded Category namespace")
 
             result = await session.execute(
                 select(Namespace).where(Namespace.name == settings.default_namespace)
@@ -72,6 +76,7 @@ async def _seed_defaults() -> None:
                 )
                 session.add(ns)
                 await session.flush()
+                log.info("Seeded '%s' namespace", settings.default_namespace)
 
                 main_page = Page(
                     namespace_id=ns.id,
@@ -107,6 +112,7 @@ async def _seed_defaults() -> None:
             await session.commit()
         except Exception:
             await session.rollback()
+            log.exception("_seed_defaults() failed — namespaces may not have been created")
 
 
 # -----------------------------------------------------------------------------

@@ -647,7 +647,8 @@ async def create_page_submit(
         redirect_url = f"/wiki/{namespace_name}/{page.slug}"
     resp = RedirectResponse(url=redirect_url, status_code=303)
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
-    resp.set_cookie("pref_namespace", namespace_name, max_age=60*60*24*365, samesite="lax")
+    if namespace_name != "Category":
+        resp.set_cookie("pref_namespace", namespace_name, max_age=60*60*24*365, samesite="lax")
     if back_url:
         resp.set_cookie("back_url", back_url, max_age=3600, samesite="lax")
     else:
@@ -1147,7 +1148,8 @@ async def ns_set_default(
         raise HTTPException(status_code=403, detail="Login required")
     resp = RedirectResponse(url="/special/namespaces", status_code=303)
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
-    resp.set_cookie("pref_namespace", ns_name, max_age=60*60*24*365, samesite="lax")
+    if ns_name != "Category":
+        resp.set_cookie("pref_namespace", ns_name, max_age=60*60*24*365, samesite="lax")
     return resp
 
 

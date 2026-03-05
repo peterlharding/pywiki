@@ -11,7 +11,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] **Wikitext → Markdown/RST conversion tool** — one-shot converter to migrate
       existing wikitext pages to Markdown or RST; expose as an admin API endpoint
       and a UI button on the edit page.
-- [ ] **Math rendering** — LaTeX via MathJax or KaTeX for `$...$` / `$$...$$` (Markdown) and `:math:` role (RST).
 - [ ] **Page history** — view revision history and restore previous versions.
 - [ ] **Macro system** - Implement a macro framework that allows users to create custom macros.
 

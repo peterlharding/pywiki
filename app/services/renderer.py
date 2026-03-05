@@ -24,7 +24,7 @@ from typing import Optional
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 11
+RENDERER_VERSION = 12
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 # Sentinel injected by _expand_macros() in place of {{toc}} / __TOC__.
@@ -94,8 +94,46 @@ def _get_md_renderer():
 # RST renderer via docutils
 # -----------------------------------------------------------------------------
 
+_RST_MATH_INLINE_RE = re.compile(r':math:`([^`]+)`')
+_RST_MATH_BLOCK_RE  = re.compile(r'^\.\. math::\s*\n((?:[ \t]+.*\n?|\n)*)', re.MULTILINE)
+
+
+def _preprocess_rst_math(content: str) -> str:
+    """Replace RST math roles/directives with KaTeX delimiters before docutils.
+
+    Docutils converts :math: to MathML; by replacing first we keep LaTeX source
+    intact for client-side KaTeX rendering.
+
+    :math:`expr`       → ``\\(expr\\)``    (inline, wrapped in RST literal)
+    .. math::          → a raw paragraph containing ``\\[...\\]``
+        expr
+    """
+    # Block directive first (before inline to avoid partial matches)
+    def _block(m: re.Match) -> str:
+        lines = m.group(1).splitlines()
+        latex = '\n'.join(l.strip() for l in lines if l.strip())
+        return f'\n.. raw:: html\n\n   \\[{latex}\\]\n\n'
+    content = _RST_MATH_BLOCK_RE.sub(_block, content)
+
+    # Inline role — embed as a .. raw:: html substitution definition + reference
+    # so docutils passes the HTML span through unchanged. KaTeX auto-render then
+    # processes the \(...\) delimiters inside the span client-side.
+    subs: list[str] = []
+    def _inline(m: re.Match) -> str:
+        idx  = len(subs)
+        key  = f'math-inline-{idx}'
+        html = f'<span class="math-inline">\\({m.group(1)}\\)</span>'
+        subs.append(f'.. |{key}| raw:: html\n\n   {html}\n')
+        return f'|{key}|'
+    content = _RST_MATH_INLINE_RE.sub(_inline, content)
+    if subs:
+        content = content + '\n\n' + '\n'.join(subs)
+    return content
+
+
 def _render_rst(content: str) -> str:
     from docutils.core import publish_parts
+    content = _preprocess_rst_math(content)
     parts = publish_parts(
         source=content,
         writer="html5",
@@ -107,6 +145,7 @@ def _render_rst(content: str) -> str:
             "syntax_highlight": "short",
             "doctitle_xform": False,
             "sectsubtitle_xform": False,
+            "raw_enabled": True,
         },
     )
     return parts["body"]
@@ -331,6 +370,24 @@ def _render_wikitext(
                 i += 1
                 continue
 
+            # <math display="block">...</math> — block/display math on its own line
+            math_block = re.match(r'^\s*<math\s[^>]*display=["\']?block["\']?[^>]*>(.*)$', line, re.IGNORECASE)
+            if math_block:
+                rest = math_block.group(1)
+                math_lines: list[str] = []
+                while i < len(raw_lines):
+                    close = re.search(r'</math>', rest, re.IGNORECASE)
+                    if close:
+                        math_lines.append(rest[:close.start()])
+                        break
+                    math_lines.append(rest)
+                    i += 1
+                    rest = raw_lines[i] if i < len(raw_lines) else ''
+                latex = '\n'.join(math_lines).strip()
+                result.append(_SENTINEL + f'\\[{latex}\\]')
+                i += 1
+                continue
+
             # <pre>...</pre> plain block (multi-line)
             if re.match(r'^\s*<pre\b[^>]*>', line, re.IGNORECASE):
                 code_lines = []
@@ -508,6 +565,14 @@ def _render_wikitext(
         text = re.sub(r"'{3}(.+?)'{3}", r"<b>\1</b>", text)
         # Italic
         text = re.sub(r"'{2}(.+?)'{2}", r"<i>\1</i>", text)
+
+        # Inline <math>...</math> — convert to KaTeX \(...\) delimiters
+        text = re.sub(
+            r'<math(?:\s[^>]*)?>(.+?)</math>',
+            lambda m: f'\\({m.group(1).strip()}\\)',
+            text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
 
         return text
 

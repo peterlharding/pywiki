@@ -102,5 +102,5 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **PostgreSQL support** — test and document running against PostgreSQL in
       production (async driver: `asyncpg`).
 - [ ] **Health check endpoint improvements** — include DB connectivity and version info in `/api/health`.
-- [ ] **Review Logs** - Pride a Special Page to review the log
+- [ ] **Review Logs** - Provide a Special Page to review the log
 

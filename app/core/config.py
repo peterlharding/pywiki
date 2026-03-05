@@ -41,8 +41,10 @@ class Settings(BaseSettings):
 
     # ── Database ───────────────────────────────────────────────────────────
 
-    database_url: str = "sqlite+aiosqlite:///./pywiki.db"
+    database_url: str = "postgresql+asyncpg://pywiki:pywiki@localhost/pywiki"
     db_echo: bool = False
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
 
     # ── Auth / JWT ─────────────────────────────────────────────────────────
 
@@ -55,6 +57,17 @@ class Settings(BaseSettings):
 
     attachment_root: Path = Path("./data/attachments")
     max_attachment_bytes: int = 50 * 1024 * 1024   # 50 MB
+
+    # ── SMTP / email ──────────────────────────────────────────────────────────
+
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@example.com"
+    smtp_tls: bool = True            # STARTTLS on port 587
+    smtp_ssl: bool = False           # Implicit TLS on port 465
+    require_email_verification: bool = False   # Set True to block login until email confirmed
 
     # ── Wiki defaults ──────────────────────────────────────────────────────
 

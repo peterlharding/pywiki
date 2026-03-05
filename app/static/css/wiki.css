@@ -94,7 +94,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 }
 .nav-links a { color: rgba(255,255,255,.85); font-size: 0.9rem; }
 .nav-links a:hover { color: #fff; text-decoration: none; }
-.nav-user { font-size: 0.9rem; color: rgba(255,255,255,.7); }
+.nav-user { font-weight: 500; }
 
 /* ─── Page wrapper ───────────────────────────────────────────────────────── */
 
@@ -190,6 +190,8 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .btn-primary:hover { background: var(--accent-hov); color: #fff; }
 .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
 .btn-danger:hover { background: #b91c1c; color: #fff; }
+.btn-back { border-color: var(--muted); color: var(--muted); }
+.btn-back:hover { border-color: var(--accent); color: var(--accent); }
 .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
 
 /* ─── Forms ──────────────────────────────────────────────────────────────── */
@@ -274,10 +276,23 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .badge-markdown { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
 .badge-rst      { background: #fff3e0; border-color: #ffcc80; color: #e65100; }
 .badge-wikitext { background: #e8eaf6; border-color: #9fa8da; color: #283593; }
+.badge-default  { background: #fff8e1; border-color: #ffe082; color: #f57f17; }
+.ns-default-row { background: color-mix(in srgb, var(--accent) 4%, var(--bg)); }
 
 /* ─── Categories ─────────────────────────────────────────────────────────── */
 
+.wiki-categories {
+  clear: both;
+  margin-top: 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
 .wiki-categories-bar {
+  clear: both;
   margin-top: 1.5rem;
   padding: 0.5rem 0.75rem;
   border-top: 1px solid var(--border);
@@ -292,6 +307,15 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 
 .category-group { margin-bottom: 2rem; }
 .category-group h2 { font-size: 1.15rem; margin-bottom: 0.75rem; }
+
+/* Alphabetical category listing (MediaWiki style) */
+.category-alpha-listing { column-count: 3; column-gap: 2rem; margin-top: 1rem; }
+.category-alpha-group { break-inside: avoid; margin-bottom: 1.25rem; }
+.category-alpha-group h3 { font-size: 1rem; font-weight: 700; border-bottom: 1px solid var(--border); margin-bottom: 0.35rem; padding-bottom: 0.2rem; }
+.category-alpha-group ul { list-style: none; margin: 0; padding: 0; }
+.category-alpha-group li { padding: 0.15rem 0; font-size: 0.95rem; }
+@media (max-width: 900px) { .category-alpha-listing { column-count: 2; } }
+@media (max-width: 600px) { .category-alpha-listing { column-count: 1; } }
 
 /* ─── Special pages ──────────────────────────────────────────────────────── */
 
@@ -336,8 +360,10 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 /* ─── Wiki content (rendered output) ────────────────────────────────────── */
 
 .wiki-content { line-height: 1.7; }
+.wiki-content::after { content: ''; display: table; clear: both; }
 .wiki-content h1, .wiki-content h2, .wiki-content h3,
 .wiki-content h4, .wiki-content h5, .wiki-content h6 {
+  clear: both;
   margin: 1.25em 0 0.5em;
   font-weight: 600;
 }
@@ -393,6 +419,20 @@ table.wikitable caption {
 .wiki-content img { max-width: 100%; height: auto; }
 .wiki-content a.wikilink { color: var(--accent); }
 .wiki-content a.wikilink.missing { color: var(--danger); }
+
+/* ─── Footnote references ────────────────────────────────────────────────── */
+
+.references {
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+.references ol { margin: 0; padding-left: 1.5em; }
+.references li { margin: 0.25em 0; color: var(--text); }
+sup.reference { font-size: 0.75em; line-height: 1; }
+sup.reference a { color: var(--accent); text-decoration: none; }
+sup.reference a:hover { text-decoration: underline; }
 
 /* ─── Version banner ─────────────────────────────────────────────────────── */
 
@@ -495,6 +535,218 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
   border-top: 1px solid var(--border);
   margin-top: 2rem;
 }
+
+/* ─── Table of Contents ──────────────────────────────────────────────────── */
+
+.toc {
+  display: inline-block;
+  min-width: 180px;
+  max-width: 320px;
+  background: var(--surface, #f8f9fa);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.25rem 0;
+  font-size: 0.9rem;
+}
+
+.toc-title {
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+}
+
+.toc ol.toc-list,
+.toc ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style: decimal;
+}
+
+.toc li {
+  margin: 0.15rem 0;
+  line-height: 1.4;
+}
+
+.toc a {
+  color: var(--link, #0645ad);
+  text-decoration: none;
+}
+
+.toc a:hover {
+  text-decoration: underline;
+}
+
+/* ─── Inline images (wiki-figure / wiki-img) ─────────────────────────────── */
+
+.wiki-figure {
+  display: inline-block;
+  margin: 0.5rem;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 4px;
+  padding: 4px;
+  background: var(--surface, #f8f9fa);
+  font-size: 0.85rem;
+}
+
+.wiki-figure.img-right { float: right; margin-left: 1.5rem; margin-bottom: 1rem; }
+.wiki-figure.img-left  { float: left;  margin-right: 1.5rem; margin-bottom: 1rem; }
+.wiki-figure.img-center { display: block; margin: 0.75rem auto; clear: both; }
+
+.wiki-figure figcaption {
+  text-align: center;
+  padding: 0.3rem 0.2rem 0;
+  color: var(--muted, #666);
+}
+
+.wiki-thumb { max-width: 220px; display: block; height: auto; }
+.wiki-img   { max-width: 100%; height: auto; }
+.img-right  { float: right; margin-left: 1rem; margin-bottom: 1rem; }
+.img-left   { float: left;  margin-right: 1rem; margin-bottom: 1rem; }
+.img-center { display: block; margin: 0 auto; clear: both; }
+
+.missing-file {
+  color: var(--danger, #c00);
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+/* ─── Image gallery (page view) ──────────────────────────────────────────── */
+
+.wiki-images {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border, #ddd);
+  clear: both;
+}
+
+.wiki-images-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--muted, #666);
+}
+
+.wiki-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.wiki-gallery-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wiki-gallery-item a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.wiki-gallery-delete {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  line-height: 1;
+  font-size: 0.85rem;
+  background: rgba(200, 0, 0, 0.75);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.wiki-gallery-item:hover .wiki-gallery-delete {
+  display: flex;
+}
+
+.wiki-gallery-delete:hover {
+  background: rgba(180, 0, 0, 1);
+}
+
+.wiki-gallery-thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 4px;
+  transition: opacity 0.15s;
+}
+
+.wiki-images-grid a:hover .wiki-gallery-thumb { opacity: 0.8; }
+
+.wiki-gallery-name {
+  font-size: 0.75rem;
+  color: var(--muted, #666);
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* ─── Lightbox ───────────────────────────────────────────────────────────── */
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.lightbox-inner {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lightbox-inner img {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.lightbox-caption {
+  color: #eee;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.lightbox-close {
+  position: fixed;
+  top: 1rem;
+  right: 1.25rem;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.lightbox-close:hover { opacity: 1; }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 

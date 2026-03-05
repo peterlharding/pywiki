@@ -21,19 +21,29 @@
       <th>Description</th>
       <th>Format</th>
       <th>Pages</th>
-      {% if user and user.is_admin %}<th>Actions</th>{% endif %}
+      {% if user %}<th>Actions</th>{% endif %}
     </tr>
   </thead>
   <tbody>
     {% for ns in namespaces %}
-    <tr>
-      <td><a href="/wiki/{{ ns.name }}"><strong>{{ ns.name }}</strong></a></td>
+    <tr{% if ns.name == pref_namespace %} class="ns-default-row"{% endif %}>
+      <td>
+        <a href="/wiki/{{ ns.name }}"><strong>{{ ns.name }}</strong></a>
+        {% if ns.name == pref_namespace %}<span class="badge badge-default" title="Your default namespace">default</span>{% endif %}
+      </td>
       <td>{{ ns.description or '' }}</td>
       <td><span class="badge badge-{{ ns.default_format }}">{{ ns.default_format }}</span></td>
       <td>{{ ns.page_count }}</td>
-      {% if user and user.is_admin %}
-      <td>
+      {% if user %}
+      <td style="white-space:nowrap">
+        {% if ns.name != pref_namespace %}
+        <form method="post" action="/special/namespaces/{{ ns.name }}/set-default" style="display:inline">
+          <button type="submit" class="btn btn-sm" title="Use {{ ns.name }} as your default namespace">⭐ Set default</button>
+        </form>
+        {% endif %}
+        {% if user.is_admin %}
         <a class="btn btn-sm" href="/special/namespaces/{{ ns.name }}/edit">✏️ Edit</a>
+        {% endif %}
       </td>
       {% endif %}
     </tr>

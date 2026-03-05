@@ -25,9 +25,10 @@ POST /create                    — create new page
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,12 +42,16 @@ from app.core.security import (
 from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, UserUpdate, NamespaceCreate, NamespaceUpdate
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
-from app.services.renderer import render as render_markup, extract_categories, parse_redirect, is_cache_valid
+from app.services.attachments import attachment_url, list_attachments, upload_attachment
+from app.services.renderer import render as render_markup, extract_categories, parse_redirect, is_cache_valid, RENDERER_VERSION as renderer_version
 from app.services.users import (
     authenticate_user, create_user, get_user_by_id_or_none,
     list_users, get_user_by_username, update_user, set_admin, set_active,
     get_user_contributions, get_user_edit_count,
+    set_verification_token, verify_email_token,
+    set_reset_token, consume_reset_token,
 )
+from app.services.email import send_verification_email, send_password_reset_email
 
 
 # -----------------------------------------------------------------------------
@@ -67,9 +72,12 @@ async def _current_user(request: Request, db: AsyncSession):
     """
     user_id, new_token = get_refreshed_user_id_cookie(request)
     if not user_id:
+        # print("DEBUG _current_user: no user_id from cookie")
         return None, None
     user = await get_user_by_id_or_none(db, user_id)
+    # print(f"DEBUG _current_user: user_id={user_id} user={user} is_admin={user.is_admin if user else 'N/A'}")
     return user, new_token
+
 
 
 def _ctx(user, **extra) -> dict:
@@ -122,18 +130,11 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     except HTTPException:
         pass
 
-    # Recent changes: last 10 across all namespaces
-    recent = await page_svc.get_recent_changes(db, limit=10)
-
-    namespaces = await ns_svc.list_namespaces(db)
-
     resp = templates.TemplateResponse(
         request,
         "home.html",
         _ctx(user,
-             featured_page=featured_page,
-             recent=recent,
-             namespaces=namespaces),
+             featured_page=featured_page),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp
@@ -178,11 +179,25 @@ async def category_index(
 ):
     user, new_token = await _current_user(request, db)
     pages = await page_svc.get_pages_in_category(db, category_name)
+
+    # Look up optional description page in the "Category" namespace
+    from app.services.renderer import render
+    cat_slug = page_svc.slugify(category_name)
+    cat_description_html: str | None = None
+    try:
+        _, cat_ver = await page_svc.get_page(db, "Category", cat_slug)
+        cat_description_html = render(cat_ver.content, cat_ver.format,
+                                      namespace="Category", base_url="")
+    except Exception:
+        pass
+
     resp = templates.TemplateResponse(
         request,
         "category.html",
         _ctx(user,
              category_name=category_name,
+             cat_slug=cat_slug,
+             cat_description_html=cat_description_html,
              pages=pages),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
@@ -253,6 +268,15 @@ async def view_page(
             _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
             return resp
 
+    atts = await list_attachments(db, namespace_name, slug)
+    att_map = {a.filename: attachment_url(a, settings.base_url) for a in atts}
+    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+    images = [
+        {"filename": a.filename, "url": attachment_url(a, settings.base_url)}
+        for a in atts
+        if any(a.filename.lower().endswith(ext) for ext in image_exts)
+    ]
+
     if is_cache_valid(ver.rendered) and version is None:
         rendered = ver.rendered
     else:
@@ -260,11 +284,42 @@ async def view_page(
             ver.content, ver.format,
             namespace=namespace_name,
             base_url=settings.base_url,
+            attachments=att_map if att_map else None,
         )
         if version is None:
             ver.rendered = rendered
 
     categories = extract_categories(ver.content, ver.format)
+
+    # Red-link detection: mark wikilinks to non-existent pages with class="wikilink missing"
+    _wl_href_re = re.compile(
+        r'href="(?:' + re.escape(settings.base_url) + r')?/wiki/' + re.escape(namespace_name) + r'/([^"]+)"'
+    )
+    linked_slugs = list({m.group(1).split("?")[0] for m in _wl_href_re.finditer(rendered)})
+    if linked_slugs:
+        existing = await page_svc.check_slugs_exist(db, namespace_name, linked_slugs)
+        def _mark_missing(m: re.Match) -> str:
+            full = m.group(0)
+            slug_part = m.group(1).split("?")[0]
+            if slug_part not in existing:
+                return full.replace('class="wikilink"', 'class="wikilink missing"')
+            return full
+        _link_re = re.compile(
+            r'<a\s[^>]*class="wikilink"[^>]*href="(?:'
+            + re.escape(settings.base_url)
+            + r')?/wiki/' + re.escape(namespace_name) + r'/([^"]+)"[^>]*>'
+        )
+        rendered = _link_re.sub(_mark_missing, rendered)
+
+    # Enrich missing-file upload links with namespace, page slug and back URL
+    _page_back = f"/wiki/{namespace_name}/{slug}"
+    rendered = re.sub(
+        r'href="/special/upload\?filename=([^"]+)"',
+        lambda m: f'href="/special/upload?namespace={namespace_name}&page={slug}&filename={m.group(1)}&back={_page_back}"',
+        rendered,
+    )
+
+    back_url = request.cookies.get("back_url", "")
 
     resp = templates.TemplateResponse(
         request,
@@ -276,9 +331,14 @@ async def view_page(
              namespace_name=namespace_name,
              viewing_version=version,
              categories=categories,
-             redirected_from=redirected_from),
+             redirected_from=redirected_from,
+             images=images,
+             attachments=atts,
+             back_url=back_url),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    if back_url:
+        resp.delete_cookie("back_url")
     return resp
 
 
@@ -298,6 +358,8 @@ async def edit_page_form(
         return _login_redirect(f"/wiki/{namespace_name}/{slug}/edit")
 
     page, ver = await page_svc.get_page(db, namespace_name, slug)
+    atts = await list_attachments(db, namespace_name, slug)
+    att_map = {a.filename: attachment_url(a, get_settings().base_url) for a in atts}
 
     resp = templates.TemplateResponse(
         request,
@@ -306,6 +368,8 @@ async def edit_page_form(
              page=page,
              ver=ver,
              namespace_name=namespace_name,
+             attachments=atts,
+             att_map=att_map,
              error=None),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
@@ -330,11 +394,6 @@ async def edit_page_submit(
     settings = get_settings()
     try:
         page, ver = await page_svc.update_page(db, namespace_name, slug, data, author_id=user.id)
-        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
-        ver.rendered = rendered
-        resp = RedirectResponse(url=f"/wiki/{namespace_name}/{slug}", status_code=303)
-        _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
-        return resp
     except HTTPException as e:
         page, ver_old = await page_svc.get_page(db, namespace_name, slug)
         resp = templates.TemplateResponse(
@@ -349,6 +408,21 @@ async def edit_page_submit(
         )
         _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
         return resp
+
+    # Render separately — a render failure must NOT roll back the DB transaction
+    try:
+        atts = await list_attachments(db, namespace_name, slug)
+        att_map = {a.filename: attachment_url(a, settings.base_url) for a in atts} or None
+        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url, attachments=att_map)
+        ver.rendered = rendered
+    except Exception:
+        pass  # page is saved; it will be rendered fresh on first view
+
+    await db.commit()
+
+    resp = RedirectResponse(url=f"/wiki/{namespace_name}/{slug}", status_code=303)
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -486,21 +560,32 @@ async def create_page_form(
     request: Request,
     namespace: Optional[str] = None,
     title: Optional[str] = None,
+    back: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
     if not user:
         return _login_redirect("/create")
-    namespaces = await ns_svc.list_namespaces(db)
-    ns_format_map = {ns.name: ns.default_format for ns in namespaces}
+    all_namespaces = await ns_svc.list_namespaces(db)
+    # Category namespace is internal — hide from dropdown unless explicitly prefilled
+    visible_namespaces = [ns for ns in all_namespaces if ns.name != "Category"]
+    ns_format_map = {ns.name: ns.default_format for ns in all_namespaces}
+    pref_ns = request.cookies.get("pref_namespace", "")
+    default_ns = namespace or pref_ns or get_settings().default_namespace
+    # Use explicit ?back= param, else fall back to HTTP Referer (plain wiki page views only)
+    referer = request.headers.get("referer", "")
+    _excluded = ("/edit", "/history", "/move", "/diff", "/print", "/create")
+    _referer_ok = "/wiki/" in referer and not any(referer.endswith(s) or f"{s}?" in referer for s in _excluded)
+    back_url = back or (referer if _referer_ok else "")
     resp = templates.TemplateResponse(
         request,
         "page_create.html",
         _ctx(user,
-             namespaces=namespaces,
+             namespaces=visible_namespaces,
              ns_format_map=ns_format_map,
-             prefill_namespace=namespace,
+             prefill_namespace=default_ns,
              prefill_title=title,
+             back_url=back_url,
              error=None),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
@@ -515,6 +600,7 @@ async def create_page_submit(
     content: str         = Form(default=""),
     fmt: str             = Form(default="markdown"),
     comment: str         = Form(default=""),
+    back_url: str        = Form(default=""),
     db: AsyncSession     = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -525,27 +611,49 @@ async def create_page_submit(
     settings = get_settings()
     try:
         page, ver = await page_svc.create_page(db, namespace_name, data, author_id=user.id)
-        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url)
-        ver.rendered = rendered
-        resp = RedirectResponse(url=f"/wiki/{namespace_name}/{page.slug}", status_code=303)
-        _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
-        return resp
     except HTTPException as e:
-        namespaces = await ns_svc.list_namespaces(db)
-        ns_format_map = {ns.name: ns.default_format for ns in namespaces}
+        all_namespaces = await ns_svc.list_namespaces(db)
+        visible_namespaces = [ns for ns in all_namespaces if ns.name != "Category"]
+        ns_format_map = {ns.name: ns.default_format for ns in all_namespaces}
         resp = templates.TemplateResponse(
             request,
             "page_create.html",
             _ctx(user,
-                 namespaces=namespaces,
+                 namespaces=visible_namespaces,
                  ns_format_map=ns_format_map,
                  prefill_namespace=namespace_name,
                  prefill_title=title,
+                 back_url=back_url,
                  error=e.detail),
             status_code=400,
         )
         _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
         return resp
+
+    # Render separately — a render failure must NOT roll back the page creation
+    try:
+        atts = await list_attachments(db, namespace_name, page.slug)
+        att_map = {a.filename: attachment_url(a, settings.base_url) for a in atts} or None
+        rendered = render_markup(ver.content, ver.format, namespace=namespace_name, base_url=settings.base_url, attachments=att_map)
+        ver.rendered = rendered
+    except Exception:
+        pass  # page is saved; it will be rendered on first view
+
+    await db.commit()
+
+    if namespace_name == "Category":
+        redirect_url = f"/category/{title}"
+    else:
+        redirect_url = f"/wiki/{namespace_name}/{page.slug}"
+    resp = RedirectResponse(url=redirect_url, status_code=303)
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    if namespace_name != "Category":
+        resp.set_cookie("pref_namespace", namespace_name, max_age=60*60*24*365, samesite="lax")
+    if back_url:
+        resp.set_cookie("back_url", back_url, max_age=3600, samesite="lax")
+    else:
+        resp.delete_cookie("back_url")
+    return resp
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -615,6 +723,14 @@ async def login_submit(
             status_code=401,
         )
 
+    settings2 = get_settings()
+    if settings2.require_email_verification and not user.email_verified and not user.is_admin:
+        return templates.TemplateResponse(
+            request,
+            "verify_pending.html",
+            _ctx(None, email=user.email),
+        )
+
     settings = get_settings()
     token = create_access_token(user.id, extra={"username": user.username})
     refresh = create_refresh_token(user.id)
@@ -681,6 +797,15 @@ async def register_submit(
             display_name=display_name,
         )
         user = await create_user(db, data)
+        if settings.require_email_verification:
+            vtoken = await set_verification_token(db, user)
+            await db.commit()
+            await send_verification_email(user.email, user.username, vtoken)
+            return templates.TemplateResponse(
+                request,
+                "verify_pending.html",
+                _ctx(None, email=user.email),
+            )
     except Exception as e:
         error_msg = str(e)
         if hasattr(e, "detail"):
@@ -710,6 +835,173 @@ async def register_submit(
         samesite="lax",
     )
     return response
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Email verification
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/verify-email", response_class=HTMLResponse)
+async def verify_email(request: Request, token: str, db: AsyncSession = Depends(get_db)):
+    try:
+        user = await verify_email_token(db, token)
+        await db.commit()
+    except HTTPException as e:
+        return templates.TemplateResponse(
+            request,
+            "verify_pending.html",
+            _ctx(None, email=None, error=e.detail),
+            status_code=400,
+        )
+    settings = get_settings()
+    access_token = create_access_token(user.id, extra={"username": user.username})
+    refresh = create_refresh_token(user.id)
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(key="access_token", value=access_token, httponly=True,
+                        max_age=settings.access_token_expire_minutes * 60, samesite="lax")
+    response.set_cookie(key="refresh_token", value=refresh, httponly=True,
+                        max_age=settings.refresh_token_expire_days * 86400, samesite="lax")
+    return response
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Forgot / reset password
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_form(request: Request, db: AsyncSession = Depends(get_db)):
+    user, _ = await _current_user(request, db)
+    return templates.TemplateResponse(request, "forgot_password.html", _ctx(user, error=None, sent=False))
+
+
+@router.post("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_submit(
+    request: Request,
+    email: str       = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    user, _ = await _current_user(request, db)
+    try:
+        account, rtoken = await set_reset_token(db, email)
+        await db.commit()
+        await send_password_reset_email(account.email, account.username, rtoken)
+    except HTTPException:
+        pass  # Don't reveal whether the email exists
+    return templates.TemplateResponse(
+        request, "forgot_password.html", _ctx(user, error=None, sent=True)
+    )
+
+
+@router.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_form(request: Request, token: str, db: AsyncSession = Depends(get_db)):
+    user, _ = await _current_user(request, db)
+    return templates.TemplateResponse(request, "reset_password.html", _ctx(user, token=token, error=None))
+
+
+@router.post("/reset-password", response_class=HTMLResponse)
+async def reset_password_submit(
+    request: Request,
+    token: str        = Form(...),
+    password: str     = Form(...),
+    password2: str    = Form(...),
+    db: AsyncSession  = Depends(get_db),
+):
+    user, _ = await _current_user(request, db)
+    if password != password2:
+        return templates.TemplateResponse(
+            request, "reset_password.html",
+            _ctx(user, token=token, error="Passwords do not match"),
+            status_code=400,
+        )
+    try:
+        await consume_reset_token(db, token, password)
+        await db.commit()
+    except HTTPException as e:
+        return templates.TemplateResponse(
+            request, "reset_password.html",
+            _ctx(user, token=token, error=e.detail),
+            status_code=400,
+        )
+    return RedirectResponse(url="/login?reset=1", status_code=303)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Special:Upload
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/upload", response_class=HTMLResponse)
+async def special_upload_form(
+    request: Request,
+    namespace: Optional[str] = None,
+    page: Optional[str] = None,
+    filename: Optional[str] = None,
+    back: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    namespaces = await ns_svc.list_namespaces(db)
+    settings = get_settings()
+    resp = templates.TemplateResponse(
+        request,
+        "special_upload.html",
+        _ctx(user,
+             namespaces=namespaces,
+             sel_namespace=namespace or "",
+             sel_page=page or "",
+             sel_filename=filename or "",
+             back_url=back or "",
+             success=None,
+             error=None,
+             max_attachment_mb=settings.max_attachment_bytes // (1024 * 1024)),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/upload", response_class=HTMLResponse)
+async def special_upload_submit(
+    request: Request,
+    namespace_name: str  = Form(...),
+    slug: str            = Form(...),
+    file: UploadFile     = File(...),
+    comment: str         = Form(default=""),
+    back_url: str        = Form(default=""),
+    db: AsyncSession     = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    namespaces = await ns_svc.list_namespaces(db)
+    settings = get_settings()
+    success = error = None
+    try:
+        att = await upload_attachment(
+            db, namespace_name, slug, file,
+            comment=comment, uploaded_by=str(user.id),
+        )
+        url = attachment_url(att, settings.base_url)
+        success = {"filename": att.filename, "url": url}
+    except HTTPException as e:
+        error = e.detail
+    except Exception as e:
+        error = str(e)
+    resp = templates.TemplateResponse(
+        request,
+        "special_upload.html",
+        _ctx(user,
+             namespaces=namespaces,
+             sel_namespace=namespace_name,
+             sel_page=slug,
+             sel_filename="",
+             back_url=back_url,
+             success=success,
+             error=error,
+             max_attachment_mb=settings.max_attachment_bytes // (1024 * 1024)),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -785,6 +1077,40 @@ async def special_pages(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Site status page
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/status", response_class=HTMLResponse)
+async def site_status(request: Request, db: AsyncSession = Depends(get_db)):
+    user, new_token = await _current_user(request, db)
+    settings = get_settings()
+
+    from sqlalchemy import func, select as sa_select
+    from app.models import Page, PageVersion, User as UserModel
+
+    total_pages    = (await db.execute(sa_select(func.count()).select_from(Page))).scalar_one()
+    total_versions = (await db.execute(sa_select(func.count()).select_from(PageVersion))).scalar_one()
+    total_users    = (await db.execute(sa_select(func.count()).select_from(UserModel))).scalar_one()
+    namespaces     = await ns_svc.list_namespaces(db)
+    recent         = await page_svc.get_recent_changes(db, limit=20)
+
+    resp = templates.TemplateResponse(
+        request,
+        "special_status.html",
+        _ctx(user,
+             total_pages=total_pages,
+             total_versions=total_versions,
+             total_users=total_users,
+             namespaces=namespaces,
+             recent=recent,
+             app_version=settings.app_version,
+             renderer_version=renderer_version),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Namespace management (admin only)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -801,12 +1127,29 @@ async def ns_list_view(request: Request, db: AsyncSession = Depends(get_db)):
             "default_format": ns.default_format,
             "page_count": count,
         })
+    pref_ns = request.cookies.get("pref_namespace", get_settings().default_namespace)
     resp = templates.TemplateResponse(
         request,
         "ns_list.html",
-        _ctx(user, namespaces=ns_rows),
+        _ctx(user, namespaces=ns_rows, pref_namespace=pref_ns),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    return resp
+
+
+@router.post("/special/namespaces/{ns_name}/set-default", response_class=HTMLResponse)
+async def ns_set_default(
+    request: Request,
+    ns_name: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=403, detail="Login required")
+    resp = RedirectResponse(url="/special/namespaces", status_code=303)
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    if ns_name != "Category":
+        resp.set_cookie("pref_namespace", ns_name, max_age=60*60*24*365, samesite="lax")
     return resp
 
 
@@ -841,6 +1184,7 @@ async def ns_create_submit(
         await ns_svc.create_namespace(db, NamespaceCreate(
             name=name, description=description, default_format=default_format
         ))
+        await db.commit()
         resp = RedirectResponse(url="/special/namespaces", status_code=303)
     except (HTTPException, PydanticValidationError) as e:
         error_msg = e.detail if isinstance(e, HTTPException) else e.errors()[0]["msg"]
@@ -891,6 +1235,7 @@ async def ns_edit_submit(
         await ns_svc.update_namespace(db, ns_name, NamespaceUpdate(
             description=description, default_format=default_format
         ))
+        await db.commit()
         resp = RedirectResponse(url="/special/namespaces", status_code=303)
     except HTTPException as e:
         resp = templates.TemplateResponse(
@@ -914,6 +1259,7 @@ async def ns_delete_submit(
     if not user or not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin only")
     await ns_svc.delete_namespace(db, ns_name)
+    await db.commit()
     resp = RedirectResponse(url="/special/namespaces", status_code=303)
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp

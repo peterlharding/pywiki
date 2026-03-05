@@ -14,7 +14,8 @@ A MediaWiki-inspired wiki built with **FastAPI** and **Python**, supporting both
 - 🔗 **`[[WikiLink]]`** syntax — inter-page links auto-resolved to the correct URL
 - ⚡ **REST API** (`/api/v1/…`) — full JSON API with OpenAPI docs
 - 🖥️ **Jinja2 web UI** — server-rendered HTML with live edit preview
-- 💾 **SQLite** by default (zero setup), PostgreSQL-ready
+- 💾 **PostgreSQL** for production, **SQLite** for development (zero setup)
+- 🗄️ **Alembic** migrations — version-controlled schema with autogenerate
 
 ## Quick Start
 
@@ -33,10 +34,14 @@ source .venv/bin/activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. (Optional) Copy and edit the environment file
+# 4. Copy and edit the environment file
 cp .env.example .env
+# Edit .env and set DATABASE_URL for your environment (see below)
 
-# 5. Start the development server
+# 5. Apply database migrations
+alembic upgrade head
+
+# 6. Start the development server
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -77,14 +82,18 @@ pywiki/
 │   └── static/              # CSS and JavaScript
 │       ├── css/wiki.css
 │       └── js/wiki.js
+├── alembic/
+│   ├── env.py               # Async Alembic environment (reads DATABASE_URL from settings)
+│   ├── script.py.mako       # Migration file template
+│   └── versions/            # Auto-generated migration scripts
 ├── tests/
-│   ├── conftest.py
+│   ├── conftest.py          # In-memory SQLite fixtures (never touches production DB)
 │   ├── test_01_auth.py
 │   ├── test_02_namespaces.py
-│   └── test_03_pages.py
+│   └── ...
+├── alembic.ini
 ├── .env.example
 ├── requirements.txt
-├── pytest.ini
 └── Makefile
 ```
 
@@ -148,10 +157,56 @@ These are rewritten to the appropriate `/wiki/<namespace>/<slug>` URL before ren
 
 Full interactive docs: http://localhost:8000/api/docs
 
-## Running Tests
+## Database Setup
+
+### PostgreSQL (production)
+
+```sql
+-- As a PostgreSQL superuser:
+CREATE USER pywiki WITH PASSWORD 'yourpassword';
+CREATE DATABASE pywiki OWNER pywiki;
+```
+
+```bash
+# In .env:
+DATABASE_URL=postgresql+asyncpg://pywiki:yourpassword@localhost:5432/pywiki
+
+# Apply all migrations:
+alembic upgrade head
+```
+
+### SQLite (development / quick start)
+
+```bash
+# In .env:
+DATABASE_URL=sqlite+aiosqlite:///./pywiki.db
+
+# Apply all migrations:
+alembic upgrade head
+# or use the Makefile shortcut:
+make db-reset-dev
+```
+
+### Alembic commands
+
+```bash
+alembic upgrade head          # Apply all pending migrations
+alembic downgrade -1          # Roll back one migration
+alembic current               # Show current revision
+alembic history --verbose     # Show full migration history
+
+# Generate a new migration after changing models:
+make db-revision MSG="add_user_preferences"
+```
+
+### Tests
+
+Tests always use an **in-memory SQLite** database regardless of `DATABASE_URL`. No external database is required to run the test suite.
 
 ```bash
 pytest tests/ -v
+# or:
+make test
 ```
 
 ## Environment Variables
@@ -160,7 +215,9 @@ See `.env.example` for all available settings. Key variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | `sqlite+aiosqlite:///./pywiki.db` | Database connection string |
+| `DATABASE_URL` | `postgresql+asyncpg://pywiki:pywiki@localhost/pywiki` | Database connection string |
+| `DB_POOL_SIZE` | `10` | PostgreSQL connection pool size |
+| `DB_MAX_OVERFLOW` | `20` | PostgreSQL pool max overflow |
 | `SECRET_KEY` | *(change this!)* | JWT signing secret |
 | `SITE_NAME` | `PyWiki` | Displayed site name |
 | `DEFAULT_NAMESPACE` | `Main` | Namespace created on first run |

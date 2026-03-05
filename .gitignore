@@ -1,5 +1,7 @@
 # Project Specific
-data/
+
+# Data
+data/attachments/
 
 
 # Byte-compiled / optimized / DLL files
@@ -194,6 +196,20 @@ cython_debug/
 
 # Ruff stuff:
 .ruff_cache/
+
+# Vim swap files
+*.swp
+*.swo
+
+# PyWiki runtime files
+pywiki.db
+
+# SSL certificates and private keys — never commit these
+*.key
+*.crt
+*.pem
+*.p12
+*.pfx
 
 # PyPI configuration file
 .pypirc

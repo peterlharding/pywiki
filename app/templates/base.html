@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}{{ site_name }}{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/wiki.css" />
+  <link rel="stylesheet" href="/static/css/wiki.css?v={{ app_version }}" />
+  <link rel="stylesheet" href="/static/css/pygments.css?v={{ app_version }}" />
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -23,8 +24,8 @@
       <a href="/">Home</a>
       <a href="/create">New Page</a>
       {% if user %}
-        <span class="nav-user">{{ user.display_name or user.username }}</span>
-        {% if user.is_admin %}<a href="/admin">Admin</a>{% endif %}
+        <a href="/user/{{ user.username }}" class="nav-user">{{ user.display_name or user.username }}</a>
+        {% if user.is_admin %}<a href="/special">Admin</a>{% endif %}
         <a href="/logout">Log out</a>
       {% else %}
         <a href="/login">Log in</a>
@@ -44,6 +45,7 @@
       <ul>
         <li><a href="/">Main page</a></li>
         <li><a href="/recent">Recent changes</a></li>
+        <li><a href="/special/status">Site status</a></li>
         <li><a href="/special">Special pages</a></li>
         <li><a href="/search">Search</a></li>
         <li><a href="/create">Create page</a></li>

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Site Status — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Site Status</h1>
+</div>
+
+<section class="home-section">
+  <h2>Statistics</h2>
+  <table class="wiki-table" style="max-width:400px;">
+    <tbody>
+      <tr><td><strong>Total pages</strong></td><td>{{ total_pages }}</td></tr>
+      <tr><td><strong>Total revisions</strong></td><td>{{ total_versions }}</td></tr>
+      <tr><td><strong>Registered users</strong></td><td>{{ total_users }}</td></tr>
+      <tr><td><strong>Namespaces</strong></td><td>{{ namespaces | length }}</td></tr>
+      <tr><td><strong>App version</strong></td><td>{{ app_version }}</td></tr>
+      <tr><td><strong>Renderer version</strong></td><td>{{ renderer_version }}</td></tr>
+    </tbody>
+  </table>
+
+
+</section>
+
+---
+
+<section class="home-section">
+  <h2>Namespaces</h2>
+  {% if namespaces %}
+  <ul class="ns-list">
+    {% for ns in namespaces %}
+    <li>
+      <a href="/wiki/{{ ns.name }}"><strong>{{ ns.name }}</strong></a>
+      <span class="badge badge-{{ ns.default_format }}">{{ ns.default_format }}</span>
+      {% if ns.description %}<span class="muted"> — {{ ns.description }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No namespaces have been created yet.</p>
+  {% endif %}
+
+
+</section>
+
+---
+
+<section class="home-section">
+  <h2>Recent Changes</h2>
+  {% if recent %}
+  <table class="wiki-table">
+    <thead>
+      <tr>
+        <th>Page</th>
+        <th>Namespace</th>
+        <th>Ver</th>
+        <th>Author</th>
+        <th>Updated</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in recent %}
+      <tr>
+        <td><a href="/wiki/{{ item.namespace }}/{{ item.slug }}">{{ item.title }}</a></td>
+        <td><a href="/wiki/{{ item.namespace }}">{{ item.namespace }}</a></td>
+        <td>{{ item.version }}</td>
+        <td>{% if item.author and item.author != 'anonymous' %}<a href="/user/{{ item.author }}">{{ item.author }}</a>{% else %}{{ item.author }}{% endif %}</td>
+        <td class="ts">{{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No pages yet. <a href="/create">Create the first page!</a></p>
+  {% endif %}
+
+
+</section>
+{% endblock %}

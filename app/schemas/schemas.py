@@ -259,6 +259,7 @@ class SearchResult(BaseModel):
     slug: str
     snippet: str
     updated_at: datetime
+    rank: float = 0.0
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

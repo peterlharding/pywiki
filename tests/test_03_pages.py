@@ -47,7 +47,7 @@ async def test_create_markdown_page(client, db_session):
     assert data["title"] == "Hello World"
     assert data["slug"] == "hello-world"
     assert data["format"] == "markdown"
-    assert "<h1>" in data["rendered"]
+    assert "<h1 id=" in data["rendered"]
     assert "<strong>" in data["rendered"]
 
 
@@ -238,7 +238,7 @@ async def test_render_markdown(client):
     })
     assert resp.status_code == 200
     html = resp.json()["html"]
-    assert "<h1>" in html
+    assert "<h1 id=" in html
     assert "<strong>" in html
 
 

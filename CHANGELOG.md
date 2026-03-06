@@ -12,6 +12,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.4] — 2026-03-06
+
+### Added
+- **Search filters** — filter results by format (markdown/rst/wikitext), author username, and date range (`from_date`/`to_date`); collapsible filter panel in the search UI.
+- **`Category:Name` search syntax** — entering `Category:Foo` in the search box finds all pages tagged with that category (both `[[Category:Foo]]` and `.. category:: Foo` syntax).
+- **Filter-only search** — search box can be left empty when filters are active; `q=*` also treated as match-all.
+- **Format and author badges** in search results.
+
+### Fixed
+- **Substring search on PostgreSQL** — search now uses ILIKE `%term%` for matching on both SQLite and PostgreSQL; PostgreSQL FTS is retained for result ranking only. Previously `mage` would not find `image` on PostgreSQL.
+- **Empty query with filters returning no results** — filter-only queries (no search text) now correctly return all pages matching the applied filters.
+
+
+---
+
 ## [0.6.3] — 2026-03-06
 
 ### Added
@@ -626,7 +641,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.4...HEAD
+[0.6.4]: https://github.com/peterlharding/pywiki/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/peterlharding/pywiki/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/peterlharding/pywiki/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/peterlharding/pywiki/compare/v0.6.0...v0.6.1

@@ -85,6 +85,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Customisable home page** — `/` renders `Main/main-page` wiki page; Edit button for logged-in users; "Create main page" prompt when absent.
 - [x] **Site status page** — `/special/status` shows stats, namespaces, and recent changes; linked from sidebar and Special Pages.
 - [x] **Default namespace preference** — per-user `pref_namespace` cookie; auto-updated on page create; ⭐ Set default button on namespace list; current default highlighted with badge (v0.5.2)
+- [x] **Breadcrumb navigation** — `Home › Namespace › Page › (History/Diff/Move)` on page view, history, diff, move, and namespace index; CSS `.breadcrumb` class in `wiki.css` (v0.6.5).
 - [x] **Dark mode** — CSS custom properties throughout; `prefers-color-scheme` auto-detection; 🌙/☀️ navbar toggle; `localStorage` persistence; flash-free inline script on `<html>` (v0.6.5).
 
 

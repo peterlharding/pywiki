@@ -103,5 +103,5 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **PostgreSQL support** — test and document running against PostgreSQL in
       production (async driver: `asyncpg`).
 - [x] **Health check endpoint improvements** — `/api/health` now probes DB with `SELECT 1`, reports latency, returns `503` if DB unreachable; includes `version`, `renderer_version`, and `database.status`.
-- [ ] **Review Logs** - Provide a Special Page to review the log
+- [x] **Review Logs** — `/special/logs` admin-only page; in-memory ring buffer (500 records, INFO+); level filter dropdown; row-highlighted by severity.
 

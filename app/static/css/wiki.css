@@ -648,6 +648,39 @@ sup.reference a:hover { text-decoration: underline; }
 
 .namespace-desc { color: var(--muted); margin-bottom: 1rem; font-size: 0.95rem; }
 
+/* ─── Colour utility classes ─────────────────────────────────────────────── */
+
+.text-red     { color: #cc3333; }
+.text-green   { color: #228822; }
+.text-blue    { color: #3366cc; }
+.text-orange  { color: #e65100; }
+.text-purple  { color: #6a1a9a; }
+.text-teal    { color: #00796b; }
+.text-grey    { color: #72777d; }
+.text-gold    { color: #b8860b; }
+.text-muted   { color: var(--muted); }
+.text-accent  { color: var(--accent); }
+.text-danger  { color: var(--danger); }
+.text-success { color: var(--success); }
+.text-warn    { color: var(--warn); }
+
+[data-theme="dark"] .text-red    { color: #f38ba8; }
+[data-theme="dark"] .text-green  { color: #a6e3a1; }
+[data-theme="dark"] .text-blue   { color: #89b4fa; }
+[data-theme="dark"] .text-orange { color: #fab387; }
+[data-theme="dark"] .text-purple { color: #cba6f7; }
+[data-theme="dark"] .text-teal   { color: #94e2d5; }
+[data-theme="dark"] .text-gold   { color: #f9e2af; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .text-red    { color: #f38ba8; }
+  :root:not([data-theme="light"]) .text-green  { color: #a6e3a1; }
+  :root:not([data-theme="light"]) .text-blue   { color: #89b4fa; }
+  :root:not([data-theme="light"]) .text-orange { color: #fab387; }
+  :root:not([data-theme="light"]) .text-purple { color: #cba6f7; }
+  :root:not([data-theme="light"]) .text-teal   { color: #94e2d5; }
+  :root:not([data-theme="light"]) .text-gold   { color: #f9e2af; }
+}
+
 /* ─── Misc ───────────────────────────────────────────────────────────────── */
 
 .muted { color: var(--muted); }

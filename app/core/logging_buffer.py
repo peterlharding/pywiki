@@ -12,7 +12,7 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import TypedDict
 
-MAX_RECORDS = 200
+MAX_RECORDS = 500
 
 
 class LogRecord(TypedDict):
@@ -42,14 +42,22 @@ class _MemoryHandler(logging.Handler):
 _handler: _MemoryHandler | None = None
 
 
-def install(level: int = logging.WARNING) -> None:
+def install(level: int = logging.INFO) -> None:
     """Attach the memory handler to the root logger.  Safe to call multiple times."""
     global _handler
     if _handler is not None:
         return
     _handler = _MemoryHandler(level=level)
     _handler.setFormatter(logging.Formatter("%(message)s"))
-    logging.getLogger().addHandler(_handler)
+    root = logging.getLogger()
+    # Ensure the root logger passes records through at least at our capture level
+    if root.level == logging.NOTSET or root.level > level:
+        root.setLevel(level)
+    root.addHandler(_handler)
+
+
+# Install automatically on import so no startup ordering issues
+install()
 
 
 def get_records() -> list[LogRecord]:

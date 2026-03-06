@@ -12,14 +12,11 @@
   <form method="get" action="/special/logs" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
     <label for="level-select"><strong>Filter by level:</strong></label>
     <select id="level-select" name="level" onchange="this.form.submit()" style="padding:0.25rem 0.5rem;">
-      <option value="" {% if not level_filter %}selected{% endif %}>All levels</option>
+      <option value="ALL" {% if level_filter|upper == 'ALL' %}selected{% endif %}>All levels</option>
       {% for lvl in levels %}
-      <option value="{{ lvl }}" {% if level_filter == lvl %}selected{% endif %}>{{ lvl }}</option>
+      <option value="{{ lvl }}" {% if level_filter|upper == lvl %}selected{% endif %}>{{ lvl }}</option>
       {% endfor %}
     </select>
-    {% if level_filter %}
-    <a href="/special/logs" class="btn btn-sm">Clear filter</a>
-    {% endif %}
   </form>
 
   {% if records %}

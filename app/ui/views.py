@@ -1165,7 +1165,7 @@ async def special_health(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get("/special/logs", response_class=HTMLResponse)
 async def special_logs(
     request: Request,
-    level: Optional[str] = None,
+    level: Optional[str] = "WARNING",
     db: AsyncSession = Depends(get_db),
 ):
     from app.core.logging_buffer import get_records
@@ -1174,7 +1174,7 @@ async def special_logs(
         return RedirectResponse(url="/login", status_code=303)
 
     all_records = get_records()
-    if level:
+    if level and level.upper() != "ALL":
         all_records = [r for r in all_records if r["level"] == level.upper()]
 
     settings = get_settings()

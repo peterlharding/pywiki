@@ -31,6 +31,9 @@ dev:
 test:
 	PYTHONUNBUFFERED=1 .venv/bin/python -u -m pytest tests/
 
+test-q:
+	PYTHONUNBUFFERED=1 .venv/bin/python -u -m pytest tests/ -q
+
 test-v:
 	PYTHONUNBUFFERED=1 .venv/bin/python -u -m pytest tests/ -v
 

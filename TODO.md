@@ -89,8 +89,8 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## API & Integrations
 
-- [ ] **Search by category** — `Category:Foo` query syntax.
-- [ ] **Search filters** — filter results by author, date range, format.
+- [x] **Search by category** — `Category:Foo` query syntax; detects `Category:` prefix and filters by category tag in page content.
+- [x] **Search filters** — filter by format (markdown/rst/wikitext), author username, date range (`from_date`/`to_date`); collapsible filter panel in search UI.
 - [x] **Export** — `GET /wiki/{namespace}/export` downloads a ZIP of raw source files (`.md`/`.rst`/`.wiki`) plus page attachments in subdirectories; button on namespace index (logged-in users).
 
 

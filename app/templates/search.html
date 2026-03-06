@@ -12,7 +12,7 @@
     </li>
     {% for ns in namespaces %}
     <li>
-      <a href="/search?q={{ q }}&namespace={{ ns.name }}"
+      <a href="/search?q={{ q }}&namespace={{ ns.name }}{% if filter_format %}&format={{ filter_format }}{% endif %}{% if filter_author %}&author={{ filter_author }}{% endif %}{% if filter_from %}&from_date={{ filter_from }}{% endif %}{% if filter_to %}&to_date={{ filter_to }}{% endif %}"
          class="{% if selected_namespace == ns.name %}active-filter{% endif %}">
         {{ ns.name }}
       </a>
@@ -28,20 +28,70 @@
 </div>
 
 <form action="/search" method="get" class="search-form-full">
-  {% if selected_namespace %}
-  <input type="hidden" name="namespace" value="{{ selected_namespace }}" />
-  {% endif %}
   <div class="search-input-row">
-    <input type="search" name="q" value="{{ q }}" placeholder="Search pages…"
+    <input type="search" name="q" value="{{ q }}" placeholder="Search pages… or Category:Name"
            autofocus autocomplete="off" style="flex:1;" />
     <button class="btn btn-primary" type="submit">Search</button>
   </div>
+
+  <details {% if filter_format or filter_author or filter_from or filter_to or selected_namespace %}open{% endif %}
+           style="margin-top:0.75rem;">
+    <summary style="cursor:pointer;font-size:0.9rem;color:var(--muted-color,#666);">Filters</summary>
+    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;align-items:flex-end;">
+
+      <div>
+        <label style="display:block;font-size:0.8rem;margin-bottom:2px;">Namespace</label>
+        <select name="namespace" style="padding:0.25rem 0.4rem;">
+          <option value="">All</option>
+          {% for ns in namespaces %}
+          <option value="{{ ns.name }}" {% if selected_namespace == ns.name %}selected{% endif %}>{{ ns.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.8rem;margin-bottom:2px;">Format</label>
+        <select name="format" style="padding:0.25rem 0.4rem;">
+          <option value="">Any</option>
+          <option value="markdown"  {% if filter_format == "markdown"  %}selected{% endif %}>Markdown</option>
+          <option value="rst"       {% if filter_format == "rst"       %}selected{% endif %}>RST</option>
+          <option value="wikitext"  {% if filter_format == "wikitext"  %}selected{% endif %}>Wikitext</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.8rem;margin-bottom:2px;">Author</label>
+        <input type="text" name="author" value="{{ filter_author }}" placeholder="username"
+               style="padding:0.25rem 0.4rem;width:9rem;" />
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.8rem;margin-bottom:2px;">Updated from</label>
+        <input type="date" name="from_date" value="{{ filter_from }}"
+               style="padding:0.25rem 0.4rem;" />
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.8rem;margin-bottom:2px;">Updated to</label>
+        <input type="date" name="to_date" value="{{ filter_to }}"
+               style="padding:0.25rem 0.4rem;" />
+      </div>
+
+      {% if filter_format or filter_author or filter_from or filter_to or selected_namespace %}
+      <div>
+        <a href="/search{% if q %}?q={{ q }}{% endif %}" class="btn btn-sm" style="margin-bottom:1px;">Clear filters</a>
+      </div>
+      {% endif %}
+
+    </div>
+  </details>
 </form>
 
-{% if q %}
+{% if q or filter_format or filter_author or filter_from or filter_to or selected_namespace %}
   {% if results %}
-  <p class="search-count">{{ results | length }} result(s) for <strong>"{{ q }}"</strong>
-    {% if selected_namespace %}in namespace <em>{{ selected_namespace }}</em>{% endif %}
+  <p class="search-count" style="margin-top:1rem;">
+    {{ results | length }} result(s){% if q %} for <strong>"{{ q }}"</strong>{% endif %}
+    {% if selected_namespace %}in <em>{{ selected_namespace }}</em>{% endif %}
   </p>
   <ul class="search-results">
     {% for r in results %}
@@ -49,14 +99,18 @@
       <div class="result-title">
         <a href="/wiki/{{ r.namespace }}/{{ r.slug }}">{{ r.title }}</a>
         <span class="muted"> — <a href="/wiki/{{ r.namespace }}">{{ r.namespace }}</a></span>
+        <span class="badge badge-{{ r.format }}">{{ r.format }}</span>
       </div>
       <div class="result-snippet">{{ r.snippet }}</div>
-      <div class="result-meta muted">Updated: {{ r.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      <div class="result-meta muted">
+        Updated: {{ r.updated_at.strftime('%Y-%m-%d %H:%M') }}
+        {% if r.author %} · by <a href="/special/users/{{ r.author }}">{{ r.author }}</a>{% endif %}
+      </div>
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p class="muted">No results found for <strong>"{{ q }}"</strong>.</p>
+  <p class="muted" style="margin-top:1rem;">No results found{% if q %} for <strong>"{{ q }}"</strong>{% endif %}.</p>
   {% endif %}
 {% endif %}
 {% endblock %}

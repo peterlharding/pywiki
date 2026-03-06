@@ -20,9 +20,10 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Live preview debounce** — 400ms debounce + `AbortController` cancels in-flight requests on new input (v0.4.0)
 - [x] **Table of Contents** — opt-in via `{{toc}}` or `__TOC__` macro; no longer auto-injected (v0.4.0)
 - [x] **Math rendering** — KaTeX `v0.16.11` client-side via CDN auto-render; `$...$` / `$$...$$` (Markdown), `:math:`/`.. math::` (RST), `<math>` tag (Wikitext) (RENDERER_VERSION 12)
+- [ ] **Page history** — view revision history and restore previous versions.
 
 
----
+---  
 
 ## Page Management
 
@@ -33,6 +34,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
       filling the format selector on the Create Page form.
 - [x] **Create page namespace default** — namespace selector correctly defaults to `Main`.
 - [~] **Bulk import** — MediaWiki XML import done (`scripts/import_mediawiki.py`); ZIP of flat files not yet implemented.
+
 
 
 ---
@@ -83,6 +85,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Customisable home page** — `/` renders `Main/main-page` wiki page; Edit button for logged-in users; "Create main page" prompt when absent.
 - [x] **Site status page** — `/special/status` shows stats, namespaces, and recent changes; linked from sidebar and Special Pages.
 - [x] **Default namespace preference** — per-user `pref_namespace` cookie; auto-updated on page create; ⭐ Set default button on namespace list; current default highlighted with badge (v0.5.2)
+- [x] **Dark mode** — CSS custom properties throughout; `prefers-color-scheme` auto-detection; 🌙/☀️ navbar toggle; `localStorage` persistence; flash-free inline script on `<html>` (v0.6.5).
 
 
 ---

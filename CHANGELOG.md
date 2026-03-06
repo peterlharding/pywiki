@@ -12,6 +12,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.5] — 2026-03-07
+
+### Added
+- **Dark mode** — automatic via `prefers-color-scheme: dark`; manual toggle button (🌙/☀️) in the navbar persists choice in `localStorage`. All colours expressed as CSS custom properties; `[data-theme="dark"]` and `[data-theme="light"]` explicit overrides available. Flash-of-wrong-theme prevented by an inline script on `<html>`.
+- **Breadcrumb navigation** — `Home › Namespace › Page` trail on page view, history, diff, move, and namespace index; `{% block breadcrumb %}` slot in `base.html`.
+
+### Fixed
+- **Namespace export 500 error** — `sqlalchemy.func` was not imported in `views.py`; `GET /wiki/{ns}/export` now works correctly.
+- **Namespace edit form** — description and default-format fields now correctly pre-fill from saved values on re-visit; Jinja2 `or` replaced with `is not none` check.
+- **Dead `/admin` link** — Special Pages listed a link to `/admin` which returned 404; replaced with `/special/namespaces`.
+
+
+---
+
 ## [0.6.4] — 2026-03-06
 
 ### Added
@@ -641,7 +655,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.4...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.5...HEAD
+[0.6.5]: https://github.com/peterlharding/pywiki/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/peterlharding/pywiki/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/peterlharding/pywiki/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/peterlharding/pywiki/compare/v0.6.1...v0.6.2

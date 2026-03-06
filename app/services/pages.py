@@ -464,15 +464,33 @@ async def search_pages(
     db: AsyncSession,
     query: str,
     namespace_name: Optional[str] = None,
+    format: Optional[str] = None,
+    author: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
 ) -> list[dict]:
     """Full-text search across page titles and latest content.
 
+    Supports:
+    - ``Category:Name`` prefix in *query* to find pages in a category.
+    - *format* filter: ``markdown``, ``rst``, or ``wikitext``.
+    - *author* filter: matches the username of the last editor.
+    - *from_date* / *to_date*: ISO-8601 date strings (``YYYY-MM-DD``).
+
     Uses PostgreSQL tsvector/tsquery when available; falls back to ILIKE for SQLite.
     """
+    from datetime import date as _date
+
+    # ── Category: prefix ──────────────────────────────────────────────────────
+    category_filter: Optional[str] = None
+    if query.lower().startswith("category:"):
+        category_filter = query[len("category:"):].strip()
+        query = ""  # no text search — filter by category only
+
     # Detect engine dialect — use FTS on PostgreSQL, fall back to ILIKE on SQLite
-    use_fts = _db_dialect() == "postgresql"
+    use_fts = _db_dialect() == "postgresql" and not category_filter
 
     max_ver_sub = (
         select(
@@ -503,13 +521,14 @@ async def search_pages(
                 (PageVersion.version == max_ver_sub.c.max_ver),
             )
             .join(Namespace, Namespace.id == Page.namespace_id)
+            .options(selectinload(PageVersion.author))
             .where(ts_vector.op("@@")(ts_query))
             .order_by(rank.desc())
             .offset(skip)
             .limit(limit)
         )
     else:
-        q = (
+        base_q = (
             select(Page, PageVersion, Namespace)
             .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
             .join(
@@ -518,17 +537,54 @@ async def search_pages(
                 (PageVersion.version == max_ver_sub.c.max_ver),
             )
             .join(Namespace, Namespace.id == Page.namespace_id)
-            .where(
-                Page.title.ilike(f"%{query}%") |
-                PageVersion.content.ilike(f"%{query}%")
-            )
+            .options(selectinload(PageVersion.author))
             .order_by(Page.title)
             .offset(skip)
             .limit(limit)
         )
+        if query:
+            base_q = base_q.where(
+                Page.title.ilike(f"%{query}%") |
+                PageVersion.content.ilike(f"%{query}%")
+            )
+        q = base_q
 
     if namespace_name:
         q = q.where(Namespace.name == namespace_name)
+
+    if format:
+        q = q.where(PageVersion.format == format)
+
+    if author:
+        author_sub = select(User.id).where(User.username == author).scalar_subquery()
+        q = q.where(PageVersion.author_id == author_sub)
+
+    if from_date:
+        try:
+            from datetime import datetime, timezone
+            dt_from = datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc)
+            q = q.where(PageVersion.created_at >= dt_from)
+        except ValueError:
+            pass
+
+    if to_date:
+        try:
+            from datetime import datetime, timezone
+            dt_to = datetime.fromisoformat(to_date).replace(tzinfo=timezone.utc)
+            # inclusive: add one day
+            from datetime import timedelta
+            dt_to = dt_to + timedelta(days=1)
+            q = q.where(PageVersion.created_at < dt_to)
+        except ValueError:
+            pass
+
+    if category_filter:
+        cat_pattern_wiki = f"%[[Category:{category_filter}]]%"
+        cat_pattern_rst  = f"%.. category:: {category_filter}%"
+        q = q.where(
+            PageVersion.content.ilike(cat_pattern_wiki) |
+            PageVersion.content.ilike(cat_pattern_rst)
+        )
 
     result = await db.execute(q)
     rows = result.all()
@@ -536,12 +592,14 @@ async def search_pages(
     results = []
     if use_fts:
         for p, v, ns, rank_val in rows:
-            snippet = _python_snippet(v.content, query)
+            snippet = _python_snippet(v.content, query or category_filter or "")
             results.append({
                 "namespace":  ns.name,
                 "title":      p.title,
                 "slug":       p.slug,
                 "snippet":    snippet,
+                "format":     v.format,
+                "author":     v.author.username if v.author else None,
                 "updated_at": v.created_at,
                 "rank":       float(rank_val) if rank_val is not None else 0.0,
             })
@@ -551,7 +609,9 @@ async def search_pages(
                 "namespace":  ns.name,
                 "title":      p.title,
                 "slug":       p.slug,
-                "snippet":    _python_snippet(v.content, query),
+                "snippet":    _python_snippet(v.content, query or category_filter or ""),
+                "format":     v.format,
+                "author":     v.author.username if v.author else None,
                 "updated_at": v.created_at,
                 "rank":       0.0,
             })

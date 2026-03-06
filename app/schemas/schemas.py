@@ -258,6 +258,8 @@ class SearchResult(BaseModel):
     title: str
     slug: str
     snippet: str
+    format: str = ""
+    author: Optional[str] = None
     updated_at: datetime
     rank: float = 0.0
 

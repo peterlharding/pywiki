@@ -30,13 +30,26 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 @router.get("", response_model=list[SearchResult])
 async def search(
-    q:         str           = Query(..., min_length=1, max_length=256, description="Search query"),
+    q:         str           = Query(..., min_length=1, max_length=256, description="Search query or Category:Name"),
     namespace: Optional[str] = Query(None, description="Restrict search to this namespace"),
+    format:    Optional[str] = Query(None, description="Filter by format: markdown, rst, wikitext"),
+    author:    Optional[str] = Query(None, description="Filter by author username"),
+    from_date: Optional[str] = Query(None, description="Filter pages updated on or after YYYY-MM-DD"),
+    to_date:   Optional[str] = Query(None, description="Filter pages updated on or before YYYY-MM-DD"),
     skip:      int           = Query(0, ge=0),
     limit:     int           = Query(50, ge=1, le=200),
     db: AsyncSession         = Depends(get_db),
 ):
-    results = await search_pages(db, q, namespace_name=namespace, skip=skip, limit=limit)
+    results = await search_pages(
+        db, q,
+        namespace_name=namespace,
+        format=format,
+        author=author,
+        from_date=from_date,
+        to_date=to_date,
+        skip=skip,
+        limit=limit,
+    )
     return results
 
 

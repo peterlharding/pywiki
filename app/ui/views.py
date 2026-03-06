@@ -743,12 +743,24 @@ async def search_view(
     request: Request,
     q: Optional[str] = None,
     namespace: Optional[str] = None,
+    format: Optional[str] = None,
+    author: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
     results = []
     if q:
-        results = await page_svc.search_pages(db, q, namespace_name=namespace, limit=50)
+        results = await page_svc.search_pages(
+            db, q,
+            namespace_name=namespace,
+            format=format,
+            author=author,
+            from_date=from_date,
+            to_date=to_date,
+            limit=50,
+        )
     namespaces = await ns_svc.list_namespaces(db)
     resp = templates.TemplateResponse(
         request,
@@ -757,7 +769,11 @@ async def search_view(
              q=q or "",
              results=results,
              namespaces=namespaces,
-             selected_namespace=namespace),
+             selected_namespace=namespace or "",
+             filter_format=format or "",
+             filter_author=author or "",
+             filter_from=from_date or "",
+             filter_to=to_date or ""),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp

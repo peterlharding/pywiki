@@ -1389,7 +1389,7 @@ async def ns_edit_form(
         request,
         "ns_manage.html",
         _ctx(user, edit_mode=True, ns=ns, error=None,
-             prefill_description=ns.description, prefill_format=ns.default_format),
+             prefill_description=None, prefill_format=None),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp

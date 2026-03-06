@@ -201,6 +201,27 @@ async def test_ns_edit_updates_description(client, db_session):
     )
     assert resp.status_code == 200
     assert "EditNS3" in resp.text
+    assert "Updated description" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_ns_edit_form_prefills_description(client, db_session):
+    """Edit form must show the existing description in the input field."""
+    api_hdrs, ui_hdrs = await _setup_admin(client, db_session, "nse_admin4")
+    await _create_namespace(client, "PrefillNS", "markdown", api_hdrs)
+
+    # First save a description via POST
+    await client.post(
+        "/special/namespaces/PrefillNS/edit",
+        data={"description": "My prefill description", "default_format": "markdown"},
+        headers=ui_hdrs,
+        follow_redirects=False,
+    )
+
+    # Now load the edit form and check the description is pre-filled
+    resp = await client.get("/special/namespaces/PrefillNS/edit", headers=ui_hdrs)
+    assert resp.status_code == 200
+    assert "My prefill description" in resp.text
 
 
 @pytest.mark.asyncio

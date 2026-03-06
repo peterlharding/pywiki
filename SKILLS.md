@@ -25,9 +25,9 @@ Always run tests via `wsl.exe` from PowerShell using the Makefile to get live ou
 wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 ```
 - `PYTHONUNBUFFERED=1` is set in the Makefile `test` target for live streaming through the Windows pipe
-- **278 tests passing** (as of math-support merge)
+- **279 tests passing** (as of v0.6.4)
 - Tests use **SQLite in-memory** — `conftest.py` sets `ALLOW_REGISTRATION=true` and `DATABASE_URL` env vars and clears `get_settings()` lru_cache before imports
-- Never use `wsl.exe ... | tail -N` — the pipe swallows intermediate output
+- **NEVER pipe or tail test output** (`| tail -N`, `| head`, etc.) — always run the full command and show all output so failures are visible
 
 ## Database
 - **Production**: PostgreSQL via `asyncpg` — `DATABASE_URL` in `.env`

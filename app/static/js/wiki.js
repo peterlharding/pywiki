@@ -2,6 +2,34 @@
 
 "use strict";
 
+// ── Dark mode toggle ───────────────────────────────────────────────────────
+
+(function () {
+  var root = document.documentElement;
+  var btn  = document.getElementById("theme-toggle");
+  if (!btn) return;
+
+  function currentTheme() {
+    var stored = localStorage.getItem("pywiki-theme");
+    if (stored) return stored;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  function applyTheme(theme) {
+    root.setAttribute("data-theme", theme);
+    btn.textContent = theme === "dark" ? "☀️" : "🌙";
+    btn.title = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+  }
+
+  applyTheme(currentTheme());
+
+  btn.addEventListener("click", function () {
+    var next = currentTheme() === "dark" ? "light" : "dark";
+    localStorage.setItem("pywiki-theme", next);
+    applyTheme(next);
+  });
+})();
+
 // ── Confirm dangerous actions ──────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", function () {

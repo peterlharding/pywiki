@@ -31,7 +31,7 @@
   <div class="form-row">
     <label for="description">Description</label>
     <input type="text" id="description" name="description" maxlength="256"
-           value="{{ prefill_description or (ns.description if edit_mode else '') }}"
+           value="{{ prefill_description if prefill_description is not none else (ns.description if edit_mode else '') }}"
            placeholder="Brief description of this namespace" style="width:100%;" />
   </div>
 
@@ -40,8 +40,9 @@
     <select id="default_format" name="default_format">
       {% for fmt in ['markdown', 'rst', 'wikitext'] %}
       <option value="{{ fmt }}"
-        {% if edit_mode and ns.default_format == fmt %}selected
-        {% elif not edit_mode and (prefill_format or 'markdown') == fmt %}selected{% endif %}>
+        {% if prefill_format == fmt %}selected
+        {% elif not prefill_format and edit_mode and ns.default_format == fmt %}selected
+        {% elif not prefill_format and not edit_mode and fmt == 'markdown' %}selected{% endif %}>
         {{ fmt }}
       </option>
       {% endfor %}

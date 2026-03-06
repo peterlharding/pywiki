@@ -11,7 +11,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] **Wikitext → Markdown/RST conversion tool** — one-shot converter to migrate
       existing wikitext pages to Markdown or RST; expose as an admin API endpoint
       and a UI button on the edit page.
-- [ ] **Page history** — view revision history and restore previous versions.
 - [ ] **Macro system** - Implement a macro framework that allows users to create custom macros.
 
 
@@ -55,9 +54,8 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## UI / UX
 
-- [ ] **Breadcrumb navigation** — namespace → page → section.
+- [x] **Breadcrumb navigation** — `Home › Namespace › Page › (History/Diff/Move)` on page view, history, diff, move, and namespace index; CSS `.breadcrumb` class in `wiki.css`.
 - [ ] **WYSIWYG editor option** — optional rich-text editor (e.g. ProseMirror) that serialises back to Markdown.
-- [ ] **Dark mode** — CSS media-query-aware theme toggle.
 - [ ] **Recent changes RSS/Atom feed** — `/recent.xml`.
 - [ ] **Watch page** — users can watch pages and receive notifications on change.
 - [ ] **Diff improvements** — side-by-side diff view in addition to unified diff.

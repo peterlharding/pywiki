@@ -20,9 +20,10 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Live preview debounce** — 400ms debounce + `AbortController` cancels in-flight requests on new input (v0.4.0)
 - [x] **Table of Contents** — opt-in via `{{toc}}` or `__TOC__` macro; no longer auto-injected (v0.4.0)
 - [x] **Math rendering** — KaTeX `v0.16.11` client-side via CDN auto-render; `$...$` / `$$...$$` (Markdown), `:math:`/`.. math::` (RST), `<math>` tag (Wikitext) (RENDERER_VERSION 12)
+- [ ] **Page history** — view revision history and restore previous versions.
 
 
----
+---  
 
 ## Page Management
 
@@ -35,6 +36,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [~] **Bulk import** — MediaWiki XML import done (`scripts/import_mediawiki.py`); ZIP of flat files not yet implemented.
 
 
+
 ---
 
 ## Search
@@ -43,7 +45,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
       create a auto-generated `/category/{name}` page listing all tagged pages
       alphabetically, with namespace and last-edited date. Category links appear
       in a footer bar on every page that declares them.
-- [x] **Full-text search index** — PostgreSQL `tsvector`/`plainto_tsquery` with GIN index migration; ILIKE fallback for SQLite.
+- [x] **Full-text search index** — ILIKE substring matching on both SQLite and PostgreSQL; PostgreSQL FTS (`tsvector`/`plainto_tsquery`) used for ranking only; GIN index migration in place. Filters: format, author, date range, `Category:` prefix. Filter-only queries (empty search box) supported.
 
 
 ---
@@ -83,6 +85,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Customisable home page** — `/` renders `Main/main-page` wiki page; Edit button for logged-in users; "Create main page" prompt when absent.
 - [x] **Site status page** — `/special/status` shows stats, namespaces, and recent changes; linked from sidebar and Special Pages.
 - [x] **Default namespace preference** — per-user `pref_namespace` cookie; auto-updated on page create; ⭐ Set default button on namespace list; current default highlighted with badge (v0.5.2)
+- [x] **Dark mode** — CSS custom properties throughout; `prefers-color-scheme` auto-detection; 🌙/☀️ navbar toggle; `localStorage` persistence; flash-free inline script on `<html>` (v0.6.5).
 
 
 ---
@@ -90,7 +93,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 ## API & Integrations
 
 - [x] **Search by category** — `Category:Foo` query syntax; detects `Category:` prefix and filters by category tag in page content.
-- [x] **Search filters** — filter by format (markdown/rst/wikitext), author username, date range (`from_date`/`to_date`); collapsible filter panel in search UI.
+- [x] **Search filters** — filter by format (markdown/rst/wikitext), author username, date range (`from_date`/`to_date`); collapsible filter panel in search UI; filter-only queries (empty `q`) supported; `q=*` match-all; substring matching fixed on PostgreSQL (ILIKE, FTS for ranking only).
 - [x] **Export** — `GET /wiki/{namespace}/export` downloads a ZIP of raw source files (`.md`/`.rst`/`.wiki`) plus page attachments in subdirectories; button on namespace index (logged-in users).
 
 

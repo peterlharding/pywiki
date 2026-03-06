@@ -36,6 +36,16 @@
 </div>
 {% endblock %}
 
+{% block breadcrumb %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/">Home</a>
+  <span class="sep">›</span>
+  <a href="/wiki/{{ namespace_name }}">{{ namespace_name }}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ page.title }}</span>
+</nav>
+{% endblock %}
+
 {% block content %}
 {% if viewing_version %}
 <div class="version-banner">

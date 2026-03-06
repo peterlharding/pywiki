@@ -33,6 +33,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import func
+
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import (
@@ -1389,7 +1391,7 @@ async def ns_edit_form(
         request,
         "ns_manage.html",
         _ctx(user, edit_mode=True, ns=ns, error=None,
-             prefill_description=ns.description, prefill_format=ns.default_format),
+             prefill_description=None, prefill_format=None),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp

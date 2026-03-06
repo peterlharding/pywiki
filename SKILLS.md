@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.6.4)
+# PyWiki — Session Primer (v0.6.5)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -25,9 +25,9 @@ Always run tests via `wsl.exe` from PowerShell using the Makefile to get live ou
 wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 ```
 - `PYTHONUNBUFFERED=1` is set in the Makefile `test` target for live streaming through the Windows pipe
-- **278 tests passing** (as of math-support merge)
+- **279 tests passing** (as of v0.6.4)
 - Tests use **SQLite in-memory** — `conftest.py` sets `ALLOW_REGISTRATION=true` and `DATABASE_URL` env vars and clears `get_settings()` lru_cache before imports
-- Never use `wsl.exe ... | tail -N` — the pipe swallows intermediate output
+- **NEVER pipe or tail test output** (`| tail -N`, `| head`, etc.) — always run the full command and show all output so failures are visible
 
 ## Database
 - **Production**: PostgreSQL via `asyncpg` — `DATABASE_URL` in `.env`
@@ -139,13 +139,12 @@ When cutting a new release (e.g. vX.Y.Z):
 
 ## User Style Conventions
 - **Markdown section endings**: always two blank lines before the closing `---` separator (i.e. two blank lines at the end of each section body)
-
 ## Deployment
 - Deploy files in `deploy/`: `README.md`, `pywiki.service`, `nginx-pywiki.conf`, `.env.example`, `requirements.txt`
 - Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.6.2 (/special/health, /special/logs, /api/health DB probe), v0.6.3 (namespace export ZIP), v0.6.4 (search filters, Category: syntax, substring fix on PostgreSQL)
+- Recent releases: v0.6.3 (namespace export ZIP), v0.6.4 (search filters, Category: syntax, substring fix on PostgreSQL), v0.6.5 (dark mode, breadcrumbs, export 500 fix, namespace edit fix, dead /admin link)
 
 ### Verification command
 ```bash

@@ -6,6 +6,7 @@
   --border:     #d3d3d3;
   --text:       #202122;
   --muted:      #72777d;
+  --link:       #3366cc;
   --accent:     #3366cc;
   --accent-hov: #2a4f9a;
   --danger:     #cc3333;
@@ -15,6 +16,103 @@
   --nav-text:   #ffffff;
   --sidebar-w:  220px;
   --max-w:      1200px;
+  /* component tokens */
+  --code-bg:        #f6f8fa;
+  --code-inline-bg: #f0f0f0;
+  --blockquote-bg:  #f0f4ff;
+  --version-bg:     #fff3cd;
+  --version-border: #ffd96a;
+  --diff-insert-bg: #eaffea;
+  --diff-delete-bg: #ffeeee;
+  --diff-ins-samp:  #ccffcc;
+  --diff-del-samp:  #ffcccc;
+  --table-hover:    #f0f4ff;
+  --btn-hover:      #e8e8e8;
+}
+
+/* ─── Dark mode ──────────────────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:             #1e1e2e;
+    --bg-alt:         #181825;
+    --border:         #45475a;
+    --text:           #cdd6f4;
+    --muted:          #a6adc8;
+    --link:           #89b4fa;
+    --accent:         #89b4fa;
+    --accent-hov:     #b4d0fd;
+    --danger:         #f38ba8;
+    --success:        #a6e3a1;
+    --warn:           #fab387;
+    --nav-bg:         #11111b;
+    --nav-text:       #cdd6f4;
+    --code-bg:        #313244;
+    --code-inline-bg: #313244;
+    --blockquote-bg:  #1e2a3a;
+    --version-bg:     #2e2a1a;
+    --version-border: #7a6a1a;
+    --diff-insert-bg: #1a2e1a;
+    --diff-delete-bg: #2e1a1a;
+    --diff-ins-samp:  #2a4a2a;
+    --diff-del-samp:  #4a2a2a;
+    --table-hover:    #2a2a4a;
+    --btn-hover:      #313244;
+  }
+}
+
+[data-theme="dark"] {
+  --bg:             #1e1e2e;
+  --bg-alt:         #181825;
+  --border:         #45475a;
+  --text:           #cdd6f4;
+  --muted:          #a6adc8;
+  --link:           #89b4fa;
+  --accent:         #89b4fa;
+  --accent-hov:     #b4d0fd;
+  --danger:         #f38ba8;
+  --success:        #a6e3a1;
+  --warn:           #fab387;
+  --nav-bg:         #11111b;
+  --nav-text:       #cdd6f4;
+  --code-bg:        #313244;
+  --code-inline-bg: #313244;
+  --blockquote-bg:  #1e2a3a;
+  --version-bg:     #2e2a1a;
+  --version-border: #7a6a1a;
+  --diff-insert-bg: #1a2e1a;
+  --diff-delete-bg: #2e1a1a;
+  --diff-ins-samp:  #2a4a2a;
+  --diff-del-samp:  #4a2a2a;
+  --table-hover:    #2a2a4a;
+  --btn-hover:      #313244;
+}
+
+[data-theme="light"] {
+  --bg:             #ffffff;
+  --bg-alt:         #f8f9fa;
+  --border:         #d3d3d3;
+  --text:           #202122;
+  --muted:          #72777d;
+  --link:           #3366cc;
+  --accent:         #3366cc;
+  --accent-hov:     #2a4f9a;
+  --danger:         #cc3333;
+  --success:        #228822;
+  --warn:           #f5a623;
+  --nav-bg:         #1a3060;
+  --nav-text:       #ffffff;
+  --code-bg:        #f6f8fa;
+  --code-inline-bg: #f0f0f0;
+  --blockquote-bg:  #f0f4ff;
+  --version-bg:     #fff3cd;
+  --version-border: #ffd96a;
+  --diff-insert-bg: #eaffea;
+  --diff-delete-bg: #ffeeee;
+  --diff-ins-samp:  #ccffcc;
+  --diff-del-samp:  #ffcccc;
+  --table-hover:    #f0f4ff;
+  --btn-hover:      #e8e8e8;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -95,6 +193,19 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .nav-links a { color: rgba(255,255,255,.85); font-size: 0.9rem; }
 .nav-links a:hover { color: #fff; text-decoration: none; }
 .nav-user { font-weight: 500; }
+
+.theme-toggle {
+  background: none;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 4px;
+  color: var(--nav-text);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.2rem 0.45rem;
+  transition: background 0.15s;
+}
+.theme-toggle:hover { background: rgba(255,255,255,.2); }
 
 /* ─── Page wrapper ───────────────────────────────────────────────────────── */
 
@@ -197,7 +308,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
   text-decoration: none;
   line-height: 1.5;
 }
-.btn:hover { background: #e8e8e8; text-decoration: none; }
+.btn:hover { background: var(--btn-hover); text-decoration: none; }
 .btn-primary {
   background: var(--accent);
   color: #fff;
@@ -259,6 +370,12 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 }
 .alert-error { background: #fde8e8; border: 1px solid #f5c6c6; color: #8b1a1a; }
 .alert-info  { background: #e8f0fe; border: 1px solid #c6d7f5; color: #1a3060; }
+[data-theme="dark"] .alert-error { background: #3a1a1a; border-color: #7a2a2a; color: #f38ba8; }
+[data-theme="dark"] .alert-info  { background: #1a2040; border-color: #2a4080; color: #89b4fa; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .alert-error { background: #3a1a1a; border-color: #7a2a2a; color: #f38ba8; }
+  :root:not([data-theme="light"]) .alert-info  { background: #1a2040; border-color: #2a4080; color: #89b4fa; }
+}
 
 /* ─── Tables ─────────────────────────────────────────────────────────────── */
 
@@ -273,7 +390,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
   text-align: left;
 }
 .wiki-table th { background: var(--bg-alt); font-weight: 600; }
-.wiki-table tr:hover td { background: #f0f4ff; }
+.wiki-table tr:hover td { background: var(--table-hover); }
 .wiki-table td:first-child, .wiki-table th:first-child { min-width: 180px; width: 40%; }
 .ts { white-space: nowrap; color: var(--muted); }
 
@@ -293,6 +410,20 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .badge-rst      { background: #fff3e0; border-color: #ffcc80; color: #e65100; }
 .badge-wikitext { background: #e8eaf6; border-color: #9fa8da; color: #283593; }
 .badge-default  { background: #fff8e1; border-color: #ffe082; color: #f57f17; }
+[data-theme="dark"] .badge-markdown,
+:root:not([data-theme="light"]):is([data-theme="dark"]) .badge-markdown { background: #1e3a22; border-color: #3a6a3e; color: #a6e3a1; }
+[data-theme="dark"] .badge-rst,
+:root:not([data-theme="light"]):is([data-theme="dark"]) .badge-rst      { background: #3a2a14; border-color: #7a5a2a; color: #fab387; }
+[data-theme="dark"] .badge-wikitext,
+:root:not([data-theme="light"]):is([data-theme="dark"]) .badge-wikitext { background: #1e2040; border-color: #4a50a0; color: #89b4fa; }
+[data-theme="dark"] .badge-default,
+:root:not([data-theme="light"]):is([data-theme="dark"]) .badge-default  { background: #3a3010; border-color: #7a6a20; color: #f9e2af; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .badge-markdown { background: #1e3a22; border-color: #3a6a3e; color: #a6e3a1; }
+  :root:not([data-theme="light"]) .badge-rst      { background: #3a2a14; border-color: #7a5a2a; color: #fab387; }
+  :root:not([data-theme="light"]) .badge-wikitext { background: #1e2040; border-color: #4a50a0; color: #89b4fa; }
+  :root:not([data-theme="light"]) .badge-default  { background: #3a3010; border-color: #7a6a20; color: #f9e2af; }
+}
 .ns-default-row { background: color-mix(in srgb, var(--accent) 4%, var(--bg)); }
 
 /* ─── Categories ─────────────────────────────────────────────────────────── */
@@ -389,7 +520,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .wiki-content ul, .wiki-content ol { margin: 0.75em 0 0.75em 2em; }
 .wiki-content li { margin: 0.25em 0; }
 .wiki-content pre {
-  background: #f6f8fa;
+  background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 1rem;
@@ -397,7 +528,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
   font-size: 0.875rem;
 }
 .wiki-content code {
-  background: #f0f0f0;
+  background: var(--code-inline-bg);
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 0.1em 0.3em;
@@ -408,7 +539,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
   border-left: 4px solid var(--accent);
   margin: 1em 0;
   padding: 0.5em 1em;
-  background: #f0f4ff;
+  background: var(--blockquote-bg);
   border-radius: 0 4px 4px 0;
 }
 .wiki-content table,
@@ -453,8 +584,8 @@ sup.reference a:hover { text-decoration: underline; }
 /* ─── Version banner ─────────────────────────────────────────────────────── */
 
 .version-banner {
-  background: #fff3cd;
-  border: 1px solid #ffd96a;
+  background: var(--version-bg);
+  border: 1px solid var(--version-border);
   border-radius: 4px;
   padding: 0.5rem 1rem;
   margin-bottom: 1rem;
@@ -464,14 +595,14 @@ sup.reference a:hover { text-decoration: underline; }
 /* ─── Diff view ──────────────────────────────────────────────────────────── */
 
 .diff-legend { display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.85rem; }
-.diff-insert-sample { background: #ccffcc; padding: 0.1rem 0.4rem; border-radius: 3px; }
-.diff-delete-sample { background: #ffcccc; padding: 0.1rem 0.4rem; border-radius: 3px; }
+.diff-insert-sample { background: var(--diff-ins-samp); padding: 0.1rem 0.4rem; border-radius: 3px; }
+.diff-delete-sample { background: var(--diff-del-samp); padding: 0.1rem 0.4rem; border-radius: 3px; }
 .diff-equal-sample  { background: var(--bg-alt); padding: 0.1rem 0.4rem; border-radius: 3px; }
 
 .diff-view { font-family: monospace; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
 .diff-line { display: flex; gap: 0.5rem; padding: 0.1rem 0.5rem; }
-.diff-insert .diff-line { background: #eaffea; }
-.diff-delete .diff-line { background: #ffeeee; }
+.diff-insert .diff-line { background: var(--diff-insert-bg); }
+.diff-delete .diff-line { background: var(--diff-delete-bg); }
 .diff-equal  .diff-line { background: var(--bg); }
 .diff-marker { color: var(--muted); user-select: none; min-width: 1em; }
 .diff-text   { white-space: pre-wrap; word-break: break-all; }

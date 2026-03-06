@@ -90,7 +90,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 ## API & Integrations
 
 - [x] **Search by category** — `Category:Foo` query syntax; detects `Category:` prefix and filters by category tag in page content.
-- [x] **Search filters** — filter by format (markdown/rst/wikitext), author username, date range (`from_date`/`to_date`); collapsible filter panel in search UI.
+- [x] **Search filters** — filter by format (markdown/rst/wikitext), author username, date range (`from_date`/`to_date`); collapsible filter panel in search UI; filter-only queries (empty `q`) supported; `q=*` match-all; substring matching fixed on PostgreSQL (ILIKE, FTS for ranking only).
 - [x] **Export** — `GET /wiki/{namespace}/export` downloads a ZIP of raw source files (`.md`/`.rst`/`.wiki`) plus page attachments in subdirectories; button on namespace index (logged-in users).
 
 

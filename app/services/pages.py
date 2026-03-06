@@ -489,8 +489,10 @@ async def search_pages(
         category_filter = query[len("category:"):].strip()
         query = ""  # no text search — filter by category only
 
-    # Detect engine dialect — use FTS on PostgreSQL, fall back to ILIKE on SQLite
-    use_fts = _db_dialect() == "postgresql" and not category_filter
+    # Always use ILIKE for matching — gives substring search that works for partial
+    # terms (e.g. "mage" finds "image") on both SQLite and PostgreSQL.
+    # On PostgreSQL, also compute a FTS rank column for ordering when a query is given.
+    use_pg_rank = _db_dialect() == "postgresql" and bool(query) and not category_filter
 
     max_ver_sub = (
         select(
@@ -501,9 +503,9 @@ async def search_pages(
         .subquery()
     )
 
-    if use_fts:
-        from sqlalchemy import cast, literal_column
-        from sqlalchemy.dialects.postgresql import REGCONFIG, TSVECTOR
+    if use_pg_rank:
+        from sqlalchemy import cast
+        from sqlalchemy.dialects.postgresql import REGCONFIG
 
         ts_query = func.plainto_tsquery(cast("english", REGCONFIG), query)
         ts_vector = func.to_tsvector(
@@ -522,8 +524,11 @@ async def search_pages(
             )
             .join(Namespace, Namespace.id == Page.namespace_id)
             .options(selectinload(PageVersion.author))
-            .where(ts_vector.op("@@")(ts_query))
-            .order_by(rank.desc())
+            .where(
+                Page.title.ilike(f"%{query}%") |
+                PageVersion.content.ilike(f"%{query}%")
+            )
+            .order_by(rank.desc(), Page.title)
             .offset(skip)
             .limit(limit)
         )
@@ -589,15 +594,15 @@ async def search_pages(
     result = await db.execute(q)
     rows = result.all()
 
+    highlight = query or category_filter or ""
     results = []
-    if use_fts:
+    if use_pg_rank:
         for p, v, ns, rank_val in rows:
-            snippet = _python_snippet(v.content, query or category_filter or "")
             results.append({
                 "namespace":  ns.name,
                 "title":      p.title,
                 "slug":       p.slug,
-                "snippet":    snippet,
+                "snippet":    _python_snippet(v.content, highlight),
                 "format":     v.format,
                 "author":     v.author.username if v.author else None,
                 "updated_at": v.created_at,
@@ -609,7 +614,7 @@ async def search_pages(
                 "namespace":  ns.name,
                 "title":      p.title,
                 "slug":       p.slug,
-                "snippet":    _python_snippet(v.content, query or category_filter or ""),
+                "snippet":    _python_snippet(v.content, highlight),
                 "format":     v.format,
                 "author":     v.author.username if v.author else None,
                 "updated_at": v.created_at,

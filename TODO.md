@@ -91,7 +91,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 - [ ] **Search by category** — `Category:Foo` query syntax.
 - [ ] **Search filters** — filter results by author, date range, format.
-- [ ] **Export** — download a namespace as a ZIP of raw source files or HTML.
+- [x] **Export** — `GET /wiki/{namespace}/export` downloads a ZIP of raw source files (`.md`/`.rst`/`.wiki`) plus page attachments in subdirectories; button on namespace index (logged-in users).
 
 
 ---

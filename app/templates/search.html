@@ -87,10 +87,10 @@
   </details>
 </form>
 
-{% if q %}
+{% if q or filter_format or filter_author or filter_from or filter_to or selected_namespace %}
   {% if results %}
   <p class="search-count" style="margin-top:1rem;">
-    {{ results | length }} result(s) for <strong>"{{ q }}"</strong>
+    {{ results | length }} result(s){% if q %} for <strong>"{{ q }}"</strong>{% endif %}
     {% if selected_namespace %}in <em>{{ selected_namespace }}</em>{% endif %}
   </p>
   <ul class="search-results">
@@ -110,7 +110,7 @@
     {% endfor %}
   </ul>
   {% else %}
-  <p class="muted" style="margin-top:1rem;">No results found for <strong>"{{ q }}"</strong>.</p>
+  <p class="muted" style="margin-top:1rem;">No results found{% if q %} for <strong>"{{ q }}"</strong>{% endif %}.</p>
   {% endif %}
 {% endif %}
 {% endblock %}

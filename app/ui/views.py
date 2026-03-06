@@ -751,9 +751,11 @@ async def search_view(
 ):
     user, new_token = await _current_user(request, db)
     results = []
-    if q:
+    _has_filters = any([namespace, format, author, from_date, to_date])
+    _effective_q = "" if q in (None, "*") else (q or "")
+    if _effective_q or _has_filters:
         results = await page_svc.search_pages(
-            db, q,
+            db, _effective_q,
             namespace_name=namespace,
             format=format,
             author=author,

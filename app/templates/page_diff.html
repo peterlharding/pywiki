@@ -12,6 +12,20 @@
 </div>
 {% endblock %}
 
+{% block breadcrumb %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/">Home</a>
+  <span class="sep">›</span>
+  <a href="/wiki/{{ namespace_name }}">{{ namespace_name }}</a>
+  <span class="sep">›</span>
+  <a href="/wiki/{{ namespace_name }}/{{ page.slug }}">{{ page.title }}</a>
+  <span class="sep">›</span>
+  <a href="/wiki/{{ namespace_name }}/{{ page.slug }}/history">History</a>
+  <span class="sep">›</span>
+  <span class="current">Diff v{{ from_ver }}→v{{ to_ver }}</span>
+</nav>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
   <h1>

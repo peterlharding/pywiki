@@ -54,7 +54,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## UI / UX
 
-- [x] **Breadcrumb navigation** — `Home › Namespace › Page › (History/Diff/Move)` on page view, history, diff, move, and namespace index; CSS `.breadcrumb` class in `wiki.css`.
 - [ ] **WYSIWYG editor option** — optional rich-text editor (e.g. ProseMirror) that serialises back to Markdown.
 - [ ] **Recent changes RSS/Atom feed** — `/recent.xml`.
 - [ ] **Watch page** — users can watch pages and receive notifications on change.

@@ -229,6 +229,84 @@ async def namespace_index(
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Namespace export (ZIP)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/wiki/{namespace_name}/export")
+async def export_namespace(
+    request: Request,
+    namespace_name: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Download all pages (latest version) + attachments as a ZIP archive."""
+    import io
+    import zipfile
+    from fastapi.responses import StreamingResponse
+    from sqlalchemy import select as sa_select
+    from app.models import Attachment, Page, PageVersion, Namespace as NSModel
+    from app.core.config import get_settings
+
+    user, _ = await _current_user(request, db)
+    if not user:
+        return RedirectResponse(url=f"/login", status_code=303)
+
+    settings = get_settings()
+
+    # Resolve namespace
+    try:
+        ns = await ns_svc.get_namespace_by_name(db, namespace_name)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail=f"Namespace '{namespace_name}' not found")
+
+    # Fetch all pages with their latest version
+    max_ver_sub = (
+        sa_select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
+        .group_by(PageVersion.page_id)
+        .subquery()
+    )
+    q = (
+        sa_select(Page, PageVersion)
+        .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
+        .join(
+            PageVersion,
+            (PageVersion.page_id == Page.id) &
+            (PageVersion.version == max_ver_sub.c.max_ver),
+        )
+        .where(Page.namespace_id == ns.id)
+        .order_by(Page.title)
+    )
+    rows = (await db.execute(q)).all()
+
+    # Extension map
+    _ext = {"markdown": ".md", "rst": ".rst", "wikitext": ".wiki"}
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for page, ver in rows:
+            ext = _ext.get(ver.format, ".txt")
+            source_path = f"{namespace_name}/{page.slug}{ext}"
+            zf.writestr(source_path, ver.content)
+
+            # Attachments for this page
+            att_rows = (await db.execute(
+                sa_select(Attachment).where(Attachment.page_id == page.id)
+            )).scalars().all()
+            for att in att_rows:
+                abs_path = settings.attachment_root_resolved / att.storage_path
+                if abs_path.exists():
+                    att_zip_path = f"{namespace_name}/{page.slug}/attachments/{att.filename}"
+                    zf.write(str(abs_path), att_zip_path)
+
+    buf.seek(0)
+    filename = f"{namespace_name.lower()}-export.zip"
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Page view
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

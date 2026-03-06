@@ -12,6 +12,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.3] — 2026-03-06
+
+### Added
+- **Namespace export** — `GET /wiki/{namespace}/export` streams a ZIP archive of all pages (latest version, raw source) plus their attachments. ZIP layout: `{namespace}/{slug}.{ext}` for source files, `{namespace}/{slug}/attachments/{filename}` for uploaded files. Requires login. Download button added to the namespace index page.
+
+
+---
+
 ## [0.6.2] — 2026-03-06
 
 ### Added
@@ -618,7 +626,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/peterlharding/pywiki/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/peterlharding/pywiki/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/peterlharding/pywiki/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/peterlharding/pywiki/compare/v0.5.2...v0.6.0

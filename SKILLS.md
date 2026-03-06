@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.6.2)
+# PyWiki — Session Primer (v0.6.3)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -145,7 +145,7 @@ When cutting a new release (e.g. vX.Y.Z):
 - Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.6.0 (KaTeX math rendering, RENDERER_VERSION 12), v0.6.1 (RST category fix, footer version fix, /api/v1/render POST), v0.6.2 (/special/health, /special/logs admin ring buffer, /api/health DB probe, dot-per-test pytest)
+- Recent releases: v0.6.1 (RST category fix, /api/v1/render POST), v0.6.2 (/special/health, /special/logs, /api/health DB probe), v0.6.3 (namespace export ZIP — GET /wiki/{ns}/export)
 
 ### Verification command
 ```bash

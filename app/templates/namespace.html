@@ -20,6 +20,9 @@
   <h1>Namespace: {{ ns.name }}</h1>
   <div class="page-actions">
     <a class="btn btn-primary" href="/create?namespace={{ ns.name }}">+ New Page</a>
+    {% if user %}
+    <a class="btn" href="/wiki/{{ ns.name }}/export" title="Download all pages and attachments as a ZIP">&#8595; Export ZIP</a>
+    {% endif %}
   </div>
 </div>
 

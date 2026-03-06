@@ -43,7 +43,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
       create a auto-generated `/category/{name}` page listing all tagged pages
       alphabetically, with namespace and last-edited date. Category links appear
       in a footer bar on every page that declares them.
-- [x] **Full-text search index** — PostgreSQL `tsvector`/`plainto_tsquery` with GIN index migration; ILIKE fallback for SQLite.
+- [x] **Full-text search index** — ILIKE substring matching on both SQLite and PostgreSQL; PostgreSQL FTS (`tsvector`/`plainto_tsquery`) used for ranking only; GIN index migration in place. Filters: format, author, date range, `Category:` prefix. Filter-only queries (empty search box) supported.
 
 
 ---

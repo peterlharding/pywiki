@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Health Check — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Health Check</h1>
+</div>
+
+<section class="home-section">
+  <h2>Overall Status</h2>
+  <p>
+    {% if overall == "ok" %}
+    <span class="badge badge-ok" style="font-size:1rem;padding:0.4rem 0.9rem;">&#10003; OK</span>
+    {% else %}
+    <span class="badge badge-danger" style="font-size:1rem;padding:0.4rem 0.9rem;">&#9888; Degraded</span>
+    {% endif %}
+  </p>
+
+
+</section>
+
+---
+
+<section class="home-section">
+  <h2>Application</h2>
+  <table class="wiki-table" style="max-width:400px;">
+    <tbody>
+      <tr><td><strong>App name</strong></td><td>{{ app_name }}</td></tr>
+      <tr><td><strong>Version</strong></td><td>{{ app_version }}</td></tr>
+      <tr><td><strong>Renderer version</strong></td><td>{{ renderer_version }}</td></tr>
+      <tr><td><strong>Environment</strong></td><td>{{ environment }}</td></tr>
+    </tbody>
+  </table>
+
+
+</section>
+
+---
+
+<section class="home-section">
+  <h2>Database</h2>
+  <table class="wiki-table" style="max-width:400px;">
+    <tbody>
+      <tr>
+        <td><strong>Status</strong></td>
+        <td>
+          {% if db_status == "ok" %}
+          <span class="badge badge-ok">&#10003; Connected</span>
+          {% else %}
+          <span class="badge badge-danger">&#9888; Error</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% if db_latency_ms is not none %}
+      <tr><td><strong>Latency</strong></td><td>{{ db_latency_ms }} ms</td></tr>
+      {% endif %}
+      {% if db_error %}
+      <tr><td><strong>Error</strong></td><td><code>{{ db_error }}</code></td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+
+</section>
+
+<p class="muted" style="font-size:0.85rem;">
+  Also available as JSON: <a href="/api/health"><code>/api/health</code></a>
+</p>
+{% endblock %}

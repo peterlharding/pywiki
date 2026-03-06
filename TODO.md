@@ -102,6 +102,6 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
       migrations; add initial migration for current schema.
 - [x] **PostgreSQL support** — test and document running against PostgreSQL in
       production (async driver: `asyncpg`).
-- [ ] **Health check endpoint improvements** — include DB connectivity and version info in `/api/health`.
+- [x] **Health check endpoint improvements** — `/api/health` now probes DB with `SELECT 1`, reports latency, returns `503` if DB unreachable; includes `version`, `renderer_version`, and `database.status`.
 - [ ] **Review Logs** - Provide a Special Page to review the log
 

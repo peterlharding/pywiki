@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pywiki"
-version = "0.6.1"
+version = "0.6.2"
 description = "A MediaWiki-inspired wiki platform built with FastAPI and Python"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -51,8 +51,8 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/your-org/pywiki"
-Changelog = "https://github.com/your-org/pywiki/blob/main/CHANGELOG.md"
+Repository = "https://github.com/peterlharding/pywiki"
+Changelog = "https://github.com/peterlharding/pywiki/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -61,8 +61,8 @@ include = ["app*"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-v --tb=short"
-log_cli = true
+addopts = "--tb=short"
+log_cli = false
 log_cli_level = "WARNING"
 
 [tool.ruff]

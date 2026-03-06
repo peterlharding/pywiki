@@ -1114,6 +1114,83 @@ async def site_status(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Health check page
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/health", response_class=HTMLResponse)
+async def special_health(request: Request, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import text
+    from app.core.database import get_session_factory
+    import time
+
+    user_obj, new_token = await _current_user(request, db)
+    settings = get_settings()
+
+    db_status = "ok"
+    db_latency_ms: float | None = None
+    db_error: str | None = None
+    try:
+        factory = get_session_factory()
+        t0 = time.monotonic()
+        async with factory() as session:
+            await session.execute(text("SELECT 1"))
+        db_latency_ms = round((time.monotonic() - t0) * 1000, 1)
+    except Exception as exc:
+        db_status = "error"
+        db_error  = str(exc)
+
+    overall = "ok" if db_status == "ok" else "degraded"
+
+    resp = templates.TemplateResponse(
+        request,
+        "special_health.html",
+        _ctx(user_obj,
+             overall=overall,
+             app_name=settings.app_name,
+             app_version=settings.app_version,
+             renderer_version=renderer_version,
+             environment=settings.environment,
+             db_status=db_status,
+             db_latency_ms=db_latency_ms,
+             db_error=db_error),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Log review page (admin only)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.get("/special/logs", response_class=HTMLResponse)
+async def special_logs(
+    request: Request,
+    level: Optional[str] = "WARNING",
+    db: AsyncSession = Depends(get_db),
+):
+    from app.core.logging_buffer import get_records
+    user, new_token = await _current_user(request, db)
+    if not user or not user.is_admin:
+        return RedirectResponse(url="/login", status_code=303)
+
+    all_records = get_records()
+    if level and level.upper() != "ALL":
+        all_records = [r for r in all_records if r["level"] == level.upper()]
+
+    settings = get_settings()
+    resp = templates.TemplateResponse(
+        request,
+        "special_logs.html",
+        _ctx(user,
+             records=all_records,
+             level_filter=level or "",
+             levels=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Namespace management (admin only)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

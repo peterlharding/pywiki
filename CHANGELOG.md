@@ -12,6 +12,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.2] — 2026-03-06
+
+### Added
+- **`/special/health` UI page** — human-readable health check showing DB connectivity, latency, app version, renderer version, and environment; linked from Special Pages.
+- **`/special/logs` log review page** — admin-only in-memory ring buffer (last 500 records); captures INFO+ from all loggers; defaults to WARNING filter with level dropdown; row-highlighted by severity.
+- **`/api/health` improvements** — now probes DB with `SELECT 1`, reports `latency_ms`, `renderer_version`, and returns `503` if DB unreachable.
+- **`make test-v` target** — verbose per-test output; `make test` now shows dot-per-test progress by default (removed `-v` and `log_cli` from `pyproject.toml`).
+
+### Fixed
+- **Log buffer empty on first visit** — `logging_buffer.py` now auto-installs on import (not just in lifespan) at INFO level so records are captured from process start.
+
+
+---
+
 ## [0.6.1] — 2026-03-06
 
 ### Fixed
@@ -604,7 +618,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/peterlharding/pywiki/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/peterlharding/pywiki/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/peterlharding/pywiki/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/peterlharding/pywiki/compare/v0.5.1...v0.5.2

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Log Review — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Log Review</h1>
+  <p class="muted">In-memory ring buffer — last {{ records | length }} records (newest first). Resets on restart.</p>
+</div>
+
+<section class="home-section">
+  <form method="get" action="/special/logs" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+    <label for="level-select"><strong>Filter by level:</strong></label>
+    <select id="level-select" name="level" onchange="this.form.submit()" style="padding:0.25rem 0.5rem;">
+      <option value="ALL" {% if level_filter|upper == 'ALL' %}selected{% endif %}>All levels</option>
+      {% for lvl in levels %}
+      <option value="{{ lvl }}" {% if level_filter|upper == lvl %}selected{% endif %}>{{ lvl }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  {% if records %}
+  <div style="overflow-x:auto;">
+    <table class="wiki-table" style="font-size:0.85rem;font-family:monospace;">
+      <thead>
+        <tr>
+          <th style="white-space:nowrap;">Timestamp (UTC)</th>
+          <th>Level</th>
+          <th>Logger</th>
+          <th style="width:60%;">Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr class="log-row log-{{ r.level | lower }}">
+          <td style="white-space:nowrap;">{{ r.ts }}</td>
+          <td><span class="badge badge-{{ r.level | lower }}">{{ r.level }}</span></td>
+          <td style="white-space:nowrap;">{{ r.logger }}</td>
+          <td style="word-break:break-all;">{{ r.message }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No log records captured yet{% if level_filter %} at level <strong>{{ level_filter }}</strong>{% endif %}.</p>
+  {% endif %}
+
+
+</section>
+
+{% block extra_head %}
+<style>
+  .log-row.log-error td,
+  .log-row.log-critical td { background: #fff0f0; }
+  .log-row.log-warning td  { background: #fffbec; }
+  .badge-error,
+  .badge-critical { background: var(--danger, #dc3545); color: #fff; }
+  .badge-warning  { background: #f0ad4e; color: #000; }
+  .badge-info     { background: #17a2b8; color: #fff; }
+  .badge-debug    { background: #6c757d; color: #fff; }
+</style>
+{% endblock %}
+{% endblock %}

@@ -87,6 +87,8 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Default namespace preference** — per-user `pref_namespace` cookie; auto-updated on page create; ⭐ Set default button on namespace list; current default highlighted with badge (v0.5.2)
 - [x] **Breadcrumb navigation** — `Home › Namespace › Page › (History/Diff/Move)` on page view, history, diff, move, and namespace index; CSS `.breadcrumb` class in `wiki.css` (v0.6.5).
 - [x] **Dark mode** — CSS custom properties throughout; `prefers-color-scheme` auto-detection; 🌙/☀️ navbar toggle; `localStorage` persistence; flash-free inline script on `<html>` (v0.6.5).
+- [x] **Colour utility classes** — `.text-red`, `.text-green`, `.text-blue`, `.text-orange`, `.text-purple`, `.text-teal`, `.text-grey`, `.text-gold`, `.text-muted/accent/danger/success/warn`; all adapt to dark mode; usage documented in `docs/colour-text.md`.
+- [x] **Redirect deletion** — 🗑️ Delete redirect button on any redirect stub page (logged-in users); `POST /wiki/{ns}/{slug}/delete` UI route; redirects to namespace index on completion (v0.6.6).
 
 
 ---

@@ -12,6 +12,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.6] — 2026-03-07
+
+### Added
+- **Colour utility classes** — `.text-red`, `.text-green`, `.text-blue`, `.text-orange`, `.text-purple`, `.text-teal`, `.text-grey`, `.text-gold`, plus theme-variable aliases `.text-muted/accent/danger/success/warn`. All classes adapt automatically to dark mode via `[data-theme="dark"]` and `prefers-color-scheme: dark`. Usage documented in `docs/colour-text.md`.
+
+### Fixed
+- **Dark mode toggle on servers** — `wiki.js` was cached indefinitely (no version query string). Added `?v={{ app_version }}` cache-buster so updated JS is fetched after deploy.
+- **Redirect deletion** — after moving a page, the redirect stub left behind can now be deleted. A 🗑️ Delete redirect button appears on any redirect page for logged-in users (via `POST /wiki/{namespace}/{slug}/delete`). The button is only shown when viewing the redirect stub directly (`?redirect=no`).
+
+
+---
+
 ## [0.6.5] — 2026-03-07
 
 ### Added
@@ -655,7 +667,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.5...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.6...HEAD
+[0.6.6]: https://github.com/peterlharding/pywiki/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/peterlharding/pywiki/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/peterlharding/pywiki/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/peterlharding/pywiki/compare/v0.6.2...v0.6.3

@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.6.5)
+# PyWiki — Session Primer (v0.6.6)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -138,13 +138,12 @@ When cutting a new release (e.g. vX.Y.Z):
 ---
 
 ## User Style Conventions
-- **Markdown section endings**: always two blank lines before the closing `---` separator (i.e. two blank lines at the end of each section body)
 ## Deployment
 - Deploy files in `deploy/`: `README.md`, `pywiki.service`, `nginx-pywiki.conf`, `.env.example`, `requirements.txt`
 - Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.6.3 (namespace export ZIP), v0.6.4 (search filters, Category: syntax, substring fix on PostgreSQL), v0.6.5 (dark mode, breadcrumbs, export 500 fix, namespace edit fix, dead /admin link)
+- Recent releases: v0.6.4 (search filters, Category: syntax, substring fix), v0.6.5 (dark mode, breadcrumbs, export 500 fix, dead /admin link), v0.6.6 (colour utility classes, JS cache-bust fix)
 
 ### Verification command
 ```bash

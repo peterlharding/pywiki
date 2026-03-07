@@ -401,6 +401,8 @@ async def view_page(
 
     back_url = request.cookies.get("back_url", "")
 
+    is_redirect = bool(parse_redirect(ver.content))
+
     resp = templates.TemplateResponse(
         request,
         "page_view.html",
@@ -414,11 +416,35 @@ async def view_page(
              redirected_from=redirected_from,
              images=images,
              attachments=atts,
-             back_url=back_url),
+             back_url=back_url,
+             is_redirect=is_redirect),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     if back_url:
         resp.delete_cookie("back_url")
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Page delete (redirect stubs)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.post("/wiki/{namespace_name}/{slug}/delete", response_class=HTMLResponse)
+async def delete_page_ui(
+    request: Request,
+    namespace_name: str,
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return _login_redirect(f"/wiki/{namespace_name}/{slug}")
+
+    await page_svc.delete_page(db, namespace_name, slug)
+    await db.commit()
+
+    resp = RedirectResponse(url=f"/wiki/{namespace_name}", status_code=303)
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
 
 

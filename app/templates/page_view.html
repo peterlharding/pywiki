@@ -63,6 +63,12 @@
     {% if user %}
     <a class="btn btn-primary" href="/wiki/{{ namespace_name }}/{{ page.slug }}/edit">✏️ Edit</a>
     <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}/move">🚚 Rename</a>
+    {% if is_redirect %}
+    <form method="post" action="/wiki/{{ namespace_name }}/{{ page.slug }}/delete" style="display:inline;">
+      <button type="submit" class="btn btn-danger"
+              data-confirm="Delete this redirect? This cannot be undone.">🗑️ Delete redirect</button>
+    </form>
+    {% endif %}
     {% endif %}
     <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}/history">📜 History</a>
   </div>

@@ -77,6 +77,17 @@
 </footer>
 
 <script src="/static/js/wiki.js?v={{ app_version }}"></script>
+<script>
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.pw-toggle');
+    if (!btn) return;
+    const input = btn.closest('.pw-wrap').querySelector('input');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? '🙈' : '👁';
+    btn.title = show ? 'Hide password' : 'Show password';
+  });
+</script>
 {% block extra_js %}{% endblock %}
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"

@@ -349,6 +349,15 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 .form-actions { display: flex; gap: 0.5rem; margin-top: 1.25rem; }
 .required { color: var(--danger); }
 .hint { font-size: 0.82rem; color: var(--muted); }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 2.4rem !important; }
+.pw-toggle {
+  position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; padding: 0.2rem;
+  color: var(--muted); font-size: 1rem; line-height: 1;
+  user-select: none;
+}
+.pw-toggle:hover { color: var(--accent); }
 
 /* ─── Auth box ───────────────────────────────────────────────────────────── */
 

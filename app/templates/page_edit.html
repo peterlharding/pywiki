@@ -82,13 +82,14 @@
   <div class="form-actions">
     <button class="btn btn-primary" type="submit">💾 Save changes</button>
     <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}">Cancel</a>
-    <form method="post" action="/wiki/{{ namespace_name }}/{{ page.slug }}/delete"
-          style="display:inline;margin-left:auto;"
-          onsubmit="return confirm('Permanently delete \'{{ page.title | e }}\' and all its history? This cannot be undone.');">
-      <button class="btn btn-danger" type="submit">🗑 Delete page</button>
-    </form>
   </div>
 
+</form>
+
+<form method="post" action="/wiki/{{ namespace_name }}/{{ page.slug }}/delete"
+      style="margin-top:0.5rem;text-align:right;"
+      onsubmit="return confirm('Permanently delete {{ page.title | e }} and all its history? This cannot be undone.');">
+  <button class="btn btn-danger" type="submit">🗑 Delete page</button>
 </form>
 
 <div class="upload-panel">

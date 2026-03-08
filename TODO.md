@@ -98,6 +98,8 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Search by category** — `Category:Foo` query syntax; detects `Category:` prefix and filters by category tag in page content.
 - [x] **Search filters** — filter by format (markdown/rst/wikitext), author username, date range (`from_date`/`to_date`); collapsible filter panel in search UI; filter-only queries (empty `q`) supported; `q=*` match-all; substring matching fixed on PostgreSQL (ILIKE, FTS for ranking only).
 - [x] **Export** — `GET /wiki/{namespace}/export` downloads a ZIP of raw source files (`.md`/`.rst`/`.wiki`) plus page attachments in subdirectories; button on namespace index (logged-in users).
+- [x] **Selective export** — checkboxes on namespace index and search results pages; `POST /wiki/{namespace}/export/selected` streams a ZIP of only the checked pages + their attachments; cross-namespace export from search via `POST /special/export/selected` (v0.6.7).
+- [x] **Import** — `POST /wiki/{namespace}/import` accepts a ZIP archive and upserts pages by slug (creates new, adds a version to existing) and imports attachments (writes to storage, upserts `Attachment` records); import form in namespace index sidebar; result banner shows pages created/updated and attachments imported/updated (v0.6.7).
 
 
 ---

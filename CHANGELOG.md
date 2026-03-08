@@ -12,6 +12,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.7] — 2026-03-08
+
+### Added
+- **Selective export** — checkboxes on the namespace index page and search results page let users pick individual pages; `POST /wiki/{namespace}/export/selected` streams a ZIP of only the checked pages (plus their attachments). A cross-namespace variant, `POST /special/export/selected`, handles selections spanning multiple namespaces from the search results page.
+- **ZIP import** — `POST /wiki/{namespace}/import` accepts a ZIP archive (the same format produced by the export). Pages are upserted by slug: new pages are created; existing pages receive a new version. Attachments embedded in the ZIP (`{ns}/{slug}/attachments/{filename}`) are written to the attachment storage directory and their `Attachment` DB records are created or updated. The import form lives in the namespace index sidebar. After import, a result banner shows how many pages were created/updated and how many attachments were imported/updated.
+
+### Changed
+- **Export all** button label renamed from "Export ZIP" to "Export all" to distinguish it from the new selective export.
+- Refactored `export_namespace` to share a `_build_zip()` helper with the new selective export routes.
+
+
+---
+
 ## [0.6.6] — 2026-03-07
 
 ### Added
@@ -667,7 +680,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.6...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.7...HEAD
+[0.6.7]: https://github.com/peterlharding/pywiki/compare/v0.6.6...v0.6.7
 [0.6.6]: https://github.com/peterlharding/pywiki/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/peterlharding/pywiki/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/peterlharding/pywiki/compare/v0.6.3...v0.6.4

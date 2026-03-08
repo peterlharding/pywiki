@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.6.6)
+# PyWiki — Session Primer (v0.6.7)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -143,7 +143,7 @@ When cutting a new release (e.g. vX.Y.Z):
 - Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.6.4 (search filters, Category: syntax, substring fix), v0.6.5 (dark mode, breadcrumbs, export 500 fix, dead /admin link), v0.6.6 (colour utility classes, JS cache-bust fix)
+- Recent releases: v0.6.5 (dark mode, breadcrumbs, export 500 fix), v0.6.6 (colour utility classes, redirect deletion), v0.6.7 (selective export, ZIP import with attachments)
 
 ### Verification command
 ```bash

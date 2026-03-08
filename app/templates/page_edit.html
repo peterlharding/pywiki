@@ -30,6 +30,8 @@
   .att-item img.thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 2px; }
   .att-insert-btn { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 0.8rem; padding: 0; }
   .att-insert-btn:hover { text-decoration: underline; }
+  .btn-danger { background: var(--danger, #c0392b); color: #fff; border-color: var(--danger, #c0392b); }
+  .btn-danger:hover { filter: brightness(1.12); }
 </style>
 {% endblock %}
 
@@ -80,6 +82,11 @@
   <div class="form-actions">
     <button class="btn btn-primary" type="submit">💾 Save changes</button>
     <a class="btn" href="/wiki/{{ namespace_name }}/{{ page.slug }}">Cancel</a>
+    <form method="post" action="/wiki/{{ namespace_name }}/{{ page.slug }}/delete"
+          style="display:inline;margin-left:auto;"
+          onsubmit="return confirm('Permanently delete \'{{ page.title | e }}\' and all its history? This cannot be undone.');">
+      <button class="btn btn-danger" type="submit">🗑 Delete page</button>
+    </form>
   </div>
 
 </form>

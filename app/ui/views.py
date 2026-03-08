@@ -11,6 +11,7 @@ GET  /wiki/{namespace}/{slug}/edit   — edit a page
 POST /wiki/{namespace}/{slug}/edit   — save edits
 GET  /wiki/{namespace}/{slug}/history   — page history
 GET  /wiki/{namespace}/{slug}/diff/{a}/{b}  — diff view
+POST /wiki/{namespace}/{slug}/delete    — delete a page
 GET  /wiki/{namespace}          — namespace index
 GET  /wiki/{namespace}/export   — export all pages as ZIP
 POST /wiki/{namespace}/export/selected — export selected pages as ZIP
@@ -762,6 +763,29 @@ async def edit_page_submit(
 
     resp = RedirectResponse(url=f"/wiki/{namespace_name}/{slug}", status_code=303)
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Page delete
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.post("/wiki/{namespace_name}/{slug}/delete", response_class=HTMLResponse)
+async def delete_page_submit(
+    request: Request,
+    namespace_name: str,
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return _login_redirect(f"/wiki/{namespace_name}/{slug}/edit")
+
+    await page_svc.delete_page(db, namespace_name, slug)
+    await db.commit()
+
+    resp = RedirectResponse(url=f"/wiki/{namespace_name}", status_code=303)
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
 
 

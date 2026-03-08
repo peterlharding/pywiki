@@ -209,14 +209,16 @@ async def test_import_updates_existing_page(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_import_skips_attachments_dir(client, db_session):
-    """Attachment entries in the ZIP are not imported as pages."""
+async def test_import_attachments(client, db_session):
+    """Attachments in the ZIP are imported and linked to their page."""
     headers = await _setup(client, db_session, "impuser3", "IMPNS3")
     cookies = await cookie_auth(client, "impuser3")
 
+    png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16  # minimal PNG-ish bytes
     zip_bytes = _make_zip(
-        ("IMPNS3/real-page.md",                  "# Real Page"),
-        ("IMPNS3/real-page/attachments/img.png", b"\x89PNG\r\n"),
+        ("IMPNS3/my-page.md",                        "# My Page"),
+        ("IMPNS3/my-page/attachments/diagram.png",   png_data),
+        ("IMPNS3/my-page/attachments/notes.txt",     b"some notes"),
     )
     resp = await client.post(
         "/wiki/IMPNS3/import",
@@ -225,7 +227,42 @@ async def test_import_skips_attachments_dir(client, db_session):
         follow_redirects=False,
     )
     assert resp.status_code in (302, 303)
-    assert "import_ok=1+0" in resp.headers["location"]
+    location = resp.headers["location"]
+    assert "import_ok=1+0" in location
+    assert "att_ok=2+0" in location
+
+    # Attachments should be retrievable via the API
+    att_resp = await client.get("/api/v1/namespaces/IMPNS3/pages/my-page/attachments",
+                                headers=headers)
+    assert att_resp.status_code == 200
+    filenames = [a["filename"] for a in att_resp.json()]
+    assert "diagram.png" in filenames
+    assert "notes.txt" in filenames
+
+
+@pytest.mark.asyncio
+async def test_import_attachment_update(client, db_session):
+    """Re-importing a ZIP updates existing attachment content."""
+    headers = await _setup(client, db_session, "impuser3b", "IMPNS3B")
+    cookies = await cookie_auth(client, "impuser3b")
+
+    zip_v1 = _make_zip(
+        ("IMPNS3B/page-a.md",                    "# Page A"),
+        ("IMPNS3B/page-a/attachments/data.txt",  b"version 1"),
+    )
+    await client.post("/wiki/IMPNS3B/import",
+                      files={"zipfile": ("v1.zip", zip_v1, "application/zip")},
+                      headers=cookies, follow_redirects=False)
+
+    zip_v2 = _make_zip(
+        ("IMPNS3B/page-a.md",                    "# Page A v2"),
+        ("IMPNS3B/page-a/attachments/data.txt",  b"version 2"),
+    )
+    resp = await client.post("/wiki/IMPNS3B/import",
+                             files={"zipfile": ("v2.zip", zip_v2, "application/zip")},
+                             headers=cookies, follow_redirects=False)
+    assert resp.status_code in (302, 303)
+    assert "att_ok=0+1" in resp.headers["location"]
 
 
 @pytest.mark.asyncio

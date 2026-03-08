@@ -52,8 +52,11 @@
 
 {% if import_ok %}
 {% set parts = import_ok.split('+') %}
+{% set att_parts = att_ok.split('+') if att_ok else ['0','0'] %}
 <div class="alert alert-info" style="margin-bottom:1rem;">
-  Import complete — <strong>{{ parts[0] }}</strong> page(s) created, <strong>{{ parts[1] }}</strong> updated.
+  Import complete —
+  <strong>{{ parts[0] }}</strong> page(s) created, <strong>{{ parts[1] }}</strong> updated{% if att_ok and (att_parts[0] != '0' or att_parts[1] != '0') %};
+  <strong>{{ att_parts[0] }}</strong> attachment(s) imported, <strong>{{ att_parts[1] }}</strong> updated{% endif %}.
 </div>
 {% endif %}
 

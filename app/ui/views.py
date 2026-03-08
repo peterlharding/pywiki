@@ -220,6 +220,7 @@ async def namespace_index(
     namespace_name: str,
     import_ok: Optional[str] = None,
     import_error: Optional[str] = None,
+    att_ok: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -231,7 +232,7 @@ async def namespace_index(
         request,
         "namespace.html",
         _ctx(user, ns=ns, pages=pages, page_count=count,
-             import_ok=import_ok, import_error=import_error),
+             import_ok=import_ok, import_error=import_error, att_ok=att_ok),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
@@ -381,9 +382,13 @@ async def import_pages(
     zipfile_upload: UploadFile = File(..., alias="zipfile"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Import pages from a ZIP archive into a namespace (upsert by slug)."""
+    """Import pages and attachments from a ZIP archive into a namespace (upsert by slug)."""
     import io
+    import mimetypes
     import zipfile
+    from pathlib import Path
+    from sqlalchemy import select as sa_select
+    from app.models import Attachment, Page as PageModel
     from app.schemas import PageCreate, PageUpdate as PU
 
     user, new_token = await _current_user(request, db)
@@ -414,28 +419,29 @@ async def import_pages(
             status_code=400,
         )
 
-    created = updated = skipped = 0
-    for name in zf.namelist():
-        # Skip attachment files and __MACOSX noise
+    all_names = zf.namelist()
+
+    # ── Pass 1: page content files ────────────────────────────────────────────
+    created = updated = 0
+    for name in all_names:
         parts = name.split("/")
         if len(parts) < 2:
             continue
         if "__MACOSX" in parts or "attachments" in parts:
             continue
         filename = parts[-1]
-        stem, ext = (filename.rsplit(".", 1) if "." in filename else (filename, ""))
-        ext = f".{ext}" if ext else ""
+        if not filename:
+            continue
+        stem, _, raw_ext = filename.rpartition(".")
+        ext = f".{raw_ext}" if raw_ext and stem else ""
         if ext not in _ext_set:
             continue
 
         slug = stem
         fmt = _fmt_map[ext]
         content = zf.read(name).decode("utf-8", errors="replace")
-        # Derive a human-readable title from slug (hyphens → spaces, title-case)
         title = slug.replace("-", " ").title()
 
-        from sqlalchemy import select as sa_select
-        from app.models import Page as PageModel
         existing = (await db.execute(
             sa_select(PageModel).where(
                 PageModel.namespace_id == ns_id,
@@ -458,10 +464,78 @@ async def import_pages(
             )
             updated += 1
 
+    # Flush so newly created pages are visible for the attachment pass
+    await db.flush()
+
+    # ── Pass 2: attachments  ({any}/{slug}/attachments/{filename}) ────────────
+    att_created = att_updated = 0
+    for name in all_names:
+        if "__MACOSX" in name:
+            continue
+        parts = name.split("/")
+        # Expect at least: <dir>/<slug>/attachments/<filename>
+        try:
+            att_idx = parts.index("attachments")
+        except ValueError:
+            continue
+        if att_idx < 1 or att_idx + 1 >= len(parts):
+            continue
+        att_filename = parts[att_idx + 1]
+        if not att_filename:
+            continue
+        page_slug = parts[att_idx - 1]
+
+        # Look up the page (must exist after pass 1)
+        page_row = (await db.execute(
+            sa_select(PageModel).where(
+                PageModel.namespace_id == ns_id,
+                PageModel.slug == page_slug,
+            )
+        )).scalar_one_or_none()
+        if page_row is None:
+            continue
+
+        page_id = page_row.id
+        data = zf.read(name)
+        content_type = mimetypes.guess_type(att_filename)[0] or "application/octet-stream"
+
+        # Write file to disk: attachment_root/<namespace>/<slug>/<filename>
+        rel_path = Path(namespace_name) / page_slug / att_filename
+        abs_path = settings.attachment_root_resolved / rel_path
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        abs_path.write_bytes(data)
+
+        # Upsert Attachment record
+        existing_att = (await db.execute(
+            sa_select(Attachment).where(
+                Attachment.page_id == page_id,
+                Attachment.filename == att_filename,
+            )
+        )).scalar_one_or_none()
+
+        if existing_att:
+            existing_att.content_type = content_type
+            existing_att.size_bytes   = len(data)
+            existing_att.storage_path = str(rel_path)
+            existing_att.uploaded_by  = user.id
+            existing_att.comment      = "Imported"
+            att_updated += 1
+        else:
+            db.add(Attachment(
+                page_id=page_id,
+                filename=att_filename,
+                content_type=content_type,
+                size_bytes=len(data),
+                storage_path=str(rel_path),
+                uploaded_by=user.id,
+                comment="Imported",
+            ))
+            att_created += 1
+
     await db.commit()
 
     resp = RedirectResponse(
-        url=f"/wiki/{namespace_name}?import_ok={created}+{updated}",
+        url=f"/wiki/{namespace_name}?import_ok={created}+{updated}&att_ok={att_created}+{att_updated}",
         status_code=303,
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)

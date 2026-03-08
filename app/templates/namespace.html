@@ -13,6 +13,18 @@
   <p class="muted">{{ ns.description }}</p>
   {% endif %}
 </div>
+{% if user %}
+<div class="sidebar-section">
+  <h3>Import pages</h3>
+  <form method="post" action="/wiki/{{ ns.name }}/import" enctype="multipart/form-data">
+    <div style="margin-bottom:0.5rem;">
+      <input type="file" name="zipfile" accept=".zip" required style="font-size:0.8rem;width:100%;" />
+    </div>
+    <button type="submit" class="btn" style="width:100%;font-size:0.85rem;">&#8593; Import ZIP</button>
+  </form>
+  <p class="muted" style="font-size:0.75rem;margin-top:0.4rem;">Creates new pages; adds a new version to existing ones.</p>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block breadcrumb %}
@@ -29,7 +41,7 @@
   <div class="page-actions">
     <a class="btn btn-primary" href="/create?namespace={{ ns.name }}">+ New Page</a>
     {% if user %}
-    <a class="btn" href="/wiki/{{ ns.name }}/export" title="Download all pages and attachments as a ZIP">&#8595; Export ZIP</a>
+    <a class="btn" href="/wiki/{{ ns.name }}/export" title="Download all pages and attachments as a ZIP">&#8595; Export all</a>
     {% endif %}
   </div>
 </div>
@@ -38,10 +50,31 @@
 <p class="namespace-desc">{{ ns.description }}</p>
 {% endif %}
 
+{% if import_ok %}
+{% set parts = import_ok.split('+') %}
+<div class="alert alert-info" style="margin-bottom:1rem;">
+  Import complete — <strong>{{ parts[0] }}</strong> page(s) created, <strong>{{ parts[1] }}</strong> updated.
+</div>
+{% endif %}
+
+{% if import_error %}
+<div class="alert alert-error" style="margin-bottom:1rem;">{{ import_error }}</div>
+{% endif %}
+
 {% if pages %}
+<form method="post" action="/wiki/{{ ns.name }}/export/selected" id="ns-export-form">
+<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap;">
+  <label style="font-size:0.85rem;cursor:pointer;">
+    <input type="checkbox" id="select-all-ns" style="margin-right:0.3rem;" />
+    Select all
+  </label>
+  <button type="submit" class="btn" style="font-size:0.85rem;">&#8595; Export selected</button>
+  <span class="muted" style="font-size:0.8rem;" id="sel-count-ns"></span>
+</div>
 <table class="wiki-table">
   <thead>
     <tr>
+      <th style="width:2rem;"></th>
       <th>Title</th>
       <th>Format</th>
       <th>Version</th>
@@ -52,6 +85,7 @@
   <tbody>
     {% for p in pages %}
     <tr>
+      <td><input type="checkbox" name="slugs" value="{{ p.slug }}" class="row-check-ns" /></td>
       <td><a href="/wiki/{{ ns.name }}/{{ p.slug }}">{{ p.title }}</a></td>
       <td><span class="badge badge-{{ p.format }}">{{ p.format }}</span></td>
       <td>{{ p.version }}</td>
@@ -61,7 +95,40 @@
     {% endfor %}
   </tbody>
 </table>
+</form>
 {% else %}
 <p class="muted">No pages in this namespace yet. <a href="/create?namespace={{ ns.name }}">Create one!</a></p>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var selectAll = document.getElementById('select-all-ns');
+  var countEl   = document.getElementById('sel-count-ns');
+  if (!selectAll) return;
+
+  function updateCount() {
+    var checked = document.querySelectorAll('.row-check-ns:checked').length;
+    countEl.textContent = checked ? checked + ' selected' : '';
+  }
+
+  selectAll.addEventListener('change', function () {
+    document.querySelectorAll('.row-check-ns').forEach(function (cb) {
+      cb.checked = selectAll.checked;
+    });
+    updateCount();
+  });
+
+  document.querySelectorAll('.row-check-ns').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var all  = document.querySelectorAll('.row-check-ns').length;
+      var chkd = document.querySelectorAll('.row-check-ns:checked').length;
+      selectAll.indeterminate = chkd > 0 && chkd < all;
+      selectAll.checked = chkd === all;
+      updateCount();
+    });
+  });
+})();
+</script>
 {% endblock %}

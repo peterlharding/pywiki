@@ -15,7 +15,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.6.8] — 2026-03-08
 
 ### Added
-- **Page deletion from editor** — a red 🗑 Delete page button now appears at the bottom-right of the edit form, separated from Save / Cancel by `margin-left: auto`. Clicking it opens a browser `confirm()` dialog ("Permanently delete '…' and all its history? This cannot be undone.") before submitting a dedicated `POST /wiki/{namespace}/{slug}/delete` form. The route calls `page_svc.delete_page()` (which cascades to all versions and attachments) and redirects to the namespace index. Login is required; deleting a non-existent slug returns 404.
+- **Page deletion from editor** — a red 🗑 Delete page button now appears at the bottom-right of the edit form. Clicking it opens a browser `confirm()` dialog ("Permanently delete '…' and all its history? This cannot be undone.") before submitting a dedicated `POST /wiki/{namespace}/{slug}/delete` form. The route calls `page_svc.delete_page()` (which cascades to all versions and attachments) and redirects to the namespace index. Login is required; deleting a non-existent slug returns 404.
+
+### Fixed
+- **Delete button had no effect** — the delete `<form>` was incorrectly nested inside the edit `<form>`; browsers silently ignore nested forms so clicking Delete submitted Save instead. Moved the delete form to immediately after the closing `</form>` tag of the edit form.
 
 
 ---

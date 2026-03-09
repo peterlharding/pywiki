@@ -90,6 +90,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Colour utility classes** — `.text-red`, `.text-green`, `.text-blue`, `.text-orange`, `.text-purple`, `.text-teal`, `.text-grey`, `.text-gold`, `.text-muted/accent/danger/success/warn`; all adapt to dark mode; usage documented in `docs/colour-text.md`.
 - [x] **Redirect deletion** — 🗑️ Delete redirect button on any redirect stub page (logged-in users); `POST /wiki/{ns}/{slug}/delete` UI route; redirects to namespace index on completion (v0.6.6).
 - [x] **Page deletion from editor** — 🗑 Delete page button (red, danger-styled) at the bottom of the edit form; separate `<form>` with JS `confirm()` dialog; `POST /wiki/{ns}/{slug}/delete` deletes the page and all its history then redirects to namespace index (v0.6.8).
+- [x] **Password show/hide toggle** — 👁 button overlaid on the right edge of every password input (login, register, reset password, user create, user edit); toggles `type` between `password`/`text` and swaps icon to 🙈; single event-delegated JS handler in `base.html`; `.pw-wrap`/`.pw-toggle` CSS in `wiki.css` (v0.6.9).
 
 
 ---

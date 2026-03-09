@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.6.8)
+# PyWiki — Session Primer (v0.6.9)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -138,13 +138,12 @@ When cutting a new release (e.g. vX.Y.Z):
 
 ---
 
-## User Style Conventions
 ## Deployment
 - Deploy files in `deploy/`: `README.md`, `pywiki.service`, `nginx-pywiki.conf`, `.env.example`, `requirements.txt`
 - Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.6.6 (colour utility classes, redirect deletion), v0.6.7 (selective export, ZIP import with attachments), v0.6.8 (delete page from editor)
+- Recent releases: v0.6.7 (selective export, ZIP import with attachments), v0.6.8 (delete page from editor, nested form fix), v0.6.9 (password show/hide toggle)
 
 ### Verification command
 ```bash

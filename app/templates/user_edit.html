@@ -44,8 +44,11 @@
 
   <div class="form-row">
     <label for="new_password">New password <small class="muted">(leave blank to keep current)</small></label>
-    <input type="password" id="new_password" name="new_password"
-           placeholder="Enter new password…" maxlength="128" style="width:100%;" />
+    <div class="pw-wrap">
+      <input type="password" id="new_password" name="new_password"
+             placeholder="Enter new password…" maxlength="128" />
+      <button type="button" class="pw-toggle" title="Show password">👁</button>
+    </div>
   </div>
 
   {% if user and user.is_admin %}

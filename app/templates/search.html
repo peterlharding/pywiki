@@ -93,24 +93,76 @@
     {{ results | length }} result(s){% if q %} for <strong>"{{ q }}"</strong>{% endif %}
     {% if selected_namespace %}in <em>{{ selected_namespace }}</em>{% endif %}
   </p>
+  {% if user %}
+  <form method="post" action="/special/export/selected" id="search-export-form">
+  <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+    <label style="font-size:0.85rem;cursor:pointer;">
+      <input type="checkbox" id="select-all-search" style="margin-right:0.3rem;" />
+      Select all
+    </label>
+    <button type="submit" class="btn" style="font-size:0.85rem;">&#8595; Export selected</button>
+    <span class="muted" style="font-size:0.8rem;" id="sel-count-search"></span>
+  </div>
+  {% endif %}
   <ul class="search-results">
     {% for r in results %}
-    <li class="search-result">
-      <div class="result-title">
-        <a href="/wiki/{{ r.namespace }}/{{ r.slug }}">{{ r.title }}</a>
-        <span class="muted"> — <a href="/wiki/{{ r.namespace }}">{{ r.namespace }}</a></span>
-        <span class="badge badge-{{ r.format }}">{{ r.format }}</span>
+    <li class="search-result" style="display:flex;gap:0.6rem;align-items:flex-start;">
+      {% if user %}
+      <div style="padding-top:0.2rem;">
+        <input type="checkbox" name="pages" value="{{ r.namespace }}:{{ r.slug }}"
+               class="row-check-search" title="{{ r.namespace }}/{{ r.slug }}" />
       </div>
-      <div class="result-snippet">{{ r.snippet }}</div>
-      <div class="result-meta muted">
-        Updated: {{ r.updated_at.strftime('%Y-%m-%d %H:%M') }}
-        {% if r.author %} · by <a href="/special/users/{{ r.author }}">{{ r.author }}</a>{% endif %}
+      {% endif %}
+      <div style="flex:1;">
+        <div class="result-title">
+          <a href="/wiki/{{ r.namespace }}/{{ r.slug }}">{{ r.title }}</a>
+          <span class="muted"> — <a href="/wiki/{{ r.namespace }}">{{ r.namespace }}</a></span>
+          <span class="badge badge-{{ r.format }}">{{ r.format }}</span>
+        </div>
+        <div class="result-snippet">{{ r.snippet }}</div>
+        <div class="result-meta muted">
+          Updated: {{ r.updated_at.strftime('%Y-%m-%d %H:%M') }}
+          {% if r.author %} · by <a href="/special/users/{{ r.author }}">{{ r.author }}</a>{% endif %}
+        </div>
       </div>
     </li>
     {% endfor %}
   </ul>
+  {% if user %}</form>{% endif %}
   {% else %}
   <p class="muted" style="margin-top:1rem;">No results found{% if q %} for <strong>"{{ q }}"</strong>{% endif %}.</p>
   {% endif %}
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var selectAll = document.getElementById('select-all-search');
+  var countEl   = document.getElementById('sel-count-search');
+  if (!selectAll) return;
+
+  function updateCount() {
+    var checked = document.querySelectorAll('.row-check-search:checked').length;
+    countEl.textContent = checked ? checked + ' selected' : '';
+  }
+
+  selectAll.addEventListener('change', function () {
+    document.querySelectorAll('.row-check-search').forEach(function (cb) {
+      cb.checked = selectAll.checked;
+    });
+    updateCount();
+  });
+
+  document.querySelectorAll('.row-check-search').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var all  = document.querySelectorAll('.row-check-search').length;
+      var chkd = document.querySelectorAll('.row-check-search:checked').length;
+      selectAll.indeterminate = chkd > 0 && chkd < all;
+      selectAll.checked = chkd === all;
+      updateCount();
+    });
+  });
+})();
+</script>
 {% endblock %}

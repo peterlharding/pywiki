@@ -12,6 +12,38 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.9] — 2026-03-09
+
+### Added
+- **Password show/hide toggle** — all password fields (login, register, reset password, user create, user edit) now have a 👁 button overlaid on the right edge of the input. Clicking it reveals the password in plain text and swaps the icon to 🙈; clicking again hides it. Implemented with a single event-delegated JS handler in `base.html` and `.pw-wrap` / `.pw-toggle` CSS classes in `wiki.css` — no per-template scripts required.
+
+
+---
+
+## [0.6.8] — 2026-03-08
+
+### Added
+- **Page deletion from editor** — a red 🗑 Delete page button now appears at the bottom-right of the edit form. Clicking it opens a browser `confirm()` dialog ("Permanently delete '…' and all its history? This cannot be undone.") before submitting a dedicated `POST /wiki/{namespace}/{slug}/delete` form. The route calls `page_svc.delete_page()` (which cascades to all versions and attachments) and redirects to the namespace index. Login is required; deleting a non-existent slug returns 404.
+
+### Fixed
+- **Delete button had no effect** — the delete `<form>` was incorrectly nested inside the edit `<form>`; browsers silently ignore nested forms so clicking Delete submitted Save instead. Moved the delete form to immediately after the closing `</form>` tag of the edit form.
+
+
+---
+
+## [0.6.7] — 2026-03-08
+
+### Added
+- **Selective export** — checkboxes on the namespace index page and search results page let users pick individual pages; `POST /wiki/{namespace}/export/selected` streams a ZIP of only the checked pages (plus their attachments). A cross-namespace variant, `POST /special/export/selected`, handles selections spanning multiple namespaces from the search results page.
+- **ZIP import** — `POST /wiki/{namespace}/import` accepts a ZIP archive (the same format produced by the export). Pages are upserted by slug: new pages are created; existing pages receive a new version. Attachments embedded in the ZIP (`{ns}/{slug}/attachments/{filename}`) are written to the attachment storage directory and their `Attachment` DB records are created or updated. The import form lives in the namespace index sidebar. After import, a result banner shows how many pages were created/updated and how many attachments were imported/updated.
+
+### Changed
+- **Export all** button label renamed from "Export ZIP" to "Export all" to distinguish it from the new selective export.
+- Refactored `export_namespace` to share a `_build_zip()` helper with the new selective export routes.
+
+
+---
+
 ## [0.6.6] — 2026-03-07
 
 ### Added
@@ -667,7 +699,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.6...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.9...HEAD
+[0.6.9]: https://github.com/peterlharding/pywiki/compare/v0.6.8...v0.6.9
+[0.6.8]: https://github.com/peterlharding/pywiki/compare/v0.6.7...v0.6.8
+[0.6.7]: https://github.com/peterlharding/pywiki/compare/v0.6.6...v0.6.7
 [0.6.6]: https://github.com/peterlharding/pywiki/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/peterlharding/pywiki/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/peterlharding/pywiki/compare/v0.6.3...v0.6.4

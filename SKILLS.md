@@ -1,4 +1,4 @@
-# PyWiki — Session Primer (v0.6.6)
+# PyWiki — Session Primer (v0.6.9)
 
 ## Project
 - **Location**: `c:\src\projects\pywiki` (Windows) / `/mnt/c/src/projects/pywiki` (WSL)
@@ -25,7 +25,7 @@ Always run tests via `wsl.exe` from PowerShell using the Makefile to get live ou
 wsl.exe -e bash -c "cd /mnt/c/src/projects/pywiki && make test"
 ```
 - `PYTHONUNBUFFERED=1` is set in the Makefile `test` target for live streaming through the Windows pipe
-- **279 tests passing** (as of v0.6.4)
+- **295 tests passing** (as of v0.6.8)
 - Tests use **SQLite in-memory** — `conftest.py` sets `ALLOW_REGISTRATION=true` and `DATABASE_URL` env vars and clears `get_settings()` lru_cache before imports
 - **NEVER pipe or tail test output** (`| tail -N`, `| head`, etc.) — always run the full command and show all output so failures are visible
 
@@ -114,8 +114,9 @@ When cutting a new release (e.g. vX.Y.Z):
 3. Bump `version` in `pyproject.toml`
 4. Update version in `SKILLS.md` header
 5. Commit all four files: `git commit -m "chore: bump version to vX.Y.Z"`
-6. Tag: `git tag vX.Y.Z` (use `git tag -f vX.Y.Z HEAD` if re-tagging after post-release doc commits)
-7. Push tag: `git push origin vX.Y.Z` (use `--force` if the tag was moved after initial creation)
+6. Tag: `git tag -a vX.Y.Z -m 'Release vX.Y.Z'`
+7. Push tag: `git push origin vX.Y.Z`
+8. If post-release commits need to be included in the tag (e.g. a same-session bugfix): `git tag -d vX.Y.Z && git tag -a vX.Y.Z -m 'Release vX.Y.Z' && git push origin :refs/tags/vX.Y.Z && git push origin vX.Y.Z`
 
 ## Email System (`app/services/email.py`)
 - `send_email(to, subject, body_text, body_html)` — sends via `aiosmtplib`; prints to stdout when `SMTP_HOST` is empty (dev mode)
@@ -137,13 +138,12 @@ When cutting a new release (e.g. vX.Y.Z):
 
 ---
 
-## User Style Conventions
 ## Deployment
 - Deploy files in `deploy/`: `README.md`, `pywiki.service`, `nginx-pywiki.conf`, `.env.example`, `requirements.txt`
 - Uvicorn listens on `127.0.0.1:8222`; nginx proxies from port 443
 - SSL: wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; **not** Let's Encrypt
 - `deploy/requirements.txt` — use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.6.4 (search filters, Category: syntax, substring fix), v0.6.5 (dark mode, breadcrumbs, export 500 fix, dead /admin link), v0.6.6 (colour utility classes, JS cache-bust fix)
+- Recent releases: v0.6.7 (selective export, ZIP import with attachments), v0.6.8 (delete page from editor, nested form fix), v0.6.9 (password show/hide toggle)
 
 ### Verification command
 ```bash
@@ -190,6 +190,11 @@ systemctl stop pywiki && systemctl start pywiki
 - **`Category` namespace must not become default**: `pref_namespace` cookie is never set to `Category` (fixed v0.5.2+). On older installs where the cookie is already wrong, user clicks ⭐ Set default next to `Main` on `/special/namespaces` to fix it.
 - **nginx `proxy_pass` port**: must match the uvicorn port in `pywiki.service` — both are `8222`. A mismatch causes 502 for all dynamic requests while static files still load (served directly by nginx), making the site appear partially functional
 - **`BASE_URL` must be the external HTTPS URL** (e.g. `https://expanse.performiq.com`), not `http://localhost:8222`. Uvicorn's internal port is only relevant to nginx's `proxy_pass` — `BASE_URL` controls what gets embedded in attachment URLs in rendered HTML, so it must be browser-reachable
+
+## UI / Template rules
+- **Nested `<form>` elements are illegal HTML** — browsers silently discard the inner form and submit only the outermost one. Always place secondary action forms (delete, etc.) *outside* the main form's closing `</form>` tag.
+- **`cookie_auth()` returns `{"Cookie": "access_token=..."}` — always pass as `headers=` not `cookies=`** in `httpx` test calls. Passing as `cookies=` does not work.
+- **Import route: capture `ns.id` before the loop** — SQLAlchemy expires object attributes after `db.execute()` calls inside the loop; store `ns_id = ns.id` before any loop that issues further queries.
 
 ## Git
 - Branch: `devel`

@@ -11,7 +11,12 @@ GET  /wiki/{namespace}/{slug}/edit   — edit a page
 POST /wiki/{namespace}/{slug}/edit   — save edits
 GET  /wiki/{namespace}/{slug}/history   — page history
 GET  /wiki/{namespace}/{slug}/diff/{a}/{b}  — diff view
+POST /wiki/{namespace}/{slug}/delete    — delete a page
 GET  /wiki/{namespace}          — namespace index
+GET  /wiki/{namespace}/export   — export all pages as ZIP
+POST /wiki/{namespace}/export/selected — export selected pages as ZIP
+POST /wiki/{namespace}/import   — import pages from ZIP (upsert)
+POST /special/export/selected   — cross-namespace export from search results
 GET  /search                    — search results
 GET  /login                     — login form
 POST /login                     — process login
@@ -214,6 +219,9 @@ async def category_index(
 async def namespace_index(
     request: Request,
     namespace_name: str,
+    import_ok: Optional[str] = None,
+    import_error: Optional[str] = None,
+    att_ok: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -224,7 +232,8 @@ async def namespace_index(
     resp = templates.TemplateResponse(
         request,
         "namespace.html",
-        _ctx(user, ns=ns, pages=pages, page_count=count),
+        _ctx(user, ns=ns, pages=pages, page_count=count,
+             import_ok=import_ok, import_error=import_error, att_ok=att_ok),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
@@ -245,22 +254,19 @@ async def export_namespace(
     import zipfile
     from fastapi.responses import StreamingResponse
     from sqlalchemy import select as sa_select
-    from app.models import Attachment, Page, PageVersion, Namespace as NSModel
-    from app.core.config import get_settings
+    from app.models import Attachment, Page, PageVersion
 
     user, _ = await _current_user(request, db)
     if not user:
-        return RedirectResponse(url=f"/login", status_code=303)
+        return RedirectResponse(url="/login", status_code=303)
 
     settings = get_settings()
 
-    # Resolve namespace
     try:
         ns = await ns_svc.get_namespace_by_name(db, namespace_name)
     except HTTPException:
         raise HTTPException(status_code=404, detail=f"Namespace '{namespace_name}' not found")
 
-    # Fetch all pages with their latest version
     max_ver_sub = (
         sa_select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
         .group_by(PageVersion.page_id)
@@ -269,43 +275,272 @@ async def export_namespace(
     q = (
         sa_select(Page, PageVersion)
         .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
-        .join(
-            PageVersion,
-            (PageVersion.page_id == Page.id) &
-            (PageVersion.version == max_ver_sub.c.max_ver),
-        )
+        .join(PageVersion,
+              (PageVersion.page_id == Page.id) &
+              (PageVersion.version == max_ver_sub.c.max_ver))
         .where(Page.namespace_id == ns.id)
         .order_by(Page.title)
     )
     rows = (await db.execute(q)).all()
 
-    # Extension map
-    _ext = {"markdown": ".md", "rst": ".rst", "wikitext": ".wiki"}
-
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for page, ver in rows:
-            ext = _ext.get(ver.format, ".txt")
-            source_path = f"{namespace_name}/{page.slug}{ext}"
-            zf.writestr(source_path, ver.content)
-
-            # Attachments for this page
-            att_rows = (await db.execute(
-                sa_select(Attachment).where(Attachment.page_id == page.id)
-            )).scalars().all()
-            for att in att_rows:
-                abs_path = settings.attachment_root_resolved / att.storage_path
-                if abs_path.exists():
-                    att_zip_path = f"{namespace_name}/{page.slug}/attachments/{att.filename}"
-                    zf.write(str(abs_path), att_zip_path)
-
-    buf.seek(0)
+    buf = await _build_zip(db, namespace_name, rows, settings)
     filename = f"{namespace_name.lower()}-export.zip"
     return StreamingResponse(
         buf,
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+async def _build_zip(db, namespace_name, rows, settings):
+    """Build an in-memory ZIP from (Page, PageVersion) rows."""
+    import io
+    import zipfile
+    from sqlalchemy import select as sa_select
+    from app.models import Attachment
+
+    _ext = {"markdown": ".md", "rst": ".rst", "wikitext": ".wiki"}
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for page, ver in rows:
+            ext = _ext.get(ver.format, ".txt")
+            zf.writestr(f"{namespace_name}/{page.slug}{ext}", ver.content)
+            att_rows = (await db.execute(
+                sa_select(Attachment).where(Attachment.page_id == page.id)
+            )).scalars().all()
+            for att in att_rows:
+                abs_path = settings.attachment_root_resolved / att.storage_path
+                if abs_path.exists():
+                    zf.write(str(abs_path), f"{namespace_name}/{page.slug}/attachments/{att.filename}")
+    buf.seek(0)
+    return buf
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Selective export (POST with slug list)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.post("/wiki/{namespace_name}/export/selected")
+async def export_selected_pages(
+    request: Request,
+    namespace_name: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Export a user-selected subset of pages as a ZIP archive."""
+    from fastapi.responses import StreamingResponse
+    from sqlalchemy import select as sa_select
+    from app.models import Page, PageVersion
+
+    user, _ = await _current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    settings = get_settings()
+
+    form = await request.form()
+    slugs = form.getlist("slugs")
+    if not slugs:
+        return RedirectResponse(url=f"/wiki/{namespace_name}", status_code=303)
+
+    try:
+        ns = await ns_svc.get_namespace_by_name(db, namespace_name)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail=f"Namespace '{namespace_name}' not found")
+
+    max_ver_sub = (
+        sa_select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
+        .group_by(PageVersion.page_id)
+        .subquery()
+    )
+    q = (
+        sa_select(Page, PageVersion)
+        .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
+        .join(PageVersion,
+              (PageVersion.page_id == Page.id) &
+              (PageVersion.version == max_ver_sub.c.max_ver))
+        .where(Page.namespace_id == ns.id, Page.slug.in_(slugs))
+        .order_by(Page.title)
+    )
+    rows = (await db.execute(q)).all()
+
+    buf = await _build_zip(db, namespace_name, rows, settings)
+    filename = f"{namespace_name.lower()}-selected.zip"
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Import (ZIP upload — upsert pages)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.post("/wiki/{namespace_name}/import", response_class=HTMLResponse)
+async def import_pages(
+    request: Request,
+    namespace_name: str,
+    zipfile_upload: UploadFile = File(..., alias="zipfile"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Import pages and attachments from a ZIP archive into a namespace (upsert by slug)."""
+    import io
+    import mimetypes
+    import zipfile
+    from pathlib import Path
+    from sqlalchemy import select as sa_select
+    from app.models import Attachment, Page as PageModel
+    from app.schemas import PageCreate, PageUpdate as PU
+
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return _login_redirect(f"/wiki/{namespace_name}")
+
+    settings = get_settings()
+
+    try:
+        ns = await ns_svc.get_namespace_by_name(db, namespace_name)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail=f"Namespace '{namespace_name}' not found")
+
+    ns_id = ns.id  # capture before any further DB operations that may expire the object
+
+    _fmt_map = {".md": "markdown", ".rst": "rst", ".wiki": "wikitext"}
+    _ext_set = set(_fmt_map.keys())
+
+    raw = await zipfile_upload.read()
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(raw))
+    except zipfile.BadZipFile:
+        return templates.TemplateResponse(
+            request, "namespace.html",
+            _ctx(user, ns=ns, pages=await page_svc.list_pages(db, namespace_name),
+                 page_count=await ns_svc.get_page_count(db, ns_id),
+                 import_error="Uploaded file is not a valid ZIP archive."),
+            status_code=400,
+        )
+
+    all_names = zf.namelist()
+
+    # ── Pass 1: page content files ────────────────────────────────────────────
+    created = updated = 0
+    for name in all_names:
+        parts = name.split("/")
+        if len(parts) < 2:
+            continue
+        if "__MACOSX" in parts or "attachments" in parts:
+            continue
+        filename = parts[-1]
+        if not filename:
+            continue
+        stem, _, raw_ext = filename.rpartition(".")
+        ext = f".{raw_ext}" if raw_ext and stem else ""
+        if ext not in _ext_set:
+            continue
+
+        slug = stem
+        fmt = _fmt_map[ext]
+        content = zf.read(name).decode("utf-8", errors="replace")
+        title = slug.replace("-", " ").title()
+
+        existing = (await db.execute(
+            sa_select(PageModel).where(
+                PageModel.namespace_id == ns_id,
+                PageModel.slug == slug,
+            )
+        )).scalar_one_or_none()
+
+        if existing is None:
+            await page_svc.create_page(
+                db, namespace_name,
+                PageCreate(title=title, content=content, format=fmt, comment="Imported"),
+                author_id=user.id,
+            )
+            created += 1
+        else:
+            await page_svc.update_page(
+                db, namespace_name, slug,
+                PU(content=content, format=fmt, comment="Imported"),
+                author_id=user.id,
+            )
+            updated += 1
+
+    # Flush so newly created pages are visible for the attachment pass
+    await db.flush()
+
+    # ── Pass 2: attachments  ({any}/{slug}/attachments/{filename}) ────────────
+    att_created = att_updated = 0
+    for name in all_names:
+        if "__MACOSX" in name:
+            continue
+        parts = name.split("/")
+        # Expect at least: <dir>/<slug>/attachments/<filename>
+        try:
+            att_idx = parts.index("attachments")
+        except ValueError:
+            continue
+        if att_idx < 1 or att_idx + 1 >= len(parts):
+            continue
+        att_filename = parts[att_idx + 1]
+        if not att_filename:
+            continue
+        page_slug = parts[att_idx - 1]
+
+        # Look up the page (must exist after pass 1)
+        page_row = (await db.execute(
+            sa_select(PageModel).where(
+                PageModel.namespace_id == ns_id,
+                PageModel.slug == page_slug,
+            )
+        )).scalar_one_or_none()
+        if page_row is None:
+            continue
+
+        page_id = page_row.id
+        data = zf.read(name)
+        content_type = mimetypes.guess_type(att_filename)[0] or "application/octet-stream"
+
+        # Write file to disk: attachment_root/<namespace>/<slug>/<filename>
+        rel_path = Path(namespace_name) / page_slug / att_filename
+        abs_path = settings.attachment_root_resolved / rel_path
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        abs_path.write_bytes(data)
+
+        # Upsert Attachment record
+        existing_att = (await db.execute(
+            sa_select(Attachment).where(
+                Attachment.page_id == page_id,
+                Attachment.filename == att_filename,
+            )
+        )).scalar_one_or_none()
+
+        if existing_att:
+            existing_att.content_type = content_type
+            existing_att.size_bytes   = len(data)
+            existing_att.storage_path = str(rel_path)
+            existing_att.uploaded_by  = user.id
+            existing_att.comment      = "Imported"
+            att_updated += 1
+        else:
+            db.add(Attachment(
+                page_id=page_id,
+                filename=att_filename,
+                content_type=content_type,
+                size_bytes=len(data),
+                storage_path=str(rel_path),
+                uploaded_by=user.id,
+                comment="Imported",
+            ))
+            att_created += 1
+
+    await db.commit()
+
+    resp = RedirectResponse(
+        url=f"/wiki/{namespace_name}?import_ok={created}+{updated}&att_ok={att_created}+{att_updated}",
+        status_code=303,
+    )
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -528,6 +763,29 @@ async def edit_page_submit(
 
     resp = RedirectResponse(url=f"/wiki/{namespace_name}/{slug}", status_code=303)
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
+    return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Page delete
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.post("/wiki/{namespace_name}/{slug}/delete", response_class=HTMLResponse)
+async def delete_page_submit(
+    request: Request,
+    namespace_name: str,
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+):
+    user, new_token = await _current_user(request, db)
+    if not user:
+        return _login_redirect(f"/wiki/{namespace_name}/{slug}/edit")
+
+    await page_svc.delete_page(db, namespace_name, slug)
+    await db.commit()
+
+    resp = RedirectResponse(url=f"/wiki/{namespace_name}", status_code=303)
+    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
 
 
@@ -760,6 +1018,83 @@ async def create_page_submit(
     else:
         resp.delete_cookie("back_url")
     return resp
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Cross-namespace selective export (from search results)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@router.post("/special/export/selected")
+async def export_selected_cross_namespace(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Export pages from multiple namespaces as a single ZIP (from search results)."""
+    from fastapi.responses import StreamingResponse
+    from sqlalchemy import select as sa_select
+    from app.models import Attachment, Page, PageVersion, Namespace as NSModel
+    import io
+    import zipfile
+
+    user, _ = await _current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    settings = get_settings()
+    form = await request.form()
+    # Values are "namespace:slug"
+    pairs = form.getlist("pages")
+    if not pairs:
+        return RedirectResponse(url="/search", status_code=303)
+
+    # Group slugs by namespace
+    by_ns: dict[str, list[str]] = {}
+    for pair in pairs:
+        if ":" not in pair:
+            continue
+        ns_name, slug = pair.split(":", 1)
+        by_ns.setdefault(ns_name, []).append(slug)
+
+    _ext = {"markdown": ".md", "rst": ".rst", "wikitext": ".wiki"}
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for ns_name, slugs in by_ns.items():
+            try:
+                ns = await ns_svc.get_namespace_by_name(db, ns_name)
+            except HTTPException:
+                continue
+            max_ver_sub = (
+                sa_select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
+                .group_by(PageVersion.page_id)
+                .subquery()
+            )
+            q = (
+                sa_select(Page, PageVersion)
+                .join(max_ver_sub, Page.id == max_ver_sub.c.page_id)
+                .join(PageVersion,
+                      (PageVersion.page_id == Page.id) &
+                      (PageVersion.version == max_ver_sub.c.max_ver))
+                .where(Page.namespace_id == ns.id, Page.slug.in_(slugs))
+                .order_by(Page.title)
+            )
+            rows = (await db.execute(q)).all()
+            for page, ver in rows:
+                ext = _ext.get(ver.format, ".txt")
+                zf.writestr(f"{ns_name}/{page.slug}{ext}", ver.content)
+                att_rows = (await db.execute(
+                    sa_select(Attachment).where(Attachment.page_id == page.id)
+                )).scalars().all()
+                for att in att_rows:
+                    abs_path = settings.attachment_root_resolved / att.storage_path
+                    if abs_path.exists():
+                        zf.write(str(abs_path),
+                                 f"{ns_name}/{page.slug}/attachments/{att.filename}")
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="selected-export.zip"'},
+    )
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -19,35 +19,92 @@ A MediaWiki-inspired wiki built with **FastAPI** and **Python**, supporting both
 
 ## Quick Start
 
+Checkout the files in the deploy sub directory. You should customize
+these to suit your deloyment requirements.  For example, for 'newwiki':
+
 ```bash
 # 1. Clone and enter the repo
-git clone https://github.com/peterlharding/pywiki.git
-cd pywiki
 
-# 2. Create and activate a virtual environment
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
+  git clone https://github.com/peterlharding/pywiki.git newwiki
+  cd newwiki
 
-# 3. Install dependencies
-pip install -r requirements.txt
 
-# 4. Copy and edit the environment file
-cp .env.example .env
-# Edit .env and set DATABASE_URL for your environment (see below)
+# 2. Setup Linux User and Group and DB user
 
-# 5. Apply database migrations
-alembic upgrade head
+The wiki is setup to use pywiki:pywiki.  If it alrady exists you are
+good to go, otherwise:
 
-# 6. Start the development server
-uvicorn app.main:app --reload --port 8000
+  sudo useradd -r -s /bin/false -d /opt/newwiki pywiki
+  sudo mkdir -p /opt/newwiki/data/attachments
+  sudo chown -R pywiki:pywiki /opt/newwwiki
+
+The database access will also need a pywiki user:
+
+  # psql
+  psql (17.2 (Ubuntu 17.2-1.pgdg22.04+1))
+  Type "help" for help.
+  
+  root=# \du
+                               List of roles
+   Role name |                         Attributes
+  -----------+------------------------------------------------------------
+   pywiki    |
+
+If it does not exist you will need to create it - To do so run sql/add_pywiki.sql
+as the Postgres superuser.
+
+
+# 3. Create and activate a virtual environment
+
+  cd /opt/newwiki
+  python -m venv .venv
+
+Or using uv
+
+  uv venv .venv
+
+Then activate the venv:
+
+## Windows
+  .venv\Scripts\activate
+## macOS / Linux
+  source .venv/bin/activate
+
+
+# 4. Install dependencies
+
+  pip install -r requirements.txt
+
+or:
+
+  uv pipinstall -r requirements.txt
+
+# 5. Copy and edit the environment file
+
+  cp .env.example .env
+
+## Edit .env and set DATABASE_URL for your environment (see below)
+## And the PORT to use to publish both the  WEB UI and API UI
+
+# Setup the Database
+
+As your root Postgres user create the newwiki DB and run the script -
+sql/grant.sql - to assign ownership and privileges to 'pywiki'
+
+
+# 6. Apply database migrations
+
+  alembic upgrade head
+
+
+# 7. Start the development server
+
+  uvicorn app.main:app --reload --port 8xxx
 ```
 
-Open http://localhost:8000 in your browser.
+Open http://localhost:8xxx in your browser.
 
-The API docs are at http://localhost:8000/api/docs.
+The API docs are at http://localhost:8xxx/api/docs.
 
 ## Project Structure
 
@@ -90,6 +147,11 @@ pywiki/
 │   ├── conftest.py          # In-memory SQLite fixtures (never touches production DB)
 │   ├── test_01_auth.py
 │   ├── test_02_namespaces.py
+│   └── ...
+├── deploy/
+│   ├── 01_add_user.py       # Setup User and Group
+│   ├── 02_setup_db.sh
+│   ├── 03_setup_service.sh
 │   └── ...
 ├── alembic.ini
 ├── .env.example

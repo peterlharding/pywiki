@@ -12,6 +12,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.7.0] - 2026-09-14
+
+### Changed
+- **Setup material consolidated in `setup/`** - `deploy/*`, `sql/grant.sql`, `scripts/setup-jose.sh` and `.env.example` (now `setup/env.template`) moved into `setup/`; the empty `docs/deployment.md` stub was removed and `setup/README.md` is the deployment guide. **Breaking** for deployment scripts and notes that use the old paths.
+- **`pywiki.service` reads the port from `.env`** - uvicorn now runs with `--port ${APP_PORT}` instead of a hard-coded port. Existing instances must add `APP_PORT` to `.env` before installing the new unit. `make dev` / `make run` fall back to `8000`; instances sharing a server use `8` + the instance IP's last octet, zero-padded (`.222` -> `8222`).
+- **TLS documentation** - `setup/README.md` and `nginx-pywiki.conf` document Let's Encrypt as the default (option A) and bringing your own certificate, such as a wildcard (option B). TLS protocol and session settings are inline, so the config no longer depends on certbot-generated include files.
+- **`grant.sql`** takes the database name as a psql variable (`psql -d <db> -v db_name=<db> -f setup/grant.sql`) instead of a hard-coded name.
+- **Development** - `ruff` added to `requirements.txt` and all lint findings fixed; `CLAUDE.md` added and `SKILLS.md` made platform-neutral.
+
+### Fixed
+- **Fresh installs failed** - dependencies listed `sqlalchemy` without its `asyncio` extra, so `greenlet` was missing and most tests errored. All dependency lists now use `sqlalchemy[asyncio]`.
+- **Unresolved `attachment:` links rendered as `#harmful-link`** - mistune 3.3 only allows a fixed set of URL schemes. The internal `attachment:` scheme is allowed again (`javascript:` and similar remain blocked); `RENDERER_VERSION` bumped to 13 so cached HTML is re-rendered.
+- **UI returned 500 when started outside the repo root** - Jinja2 templates now resolve relative to the package instead of the working directory.
+- **`setup/` was invisible to git on macOS** - `.gitignore` ignored `SETUP/`, which matched `setup/` on case-insensitive filesystems; `/setup/` is now re-included.
+- **`setup/Makefile` `setup-venv`** called a non-existent `activate` command.
+- **Stale deployment docs** - removed references to the deleted `deploy/.env.example` and a non-existent `sql/add_pywiki.sql`; update steps no longer use `pip install -e .`.
+
+
+---
+
 ## [0.6.9] — 2026-03-09
 
 ### Added
@@ -699,7 +719,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.6.9...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/peterlharding/pywiki/compare/v0.6.9...v0.7.0
 [0.6.9]: https://github.com/peterlharding/pywiki/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/peterlharding/pywiki/compare/v0.6.7...v0.6.8
 [0.6.7]: https://github.com/peterlharding/pywiki/compare/v0.6.6...v0.6.7

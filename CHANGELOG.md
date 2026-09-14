@@ -9,6 +9,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+
+---
+
+## [0.9.2] - 2026-09-14
+
 ### Fixed
 - **Namespace page table** - the checkbox column took 40% of the table width (a site-wide rule sized every table's first column for a page title), squeezing titles and headers onto two lines. The checkbox column is now as narrow as the checkbox, the title column gets the space, and short columns no longer wrap. "Select all" moved into the checkbox column header, and every checkbox has an accessible label. On narrow screens the table scrolls inside its own box instead of widening the page.
 - **Navbar on phones** - with a user logged in, the links overflowed a 390px screen and clipped the dark mode button; the smaller mobile link size was being overridden and now applies.
@@ -774,7 +779,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/peterlharding/pywiki/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/peterlharding/pywiki/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/peterlharding/pywiki/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/peterlharding/pywiki/compare/v0.7.0...v0.8.0

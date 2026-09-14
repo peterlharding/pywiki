@@ -25,7 +25,7 @@ from app.core.filetypes import is_image
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 15
+RENDERER_VERSION = 16
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 # Sentinel injected by _expand_macros() in place of {{toc}} / __TOC__.
@@ -750,8 +750,9 @@ def _render_wikitext(
             categories.append(m.group(1).strip())
 
     # ── block-level pass ─────────────────────────────────────────────────────
-    in_ul: list[int] = []   # stack of depths for <ul>
-    in_ol: list[int] = []   # stack of depths for <ol>
+    # Open lists, outermost first ("ul" / "ol").  Each open list has an open <li>,
+    # so a deeper list nests inside the current item as valid HTML requires.
+    list_stack: list[str] = []
     in_dl = False
     para_buf: list[str] = []
 
@@ -770,12 +771,8 @@ def _render_wikitext(
 
     def _close_lists():
         nonlocal in_dl
-        while in_ul:
-            out.append("</ul>")
-            in_ul.pop()
-        while in_ol:
-            out.append("</ol>")
-            in_ol.pop()
+        while list_stack:
+            out.append(f"</li></{list_stack.pop()}>")
         if in_dl:
             out.append("</dl>")
             in_dl = False
@@ -838,44 +835,29 @@ def _render_wikitext(
             )
             continue
 
-        # Unordered list: * / ** / ***
-        m = re.match(r"^(\*+)\s*(.*)", stripped)
+        # Lists: * bullets, # numbers, mixable per level (*, **, #, *#, #*, ...)
+        m = re.match(r"^([*#]+)\s*(.*)", stripped)
         if m:
             _flush_para()
-            while in_ol:
-                out.append("</ol>")
-                in_ol.pop()
             if in_dl:
                 out.append("</dl>")
                 in_dl = False
-            depth = len(m.group(1))
-            while len(in_ul) < depth:
-                out.append("<ul>")
-                in_ul.append(len(in_ul) + 1)
-            while len(in_ul) > depth:
-                out.append("</ul>")
-                in_ul.pop()
-            out.append(f"<li>{_inline(m.group(2))}</li>")
-            continue
-
-        # Ordered list: # / ## / ###
-        m = re.match(r"^(#+)\s*(.*)", stripped)
-        if m:
-            _flush_para()
-            while in_ul:
-                out.append("</ul>")
-                in_ul.pop()
-            if in_dl:
-                out.append("</dl>")
-                in_dl = False
-            depth = len(m.group(1))
-            while len(in_ol) < depth:
-                out.append("<ol>")
-                in_ol.append(len(in_ol) + 1)
-            while len(in_ol) > depth:
-                out.append("</ol>")
-                in_ol.pop()
-            out.append(f"<li>{_inline(m.group(2))}</li>")
+            tags = ["ul" if c == "*" else "ol" for c in m.group(1)]
+            common = 0
+            while common < min(len(tags), len(list_stack)) and tags[common] == list_stack[common]:
+                common += 1
+            # Close lists this line does not continue
+            while len(list_stack) > common:
+                out.append(f"</li></{list_stack.pop()}>")
+            if len(tags) == common:
+                out.append("</li>")          # next item at the same level
+            # Open deeper lists inside the current item; skipped levels get an empty item
+            for i, tag in enumerate(tags[common:]):
+                if i:
+                    out.append("<li>")
+                out.append(f"<{tag}>")
+                list_stack.append(tag)
+            out.append(f"<li>{_inline(m.group(2))}")
             continue
 
         # Definition list: ; term : definition

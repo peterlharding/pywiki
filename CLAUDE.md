@@ -14,6 +14,7 @@ Production instances use port `8` + the instance IP's last octet (e.g. `8222`); 
 ```bash
 make venv && make install        # uv venv .venv; uv pip install -r requirements.txt (includes pytest + ruff)
 make dev                          # uvicorn app.main:app --reload on $APP_PORT
+make start-bg                     # same without --reload, in the background, logging to /tmp/$APP_LOG
 make test                         # full pytest suite (in-memory SQLite, no external DB needed)
 make lint                         # ruff check app/ tests/
 

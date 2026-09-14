@@ -9,6 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **`make start-bg`** runs the server in the background, logging to `/tmp/$APP_LOG` (`APP_LOG` in `.env`, default `pywiki-<APP_PORT>.log`). It replaces `make run`.
+
+### Fixed
+- **Makefile** - reading `APP_NAME`, `APP_PORT` and `APP_LOG` no longer prints `grep: .env: No such file or directory` when there is no `.env`; a duplicate `APP_PORT` line was removed; `start-bg` now sends errors to its log file instead of the terminal.
+
 
 ---
 

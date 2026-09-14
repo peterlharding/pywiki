@@ -102,6 +102,7 @@ make test
 ## Makefile targets
 ```
 make dev          # run with --reload
+make start-bg     # run in the background, logging to /tmp/$APP_LOG
 make test         # run pytest with live output
 make lint         # ruff check
 make db-upgrade   # alembic upgrade head

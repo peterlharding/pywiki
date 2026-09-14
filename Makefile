@@ -1,24 +1,30 @@
 
-NAME       :=  $(shell grep "^APP_NAME=" .env | sed 's/APP_NAME=//')
+# Values from .env (grep -s: no error when .env is missing)
+NAME       :=  $(shell grep -s "^APP_NAME=" .env | sed 's/APP_NAME=//')
 APP_PORT   :=  $(shell grep -s "^APP_PORT=" .env | sed 's/APP_PORT=//')
-APP_PORT   :=  $(shell grep "^APP_PORT=" .env | sed 's/APP_PORT=//')
-APP_LOG    :=  $(shell grep "^APP_LOG=" .env | sed 's/APP_LOG=//')
+APP_LOG    :=  $(shell grep -s "^APP_LOG=" .env | sed 's/APP_LOG=//')
 
 # Development default; production instances set APP_PORT in .env (see setup/README.md)
 ifeq ($(strip $(APP_PORT)),)
 APP_PORT   :=  8000
 endif
 
+# Log file for start-bg, written under /tmp
+ifeq ($(strip $(APP_LOG)),)
+APP_LOG    :=  pywiki-$(APP_PORT).log
+endif
+
 
 # -----------------------------------------------------------------------------
 
-.PHONY: install run dev test test-v lint clean import-mw \
+.PHONY: chk-env venv install start-bg dev test test-q test-v lint clean import-mw \
         db-upgrade db-downgrade db-revision db-history db-current db-reset-dev
 
 
 # -----------------------------------------------------------------------------
 
 chk-env:
+	@echo "APP_NAME |${NAME}|"
 	@echo "APP_PORT |${APP_PORT}|"
 	@echo " APP_LOG |${APP_LOG}|"
 
@@ -31,8 +37,9 @@ install:
 
 # -----------------------------------------------------------------------------
 
+# Run in the background; stdout and stderr both go to /tmp/$(APP_LOG)
 start-bg:
-	nohup uvicorn app.main:app --host 127.0.0.1 --port ${APP_PORT} 2>& 1  > /tmp/${APP_LOG} &
+	nohup uvicorn app.main:app --host 127.0.0.1 --port ${APP_PORT} > /tmp/${APP_LOG} 2>&1 &
 
 dev:
 	uvicorn app.main:app --host 127.0.0.1 --port ${APP_PORT} --reload

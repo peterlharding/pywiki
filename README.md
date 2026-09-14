@@ -19,8 +19,8 @@ A MediaWiki-inspired wiki built with **FastAPI** and **Python**, supporting both
 
 ## Quick Start
 
-Checkout the files in the deploy sub directory. You should customize
-these to suit your deloyment requirements.  For example, for 'newwiki':
+All installation materials live in the `setup/` sub directory (see `setup/README.md`).
+You should customize these to suit your deployment requirements.  For example, for 'newwiki':
 
 ```bash
 # 1. Clone and enter the repo
@@ -50,7 +50,7 @@ The database access will also need a pywiki user:
   -----------+------------------------------------------------------------
    pywiki    |
 
-If it does not exist you will need to create it - To do so run sql/add_pywiki.sql
+If it does not exist you will need to create it - To do so run setup/02_setup_db.sh
 as the Postgres superuser.
 
 
@@ -81,7 +81,7 @@ or:
 
 # 5. Copy and edit the environment file
 
-  cp .env.example .env
+  cp setup/env.template .env
 
 ## Edit .env and set DATABASE_URL for your environment (see below)
 ## And the PORT to use to publish both the  WEB UI and API UI
@@ -89,7 +89,9 @@ or:
 # Setup the Database
 
 As your root Postgres user create the newwiki DB and run the script -
-sql/grant.sql - to assign ownership and privileges to 'pywiki'
+setup/grant.sql - to assign ownership and privileges to 'pywiki':
+
+  psql -d newwiki -v db_name=newwiki -f setup/grant.sql
 
 
 # 6. Apply database migrations
@@ -99,12 +101,14 @@ sql/grant.sql - to assign ownership and privileges to 'pywiki'
 
 # 7. Start the development server
 
-  uvicorn app.main:app --reload --port 8xxx
+  make dev          # uvicorn --reload on APP_PORT from .env (default 8000)
 ```
 
-Open http://localhost:8xxx in your browser.
+Open http://localhost:8000 in your browser.
 
-The API docs are at http://localhost:8xxx/api/docs.
+The API docs are at http://localhost:8000/api/docs.
+
+Production instances use a different port per instance; see "Port convention" in `setup/README.md`.
 
 ## Project Structure
 
@@ -148,13 +152,17 @@ pywiki/
 │   ├── test_01_auth.py
 │   ├── test_02_namespaces.py
 │   └── ...
-├── deploy/
-│   ├── 01_add_user.py       # Setup User and Group
+├── setup/                   # All installation / deployment material (see setup/README.md)
+│   ├── env.template         # Copy to .env
+│   ├── requirements.txt     # Production dependencies
+│   ├── 01_add_user.sh       # Setup User and Group
 │   ├── 02_setup_db.sh
+│   ├── grant.sql
 │   ├── 03_setup_service.sh
+│   ├── pywiki.service
+│   ├── nginx-pywiki.conf
 │   └── ...
 ├── alembic.ini
-├── .env.example
 ├── requirements.txt
 └── Makefile
 ```
@@ -273,7 +281,7 @@ make test
 
 ## Environment Variables
 
-See `.env.example` for all available settings. Key variables:
+See `setup/env.template` for all available settings. Key variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|

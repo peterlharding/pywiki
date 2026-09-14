@@ -9,15 +9,12 @@ Namespace service — create, read, list, and delete wiki namespaces.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Namespace, Page
 from app.schemas import NamespaceCreate, NamespaceUpdate
-
 
 # -----------------------------------------------------------------------------
 

@@ -1,5 +1,10 @@
 
-APP_PORT   :=  $(shell grep "^APP_PORT=" .env | sed 's/APP_PORT=//')
+APP_PORT   :=  $(shell grep -s "^APP_PORT=" .env | sed 's/APP_PORT=//')
+
+# Development default; production instances set APP_PORT in .env (see setup/README.md)
+ifeq ($(strip $(APP_PORT)),)
+APP_PORT   :=  8000
+endif
 
 
 # -----------------------------------------------------------------------------

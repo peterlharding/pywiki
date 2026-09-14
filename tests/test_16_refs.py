@@ -9,9 +9,7 @@ Tests for wikitext <ref> / <references /> footnote support.
 
 from __future__ import annotations
 
-import pytest
 from app.services.renderer import render
-
 
 # ── Basic plain refs ──────────────────────────────────────────────────────────
 

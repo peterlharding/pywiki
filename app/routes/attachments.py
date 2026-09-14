@@ -15,22 +15,22 @@ GET    /attachments/{att_id}/{filename}                              — direct 
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 # ----------------------------------------------------------------------------
-
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import get_current_user_id_bearer_or_cookie as get_current_user_id
 from app.schemas import AttachmentResponse, OKResponse
 from app.services.attachments import (
-    attachment_url, delete_attachment,
-    get_attachment, list_attachments, upload_attachment,
+    attachment_url,
+    delete_attachment,
+    get_attachment,
+    list_attachments,
+    upload_attachment,
 )
-
 
 # ----------------------------------------------------------------------------
 
@@ -115,6 +115,7 @@ async def serve_attachment(
     db: AsyncSession = Depends(get_db),
 ):
     from sqlalchemy import select
+
     from app.models import Attachment
     result = await db.execute(
         select(Attachment).where(Attachment.id == att_id, Attachment.filename == filename)

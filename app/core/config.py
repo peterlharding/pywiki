@@ -19,7 +19,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app._version import __version__ as _pkg_version
 
-
 # -----------------------------------------------------------------------------
 
 class Settings(BaseSettings):

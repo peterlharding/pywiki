@@ -11,8 +11,7 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import register_user, cookie_auth, auth_headers
-
+from tests.conftest import auth_headers, cookie_auth, register_user
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 

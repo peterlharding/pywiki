@@ -9,9 +9,7 @@ Heading anchor IDs are always generated regardless of whether a TOC is present.
 """
 from __future__ import annotations
 
-import pytest
-from app.services.renderer import render, TOC_MIN_HEADINGS, RENDERER_VERSION
-
+from app.services.renderer import RENDERER_VERSION, TOC_MIN_HEADINGS, render
 
 # ── RENDERER_VERSION ─────────────────────────────────────────────────────────
 

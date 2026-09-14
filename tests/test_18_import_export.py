@@ -16,7 +16,6 @@ from sqlalchemy import update
 from app.models import User
 from tests.conftest import auth_headers, cookie_auth, register_user
 
-
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
@@ -162,7 +161,7 @@ async def test_cross_ns_export(client, db_session):
 @pytest.mark.asyncio
 async def test_import_creates_new_pages(client, db_session):
     """ZIP import creates pages that don't exist yet."""
-    headers = await _setup(client, db_session, "impuser1", "IMPNS1")
+    await _setup(client, db_session, "impuser1", "IMPNS1")
     cookies = await cookie_auth(client, "impuser1")
 
     zip_bytes = _make_zip(
@@ -243,7 +242,7 @@ async def test_import_attachments(client, db_session):
 @pytest.mark.asyncio
 async def test_import_attachment_update(client, db_session):
     """Re-importing a ZIP updates existing attachment content."""
-    headers = await _setup(client, db_session, "impuser3b", "IMPNS3B")
+    await _setup(client, db_session, "impuser3b", "IMPNS3B")
     cookies = await cookie_auth(client, "impuser3b")
 
     zip_v1 = _make_zip(
@@ -268,7 +267,7 @@ async def test_import_attachment_update(client, db_session):
 @pytest.mark.asyncio
 async def test_import_rejects_bad_zip(client, db_session):
     """Uploading a non-ZIP file returns an error response."""
-    headers = await _setup(client, db_session, "impuser4", "IMPNS4")
+    await _setup(client, db_session, "impuser4", "IMPNS4")
     cookies = await cookie_auth(client, "impuser4")
 
     resp = await client.post(

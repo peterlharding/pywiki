@@ -19,12 +19,10 @@ to the correct wiki URL before final HTML output.
 from __future__ import annotations
 
 import re
-from typing import Optional
-
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 12
+RENDERER_VERSION = 13
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 # Sentinel injected by _expand_macros() in place of {{toc}} / __TOC__.
@@ -40,8 +38,8 @@ def _highlight_code(code: str, lang: str, attrs: str | None = None) -> str:
     """Highlight *code* using Pygments.  Falls back to plain <pre><code> on unknown language."""
     try:
         from pygments import highlight
-        from pygments.lexers import get_lexer_by_name, TextLexer
         from pygments.formatters import HtmlFormatter
+        from pygments.lexers import TextLexer, get_lexer_by_name
         from pygments.util import ClassNotFound
         try:
             lexer = get_lexer_by_name(lang.strip(), stripall=True) if lang.strip() else TextLexer()
@@ -56,8 +54,8 @@ def _highlight_code(code: str, lang: str, attrs: str | None = None) -> str:
 
 def _make_md_renderer():
     import mistune
-    from mistune.plugins.table import table
     from mistune.plugins.formatting import strikethrough
+    from mistune.plugins.table import table
     from mistune.plugins.url import url
 
     class _HighlightRenderer(mistune.HTMLRenderer):
@@ -73,8 +71,10 @@ def _make_md_renderer():
             import html as _html
             return f'<pre><code>{_html.escape(code)}</code></pre>'
 
+    # mistune >= 3.3 rewrites any URL scheme outside its allowlist to
+    # "#harmful-link"; unresolved attachment: refs must survive unchanged.
     md = mistune.create_markdown(
-        renderer=_HighlightRenderer(escape=False),
+        renderer=_HighlightRenderer(escape=False, allow_harmful_protocols=["attachment:"]),
         plugins=[table, strikethrough, url],
     )
     return md
@@ -111,7 +111,7 @@ def _preprocess_rst_math(content: str) -> str:
     # Block directive first (before inline to avoid partial matches)
     def _block(m: re.Match) -> str:
         lines = m.group(1).splitlines()
-        latex = '\n'.join(l.strip() for l in lines if l.strip())
+        latex = '\n'.join(line.strip() for line in lines if line.strip())
         return f'\n.. raw:: html\n\n   \\[{latex}\\]\n\n'
     content = _RST_MATH_BLOCK_RE.sub(_block, content)
 
@@ -724,7 +724,7 @@ def _render_wikitext(
     def _flush_para():
         if not para_buf:
             return
-        rendered = [_inline(l) for l in para_buf]
+        rendered = [_inline(line) for line in para_buf]
         para_buf.clear()
         # If the buffer is a single line that rendered to a block element, emit unwrapped
         if len(rendered) == 1 and _BLOCK_START_RE.match(rendered[0]):

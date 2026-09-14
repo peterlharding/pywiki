@@ -7,9 +7,7 @@ directly — no HTTP round-trip needed.
 """
 from __future__ import annotations
 
-import pytest
 from app.services.renderer import render
-
 
 # ── Markdown fenced code blocks ───────────────────────────────────────────────
 

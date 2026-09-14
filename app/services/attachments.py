@@ -10,7 +10,6 @@ Attachment service — upload, list, serve, and delete file attachments.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import aiofiles
 from fastapi import HTTPException, UploadFile, status
@@ -18,9 +17,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.models import Attachment, Page
-from .pages import get_page
+from app.models import Attachment
 
+from .pages import get_page
 
 # -----------------------------------------------------------------------------
 
@@ -30,7 +29,7 @@ async def upload_attachment(
     page_slug: str,
     file: UploadFile,
     comment: str = "",
-    uploaded_by: Optional[str] = None,
+    uploaded_by: str | None = None,
 ) -> Attachment:
     settings = get_settings()
 

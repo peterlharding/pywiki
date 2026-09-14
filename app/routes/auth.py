@@ -14,20 +14,25 @@ GET  /api/v1/auth/me        — current user info
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import (
-    create_access_token, create_refresh_token,
-    decode_token, get_current_user_id,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    get_current_user_id,
 )
 from app.schemas import RefreshRequest, TokenResponse, UserCreate, UserResponse, UserUpdate
 from app.services.users import (
-    authenticate_user, create_user, get_user_by_id,
-    set_admin, update_user,
+    authenticate_user,
+    create_user,
+    get_user_by_id,
+    set_admin,
+    update_user,
 )
 
 # -----------------------------------------------------------------------------

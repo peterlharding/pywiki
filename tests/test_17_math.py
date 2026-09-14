@@ -5,9 +5,7 @@ Wikitext: <math>...</math> and <math display="block">...</math>
 Markdown:  $...$ and $$...$$  (passed through as-is for KaTeX client-side)
 RST:       :math:`...` (docutils emits <span class="math">; no server transform needed)
 """
-import pytest
 from app.services.renderer import render
-
 
 # ---------------------------------------------------------------------------
 # Wikitext — <math> tag

@@ -15,7 +15,6 @@ from sqlalchemy import update
 from app.models import User
 from tests.conftest import auth_headers, cookie_auth, register_user
 
-
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
@@ -95,7 +94,7 @@ async def test_delete_page_requires_login(client, db_session):
 @pytest.mark.asyncio
 async def test_delete_page_not_found_returns_error(client, db_session):
     """Deleting a non-existent slug returns 404."""
-    headers = await _setup(client, db_session, "deluser4", "DELNS4")
+    await _setup(client, db_session, "deluser4", "DELNS4")
     cookies = await cookie_auth(client, "deluser4")
 
     resp = await client.post(

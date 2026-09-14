@@ -13,17 +13,15 @@ Security utilities
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt as _bcrypt_lib
-from fastapi import Cookie, Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
-
 # -----------------------------------------------------------------------------
-
 from .config import get_settings
 
 # ----------------------------------------------------------------------------
@@ -61,7 +59,7 @@ def _settings():
 
 def create_access_token(subject: str | int, extra: dict | None = None) -> str:
     s = _settings()
-    expire = datetime.now(tz=timezone.utc) + timedelta(minutes=s.access_token_expire_minutes)
+    expire = datetime.now(tz=UTC) + timedelta(minutes=s.access_token_expire_minutes)
     payload: dict[str, Any] = {
         "sub": str(subject),
         "exp": expire,
@@ -76,7 +74,7 @@ def create_access_token(subject: str | int, extra: dict | None = None) -> str:
 
 def create_refresh_token(subject: str | int) -> str:
     s = _settings()
-    expire = datetime.now(tz=timezone.utc) + timedelta(days=s.refresh_token_expire_days)
+    expire = datetime.now(tz=UTC) + timedelta(days=s.refresh_token_expire_days)
     return jwt.encode(
         {"sub": str(subject), "exp": expire, "type": "refresh"},
         s.secret_key,

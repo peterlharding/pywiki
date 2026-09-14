@@ -1,10 +1,34 @@
-# PyWiki — Server Deployment
+# PyWiki - Server Deployment
 
 Target: **https://pywiki.example.com**
+
+Everything needed to install PyWiki on a server lives in this `setup/` folder:
+
+| File | Purpose |
+|------|---------|
+| `env.template` | Template for `/opt/pywiki/.env` |
+| `requirements.txt` | Production dependencies (use instead of `pip install -e .`) |
+| `01_add_user.sh` | Create the `pywiki` system user and data directories (step 1) |
+| `02_setup_db.sh` | Create the PostgreSQL user and database (step 5) |
+| `grant.sql` | Assign database ownership and privileges to `pywiki` on an existing database |
+| `03_setup_service.sh` | Install and start the systemd service (step 7) |
+| `Makefile` | `make setup-venv` / `make setup-service` using names from `../.env` |
+| `pywiki.service` | systemd unit |
+| `nginx-pywiki.conf` | nginx reverse-proxy config (step 9) |
+| `setup-jose.sh` | Repair a `python-jose` install shadowed by a stale system `jose` package |
 
 | Service | External URL | Internal address |
 |---------|-------------|------------------|
 | PyWiki  | `https://pywiki.example.com` | `127.0.0.1:8222` |
+
+### Port convention
+
+Several instances can share one server, each behind its own nginx site.
+Each instance's uvicorn port is `8` followed by the last octet of that instance's IP address, zero-padded to three digits: `10.0.0.222` -> `8222`, `10.0.0.82` -> `8082`.
+Set it once as `APP_PORT` in `/opt/pywiki/.env`; `pywiki.service` reads it from there.
+The `proxy_pass` port in the nginx config must match.
+The examples below use `8222`.
+Development uses `8000`, which can never clash with an instance port because `.0` is not a host address.
 
 ---
 
@@ -23,10 +47,10 @@ sudo chown -R pywiki:pywiki /opt/pywiki
 Clone from the repository or rsync from the dev machine:
 
 ```bash
-# Option A — git clone
+# Option A - git clone
 sudo -u pywiki git clone <repo-url> /opt/pywiki
 
-# Option B — rsync from dev
+# Option B - rsync from dev
 rsync -av \
     --exclude='.venv' \
     --exclude='__pycache__' \
@@ -41,7 +65,7 @@ rsync -av \
 
 ## 3. Create virtual environment and install dependencies
 
-The venv **must not** inherit system site-packages — some distributions ship
+The venv **must not** inherit system site-packages - some distributions ship
 a stale Python 2 `jose` package globally that will shadow `python-jose` and
 cause a `SyntaxError` at startup.
 
@@ -50,7 +74,7 @@ sudo -u pywiki bash -c "
   cd /opt/pywiki
   python3 -m venv --clear .venv
   .venv/bin/pip install --upgrade pip setuptools wheel
-  .venv/bin/pip install -r deploy/requirements.txt
+  .venv/bin/pip install -r setup/requirements.txt
 "
 ```
 
@@ -59,7 +83,7 @@ sudo -u pywiki bash -c "
 > sudo -u pywiki bash -c "
 >   cd /opt/pywiki
 >   python3 -m venv --clear .venv
->   uv pip install -r deploy/requirements.txt --python .venv/bin/python
+>   uv pip install -r setup/requirements.txt --python .venv/bin/python
 > "
 > ```
 
@@ -88,7 +112,7 @@ sudo -u pywiki /opt/pywiki/.venv/bin/pip install --force-reinstall "python-jose[
 ## 4. Configure environment
 
 ```bash
-sudo cp /opt/pywiki/deploy/.env.example /opt/pywiki/.env
+sudo cp /opt/pywiki/setup/env.template /opt/pywiki/.env
 sudo nano /opt/pywiki/.env
 ```
 
@@ -96,8 +120,9 @@ Key values to set:
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string — set the real password |
+| `DATABASE_URL` | PostgreSQL connection string - set the real password |
 | `SECRET_KEY` | Generate: `python3 -c "import secrets; print(secrets.token_hex(64))"` |
+| `APP_PORT` | uvicorn port, per the port convention above (e.g. `8222`) |
 | `BASE_URL` | `https://pywiki.example.com` |
 | `ATTACHMENT_ROOT` | `/opt/pywiki/data/attachments` |
 | `SMTP_*` | Brevo (or other relay) credentials |
@@ -138,7 +163,7 @@ sudo -u pywiki bash -c "
 ## 7. Install and start the systemd service
 
 ```bash
-sudo cp /opt/pywiki/deploy/pywiki.service /etc/systemd/system/
+sudo cp /opt/pywiki/setup/pywiki.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable pywiki
 sudo systemctl start  pywiki
@@ -153,7 +178,14 @@ curl -s http://127.0.0.1:8222/ | head -5
 
 ---
 
-## 8. Obtain SSL certificate (if not already present)
+## 8. TLS certificate
+
+PyWiki does not ship or manage certificates; you need one for your own domain.
+`nginx-pywiki.conf` supports two options, and you enable exactly one of them.
+
+### Option A (default): Let's Encrypt
+
+Free, automated, and the right choice for most single-domain installs.
 
 ```bash
 # Ensure port 80 is open and nginx is serving the ACME challenge location
@@ -164,14 +196,31 @@ sudo certbot certonly --nginx -d pywiki.example.com
 > ```bash
 > sudo certbot certonly --standalone -d pywiki.example.com
 > ```
+>
+> Standalone renewals need port 80 free, which nginx will be holding once it is running.
+> After step 9, run `sudo certbot certonly --nginx -d pywiki.example.com --force-renewal` once so future renewals use the nginx plugin.
+
+Certificates land in `/etc/letsencrypt/live/<domain>/`, which is where option A in the nginx config already points.
+certbot installs a timer that renews them automatically; check it with `sudo certbot renew --dry-run`.
+
+### Option B: your own certificate
+
+Use this if you already hold a certificate for the domain, for example a wildcard `*.example.com` certificate shared by several sites on the same server.
+
+1. Install the full chain and private key on the server (keep the key readable only by root).
+2. In the nginx config, comment out the two option A `ssl_certificate*` lines and uncomment option B, pointing it at your files.
+3. Renewal is up to you: replace the files before they expire and reload nginx.
 
 ---
 
 ## 9. Install nginx config
 
+Replace `pywiki.example.com` with your domain and choose the certificate option before installing:
+
 ```bash
-sudo cp /opt/pywiki/deploy/nginx-pywiki.conf \
+sudo cp /opt/pywiki/setup/nginx-pywiki.conf \
     /etc/nginx/sites-available/pywiki.example.com
+sudo nano /etc/nginx/sites-available/pywiki.example.com
 sudo ln -s /etc/nginx/sites-available/pywiki.example.com \
     /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
@@ -187,7 +236,7 @@ sudo ufw allow 443/tcp
 sudo ufw status
 ```
 
-Port 8700 should **not** be exposed externally — nginx proxies to it on localhost.
+The `APP_PORT` port (e.g. 8222) should **not** be exposed externally - nginx proxies to it on localhost.
 
 ---
 
@@ -248,7 +297,7 @@ curl -s https://pywiki.example.com/special/status | head -20
 sudo -u pywiki bash -c "cd /opt/pywiki && git pull"
 
 # 2. Install any new dependencies
-sudo -u pywiki bash -c "cd /opt/pywiki && .venv/bin/pip install -e ."
+sudo -u pywiki bash -c "cd /opt/pywiki && .venv/bin/pip install -r setup/requirements.txt"
 
 # 3. Run any new migrations
 sudo -u pywiki bash -c "cd /opt/pywiki && PYTHONPATH=. .venv/bin/alembic upgrade head"

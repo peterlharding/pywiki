@@ -11,6 +11,7 @@ Uses an in-memory SQLite database so no external services are needed.
 from __future__ import annotations
 
 import os
+
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -22,11 +23,11 @@ os.environ["REQUIRE_EMAIL_VERIFICATION"] = "false"
 os.environ["SMTP_HOST"] = ""
 
 from app.core.config import get_settings
+
 get_settings.cache_clear()
 
-from app.core.database import Base, get_db
-from app.main import create_app
-
+from app.core.database import Base, get_db  # noqa: E402
+from app.main import create_app  # noqa: E402
 
 # -----------------------------------------------------------------------------
 

@@ -25,11 +25,12 @@ from app.core.database import get_db
 from app.core.security import get_current_user_id
 from app.models import Namespace, Page, PageVersion, User
 from app.schemas import (
-    AdminConfigResponse, AdminStatsResponse,
-    OKResponse, UserAdminResponse,
+    AdminConfigResponse,
+    AdminStatsResponse,
+    OKResponse,
+    UserAdminResponse,
 )
 from app.services.users import get_user_by_id, list_users, set_active
-
 
 # -----------------------------------------------------------------------------
 
@@ -55,7 +56,7 @@ async def get_stats(
     await _require_admin(user_id, db)
 
     user_count    = (await db.execute(select(func.count()).select_from(User))).scalar_one()
-    admin_count   = (await db.execute(select(func.count()).select_from(User).where(User.is_admin == True))).scalar_one()
+    admin_count   = (await db.execute(select(func.count()).select_from(User).where(User.is_admin.is_(True)))).scalar_one()
     ns_count      = (await db.execute(select(func.count()).select_from(Namespace))).scalar_one()
     page_count    = (await db.execute(select(func.count()).select_from(Page))).scalar_one()
     version_count = (await db.execute(select(func.count()).select_from(PageVersion))).scalar_one()

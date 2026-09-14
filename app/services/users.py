@@ -10,8 +10,7 @@ User service — create, authenticate, and manage user accounts.
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -20,7 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import hash_password, verify_password
 from app.models import User
 from app.schemas import UserCreate, UserUpdate
-
 
 # -----------------------------------------------------------------------------
 
@@ -136,8 +134,10 @@ async def list_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[
 async def get_user_contributions(
     db: AsyncSession, user_id: str, limit: int = 20
 ) -> list[dict]:
-    from sqlalchemy import select as sa_select, func
-    from app.models import PageVersion, Page, Namespace
+    from sqlalchemy import func
+    from sqlalchemy import select as sa_select
+
+    from app.models import Namespace, Page, PageVersion
 
     # Subquery: latest version number the user authored per page
     latest_sq = (
@@ -180,6 +180,7 @@ async def get_user_contributions(
 
 async def get_user_edit_count(db: AsyncSession, user_id: str) -> int:
     from sqlalchemy import func
+
     from app.models import PageVersion
     result = await db.execute(
         select(func.count()).select_from(PageVersion).where(PageVersion.author_id == user_id)
@@ -218,7 +219,7 @@ async def set_reset_token(db: AsyncSession, email: str) -> tuple[User, str]:
         raise HTTPException(status_code=404, detail="No account with that email address")
     token = secrets.token_urlsafe(32)
     user.reset_token = token
-    user.reset_token_expires = datetime.now(tz=timezone.utc) + timedelta(hours=1)
+    user.reset_token_expires = datetime.now(tz=UTC) + timedelta(hours=1)
     await db.flush()
     return user, token
 
@@ -232,8 +233,8 @@ async def consume_reset_token(db: AsyncSession, token: str, new_password: str) -
         raise HTTPException(status_code=400, detail="Invalid or expired reset link")
     expires = user.reset_token_expires
     if expires.tzinfo is None:
-        expires = expires.replace(tzinfo=timezone.utc)
-    if datetime.now(tz=timezone.utc) > expires:
+        expires = expires.replace(tzinfo=UTC)
+    if datetime.now(tz=UTC) > expires:
         raise HTTPException(status_code=400, detail="Reset link has expired")
     user.password_hash = hash_password(new_password)
     user.reset_token = None

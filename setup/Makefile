@@ -17,10 +17,10 @@ chk-env:
 # -----------------------------------------------------------------------------
 
 setup-venv:
-	(cd ..; make venv; activate; make install)
+	cd .. && $(MAKE) venv && $(MAKE) install
 
 setup-service:
-	cp /opt/${DIR_NAME}/deploy/${SERVICE_NAME}.service /etc/systemd/system/
+	cp /opt/${DIR_NAME}/setup/${SERVICE_NAME}.service /etc/systemd/system/
 	systemctl daemon-reload
 	systemctl enable ${SERVICE_NAME}
 	systemctl start  ${SERVICE_NAME}

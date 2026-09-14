@@ -12,7 +12,6 @@ from httpx import AsyncClient
 
 from tests.conftest import auth_headers, login_user, register_user
 
-
 # -----------------------------------------------------------------------------
 
 @pytest.mark.asyncio

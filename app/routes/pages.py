@@ -19,23 +19,24 @@ DELETE /api/v1/namespaces/{ns}/pages/{slug}                — delete page      
 
 from __future__ import annotations
 
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.services.renderer import is_cache_valid
 from app.schemas import (
-    DiffResponse, OKResponse,
-    PageCreate, PageRename, PageResponse,
-    PageSummary, PageUpdate, PageVersionResponse,
+    DiffResponse,
+    OKResponse,
+    PageCreate,
+    PageRename,
+    PageResponse,
+    PageSummary,
+    PageUpdate,
+    PageVersionResponse,
 )
 from app.services import pages as page_svc
-from app.services.renderer import render
-
+from app.services.renderer import is_cache_valid, render
 
 # -----------------------------------------------------------------------------
 
@@ -56,7 +57,7 @@ async def list_pages(
     namespace_name: str,
     skip:   int          = Query(0, ge=0),
     limit:  int          = Query(100, ge=1, le=500),
-    search: Optional[str] = Query(None, max_length=256),
+    search: str | None = Query(None, max_length=256),
     db: AsyncSession     = Depends(get_db),
 ):
     return await page_svc.list_pages(db, namespace_name, skip=skip, limit=limit, search=search)
@@ -83,7 +84,7 @@ async def create_page(
 async def get_page(
     namespace_name: str,
     slug: str,
-    version: Optional[int] = Query(None, ge=1),
+    version: int | None = Query(None, ge=1),
     render_html: bool      = Query(True, alias="render"),
     db: AsyncSession       = Depends(get_db),
 ):
@@ -108,7 +109,7 @@ async def get_page(
 async def get_page_raw(
     namespace_name: str,
     slug: str,
-    version: Optional[int] = Query(None, ge=1),
+    version: int | None = Query(None, ge=1),
     db: AsyncSession       = Depends(get_db),
 ):
     """Return raw Markdown / RST source as plain text."""

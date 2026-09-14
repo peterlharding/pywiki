@@ -4,15 +4,15 @@ from __future__ import annotations
 try:
     # Always prefer pyproject.toml when running from source — this stays correct
     # without requiring `pip install -e .` after every version bump.
-    from pathlib import Path
     import re
+    from pathlib import Path
     _pyproject = Path(__file__).parent.parent / "pyproject.toml"
     if _pyproject.exists():
         _match = re.search(r'^version\s*=\s*"([^"]+)"', _pyproject.read_text(), re.MULTILINE)
         __version__: str = _match.group(1) if _match else "0.0.0"
     else:
         # Installed as a package without source tree — fall back to package metadata.
-        from importlib.metadata import version, PackageNotFoundError
+        from importlib.metadata import PackageNotFoundError, version
         try:
             __version__ = version("pywiki")
         except PackageNotFoundError:

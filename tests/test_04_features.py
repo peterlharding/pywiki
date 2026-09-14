@@ -12,13 +12,11 @@ Redirect (#REDIRECT) tests: test_06_redirects.py
 from __future__ import annotations
 
 import pytest
-from httpx import AsyncClient
 from sqlalchemy import update
 
 from app.models import User
 from app.services.renderer import extract_categories
 from tests.conftest import auth_headers, register_user
-
 
 # -----------------------------------------------------------------------------
 # Helpers

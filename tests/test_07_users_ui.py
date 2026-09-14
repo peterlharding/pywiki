@@ -11,8 +11,7 @@ import pytest
 from sqlalchemy import update
 
 from app.models import User
-from tests.conftest import auth_headers, cookie_auth, register_user
-
+from tests.conftest import cookie_auth, register_user
 
 # -----------------------------------------------------------------------------
 # Helpers

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TypedDict
 
 MAX_RECORDS = 500
@@ -29,7 +29,7 @@ class _MemoryHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         try:
             _buffer.append(LogRecord(
-                ts=datetime.fromtimestamp(record.created, tz=timezone.utc)
+                ts=datetime.fromtimestamp(record.created, tz=UTC)
                           .strftime("%Y-%m-%d %H:%M:%S"),
                 level=record.levelname,
                 logger=record.name,

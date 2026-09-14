@@ -20,7 +20,6 @@ from app.core.database import get_db
 from app.services.attachments import attachment_url, list_attachments
 from app.services.renderer import render
 
-
 # -----------------------------------------------------------------------------
 
 router = APIRouter(prefix="/render", tags=["render"])

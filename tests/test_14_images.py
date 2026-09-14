@@ -7,9 +7,7 @@ test_03_pages.py / test_04_attachments.py (if present).
 """
 from __future__ import annotations
 
-import pytest
-from app.services.renderer import render, RENDERER_VERSION
-
+from app.services.renderer import RENDERER_VERSION, render
 
 # ── RENDERER_VERSION ─────────────────────────────────────────────────────────
 

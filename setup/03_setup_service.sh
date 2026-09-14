@@ -6,7 +6,7 @@
 
 set -x
 
-cp /opt/pywiki/deploy/pywiki.service /etc/systemd/system/
+cp /opt/pywiki/setup/pywiki.service /etc/systemd/system/
 
 systemctl daemon-reload
 systemctl enable pywiki

@@ -31,40 +31,58 @@ POST /create                    — create new page
 from __future__ import annotations
 
 import re
-from typing import Optional
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import (
-    create_access_token, create_refresh_token,
-    get_current_user_id_cookie, get_refreshed_user_id_cookie,
+    create_access_token,
+    create_refresh_token,
+    get_refreshed_user_id_cookie,
 )
-from app.schemas import PageCreate, PageUpdate, PageRename, UserCreate, UserUpdate, NamespaceCreate, NamespaceUpdate
+from app.schemas import (
+    NamespaceCreate,
+    NamespaceUpdate,
+    PageCreate,
+    PageRename,
+    PageUpdate,
+    UserCreate,
+    UserUpdate,
+)
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
 from app.services.attachments import attachment_url, list_attachments, upload_attachment
-from app.services.renderer import render as render_markup, extract_categories, parse_redirect, is_cache_valid, RENDERER_VERSION as renderer_version
+from app.services.email import send_password_reset_email, send_verification_email
+from app.services.renderer import RENDERER_VERSION as renderer_version
+from app.services.renderer import extract_categories, is_cache_valid, parse_redirect
+from app.services.renderer import render as render_markup
 from app.services.users import (
-    authenticate_user, create_user, get_user_by_id_or_none,
-    list_users, get_user_by_username, update_user, set_admin, set_active,
-    get_user_contributions, get_user_edit_count,
-    set_verification_token, verify_email_token,
-    set_reset_token, consume_reset_token,
+    authenticate_user,
+    consume_reset_token,
+    create_user,
+    get_user_by_id_or_none,
+    get_user_by_username,
+    get_user_contributions,
+    get_user_edit_count,
+    list_users,
+    set_active,
+    set_admin,
+    set_reset_token,
+    set_verification_token,
+    update_user,
+    verify_email_token,
 )
-from app.services.email import send_verification_email, send_password_reset_email
-
 
 # -----------------------------------------------------------------------------
 
 router = APIRouter(tags=["ui"])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 # -----------------------------------------------------------------------------
@@ -126,7 +144,7 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     # Try to load the Main page of the default namespace
     featured_page = None
     try:
-        ns = await ns_svc.get_namespace_by_name(db, settings.default_namespace)
+        await ns_svc.get_namespace_by_name(db, settings.default_namespace)
         page, ver = await page_svc.get_page(db, settings.default_namespace, "main-page")
         rendered = ver.rendered if is_cache_valid(ver.rendered) else render_markup(
             ver.content, ver.format,
@@ -154,7 +172,7 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get("/recent", response_class=HTMLResponse)
 async def recent_changes(
     request: Request,
-    namespace: Optional[str] = None,
+    namespace: str | None = None,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
 ):
@@ -219,9 +237,9 @@ async def category_index(
 async def namespace_index(
     request: Request,
     namespace_name: str,
-    import_ok: Optional[str] = None,
-    import_error: Optional[str] = None,
-    att_ok: Optional[str] = None,
+    import_ok: str | None = None,
+    import_error: str | None = None,
+    att_ok: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -250,11 +268,10 @@ async def export_namespace(
     db: AsyncSession = Depends(get_db),
 ):
     """Download all pages (latest version) + attachments as a ZIP archive."""
-    import io
-    import zipfile
     from fastapi.responses import StreamingResponse
     from sqlalchemy import select as sa_select
-    from app.models import Attachment, Page, PageVersion
+
+    from app.models import Page, PageVersion
 
     user, _ = await _current_user(request, db)
     if not user:
@@ -296,7 +313,9 @@ async def _build_zip(db, namespace_name, rows, settings):
     """Build an in-memory ZIP from (Page, PageVersion) rows."""
     import io
     import zipfile
+
     from sqlalchemy import select as sa_select
+
     from app.models import Attachment
 
     _ext = {"markdown": ".md", "rst": ".rst", "wikitext": ".wiki"}
@@ -329,6 +348,7 @@ async def export_selected_pages(
     """Export a user-selected subset of pages as a ZIP archive."""
     from fastapi.responses import StreamingResponse
     from sqlalchemy import select as sa_select
+
     from app.models import Page, PageVersion
 
     user, _ = await _current_user(request, db)
@@ -388,9 +408,13 @@ async def import_pages(
     import mimetypes
     import zipfile
     from pathlib import Path
+
     from sqlalchemy import select as sa_select
-    from app.models import Attachment, Page as PageModel
-    from app.schemas import PageCreate, PageUpdate as PU
+
+    from app.models import Attachment
+    from app.models import Page as PageModel
+    from app.schemas import PageCreate
+    from app.schemas import PageUpdate as PU
 
     user, new_token = await _current_user(request, db)
     if not user:
@@ -552,9 +576,9 @@ async def view_page(
     request: Request,
     namespace_name: str,
     slug: str,
-    version: Optional[int] = None,
-    redirect: Optional[str] = None,
-    redirected_from: Optional[str] = None,
+    version: int | None = None,
+    redirect: str | None = None,
+    redirected_from: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -827,7 +851,6 @@ async def move_page_submit(
     if not user:
         return _login_redirect(f"/wiki/{namespace_name}/{slug}/move")
 
-    from app.schemas import PageRename
     try:
         page = await page_svc.rename_page(
             db, namespace_name, slug,
@@ -922,9 +945,9 @@ async def page_diff(
 @router.get("/create", response_class=HTMLResponse)
 async def create_page_form(
     request: Request,
-    namespace: Optional[str] = None,
-    title: Optional[str] = None,
-    back: Optional[str] = None,
+    namespace: str | None = None,
+    title: str | None = None,
+    back: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -1030,11 +1053,13 @@ async def export_selected_cross_namespace(
     db: AsyncSession = Depends(get_db),
 ):
     """Export pages from multiple namespaces as a single ZIP (from search results)."""
-    from fastapi.responses import StreamingResponse
-    from sqlalchemy import select as sa_select
-    from app.models import Attachment, Page, PageVersion, Namespace as NSModel
     import io
     import zipfile
+
+    from fastapi.responses import StreamingResponse
+    from sqlalchemy import select as sa_select
+
+    from app.models import Attachment, Page, PageVersion
 
     user, _ = await _current_user(request, db)
     if not user:
@@ -1104,12 +1129,12 @@ async def export_selected_cross_namespace(
 @router.get("/search", response_class=HTMLResponse)
 async def search_view(
     request: Request,
-    q: Optional[str] = None,
-    namespace: Optional[str] = None,
-    format: Optional[str] = None,
-    author: Optional[str] = None,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
+    q: str | None = None,
+    namespace: str | None = None,
+    format: str | None = None,
+    author: str | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -1391,10 +1416,10 @@ async def reset_password_submit(
 @router.get("/special/upload", response_class=HTMLResponse)
 async def special_upload_form(
     request: Request,
-    namespace: Optional[str] = None,
-    page: Optional[str] = None,
-    filename: Optional[str] = None,
-    back: Optional[str] = None,
+    namespace: str | None = None,
+    page: str | None = None,
+    filename: str | None = None,
+    back: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -1470,7 +1495,7 @@ async def special_upload_submit(
 @router.get("/special/categories", response_class=HTMLResponse)
 async def special_categories(
     request: Request,
-    from_: Optional[str] = None,
+    from_: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -1493,8 +1518,11 @@ async def special_pages(request: Request, db: AsyncSession = Depends(get_db)):
     user, new_token = await _current_user(request, db)
     settings = get_settings()
 
-    from sqlalchemy import func, select as sa_select
-    from app.models import Page, PageVersion, User as UserModel
+    from sqlalchemy import func
+    from sqlalchemy import select as sa_select
+
+    from app.models import Page, PageVersion
+    from app.models import User as UserModel
 
     total_pages    = (await db.execute(sa_select(func.count()).select_from(Page))).scalar_one()
     total_versions = (await db.execute(sa_select(func.count()).select_from(PageVersion))).scalar_one()
@@ -1547,8 +1575,11 @@ async def site_status(request: Request, db: AsyncSession = Depends(get_db)):
     user, new_token = await _current_user(request, db)
     settings = get_settings()
 
-    from sqlalchemy import func, select as sa_select
-    from app.models import Page, PageVersion, User as UserModel
+    from sqlalchemy import func
+    from sqlalchemy import select as sa_select
+
+    from app.models import Page, PageVersion
+    from app.models import User as UserModel
 
     total_pages    = (await db.execute(sa_select(func.count()).select_from(Page))).scalar_one()
     total_versions = (await db.execute(sa_select(func.count()).select_from(PageVersion))).scalar_one()
@@ -1578,9 +1609,11 @@ async def site_status(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/special/health", response_class=HTMLResponse)
 async def special_health(request: Request, db: AsyncSession = Depends(get_db)):
-    from sqlalchemy import text
-    from app.core.database import get_session_factory
     import time
+
+    from sqlalchemy import text
+
+    from app.core.database import get_session_factory
 
     user_obj, new_token = await _current_user(request, db)
     settings = get_settings()
@@ -1624,7 +1657,7 @@ async def special_health(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get("/special/logs", response_class=HTMLResponse)
 async def special_logs(
     request: Request,
-    level: Optional[str] = "WARNING",
+    level: str | None = "WARNING",
     db: AsyncSession = Depends(get_db),
 ):
     from app.core.logging_buffer import get_records
@@ -1866,7 +1899,7 @@ async def user_create_submit(
     if not user or not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin only")
     try:
-        new_user = await create_user(db, UserCreate(
+        await create_user(db, UserCreate(
             username=username,
             display_name=display_name or username,
             email=email,

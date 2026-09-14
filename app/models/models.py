@@ -22,16 +22,22 @@ All primary keys are UUIDs.  Timestamps stored in UTC.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
-    Boolean, DateTime, ForeignKey, Index, Integer,
-    String, Text, UniqueConstraint, BigInteger,
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-
 
 # ----------------------------------------------------------------------------
 
@@ -47,7 +53,7 @@ def _uuid_col(primary_key=False, nullable=False, **kw):
 
 
 def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
+    return datetime.now(tz=UTC)
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -72,8 +78,8 @@ class User(Base):
     updated_at:   Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
     # Relationships
-    page_versions: Mapped[list["PageVersion"]] = relationship(back_populates="author")
-    attachments:   Mapped[list["Attachment"]]  = relationship(back_populates="uploaded_by_user")
+    page_versions: Mapped[list[PageVersion]] = relationship(back_populates="author")
+    attachments:   Mapped[list[Attachment]]  = relationship(back_populates="uploaded_by_user")
 
     def to_dict(self) -> dict:
         return {
@@ -105,7 +111,7 @@ class Namespace(Base):
     created_at:     Mapped[datetime]   = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     # Relationships
-    pages: Mapped[list["Page"]] = relationship(back_populates="namespace", cascade="all, delete-orphan")
+    pages: Mapped[list[Page]] = relationship(back_populates="namespace", cascade="all, delete-orphan")
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -126,17 +132,17 @@ class Page(Base):
     created_at:   Mapped[datetime]   = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     # Relationships
-    namespace:   Mapped["Namespace"]           = relationship(back_populates="pages")
-    creator:     Mapped["User | None"]         = relationship(foreign_keys=[created_by])
-    versions:    Mapped[list["PageVersion"]]   = relationship(
+    namespace:   Mapped[Namespace]           = relationship(back_populates="pages")
+    creator:     Mapped[User | None]         = relationship(foreign_keys=[created_by])
+    versions:    Mapped[list[PageVersion]]   = relationship(
         back_populates="page",
         cascade="all, delete-orphan",
         order_by="PageVersion.version",
     )
-    attachments: Mapped[list["Attachment"]]   = relationship(back_populates="page", cascade="all, delete-orphan")
+    attachments: Mapped[list[Attachment]]   = relationship(back_populates="page", cascade="all, delete-orphan")
 
     @property
-    def latest_version(self) -> "PageVersion | None":
+    def latest_version(self) -> PageVersion | None:
         return self.versions[-1] if self.versions else None
 
 
@@ -164,8 +170,8 @@ class PageVersion(Base):
     created_at: Mapped[datetime]   = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     # Relationships
-    page:   Mapped["Page"]       = relationship(back_populates="versions")
-    author: Mapped["User | None"] = relationship(back_populates="page_versions")
+    page:   Mapped[Page]       = relationship(back_populates="versions")
+    author: Mapped[User | None] = relationship(back_populates="page_versions")
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -188,5 +194,5 @@ class Attachment(Base):
     comment:      Mapped[str]        = mapped_column(String(512), default="", nullable=False)
     uploaded_at:  Mapped[datetime]   = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    page:             Mapped["Page"]       = relationship(back_populates="attachments")
-    uploaded_by_user: Mapped["User | None"] = relationship(back_populates="attachments")
+    page:             Mapped[Page]       = relationship(back_populates="attachments")
+    uploaded_by_user: Mapped[User | None] = relationship(back_populates="attachments")

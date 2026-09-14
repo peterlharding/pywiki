@@ -15,7 +15,7 @@ DELETE /api/v1/namespaces/{name}           — delete namespace  [auth, admin]
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -23,7 +23,6 @@ from app.core.security import get_current_user_id
 from app.schemas import NamespaceCreate, NamespaceResponse, NamespaceUpdate, OKResponse
 from app.services import namespaces as ns_svc
 from app.services.users import get_user_by_id
-
 
 # -----------------------------------------------------------------------------
 

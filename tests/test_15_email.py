@@ -11,12 +11,13 @@ Email sending is patched out via unittest.mock so no SMTP server is needed.
 
 from __future__ import annotations
 
-import pytest
+from datetime import UTC
 from unittest.mock import AsyncMock, patch
 
-from tests.conftest import register_user
-from app.core.config import get_settings
+import pytest
 
+from app.core.config import get_settings
+from tests.conftest import register_user
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -79,8 +80,8 @@ async def test_send_reset_email_no_smtp(capsys):
 
 @pytest.mark.asyncio
 async def test_set_and_verify_email_token(db_session):
-    from app.services.users import create_user, set_verification_token, verify_email_token
     from app.schemas import UserCreate
+    from app.services.users import create_user, set_verification_token, verify_email_token
 
     user = await create_user(db_session, UserCreate(
         username="verifytest", email="verify@example.com",
@@ -101,6 +102,7 @@ async def test_set_and_verify_email_token(db_session):
 @pytest.mark.asyncio
 async def test_verify_email_bad_token(db_session):
     from fastapi import HTTPException
+
     from app.services.users import verify_email_token
 
     with pytest.raises(HTTPException) as exc_info:
@@ -110,8 +112,8 @@ async def test_verify_email_bad_token(db_session):
 
 @pytest.mark.asyncio
 async def test_set_and_consume_reset_token(db_session):
-    from app.services.users import create_user, set_reset_token, consume_reset_token
     from app.schemas import UserCreate
+    from app.services.users import consume_reset_token, create_user, set_reset_token
 
     user = await create_user(db_session, UserCreate(
         username="resettest", email="reset@example.com",
@@ -134,6 +136,7 @@ async def test_set_and_consume_reset_token(db_session):
 @pytest.mark.asyncio
 async def test_reset_token_wrong_email(db_session):
     from fastapi import HTTPException
+
     from app.services.users import set_reset_token
 
     with pytest.raises(HTTPException) as exc_info:
@@ -143,10 +146,12 @@ async def test_reset_token_wrong_email(db_session):
 
 @pytest.mark.asyncio
 async def test_consume_expired_reset_token(db_session):
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
+
     from fastapi import HTTPException
-    from app.services.users import create_user, set_reset_token, consume_reset_token
+
     from app.schemas import UserCreate
+    from app.services.users import consume_reset_token, create_user, set_reset_token
 
     user = await create_user(db_session, UserCreate(
         username="expiredtest", email="expired@example.com",
@@ -156,7 +161,7 @@ async def test_consume_expired_reset_token(db_session):
     _, token = await set_reset_token(db_session, "expired@example.com")
 
     # Force the expiry into the past
-    user.reset_token_expires = datetime.now(tz=timezone.utc) - timedelta(hours=2)
+    user.reset_token_expires = datetime.now(tz=UTC) - timedelta(hours=2)
     await db_session.flush()
 
     with pytest.raises(HTTPException) as exc_info:
@@ -251,6 +256,7 @@ async def test_full_verification_flow(client, db_session):
 
     # Fetch the token directly from DB
     from sqlalchemy import select
+
     from app.models import User
     result = await db_session.execute(select(User).where(User.username == "flowuser"))
     user = result.scalar_one_or_none()
@@ -284,6 +290,7 @@ async def test_full_reset_flow(client, db_session):
 
     # Grab token from DB
     from sqlalchemy import select
+
     from app.models import User
     result = await db_session.execute(select(User).where(User.username == "resetflow"))
     user = result.scalar_one()

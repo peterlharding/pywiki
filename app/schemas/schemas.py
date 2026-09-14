@@ -10,10 +10,8 @@ Pydantic v2 schemas for request validation and response serialisation.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
-
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Shared
@@ -63,9 +61,9 @@ class UserCreate(BaseModel):
 # -----------------------------------------------------------------------------
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    display_name: Optional[str] = Field(None, max_length=128)
-    password: Optional[str] = Field(None, min_length=8, max_length=256)
+    email: EmailStr | None = None
+    display_name: str | None = Field(None, max_length=128)
+    password: str | None = Field(None, min_length=8, max_length=256)
 
 
 # -----------------------------------------------------------------------------
@@ -105,8 +103,8 @@ class NamespaceCreate(BaseModel):
 # -----------------------------------------------------------------------------
 
 class NamespaceUpdate(BaseModel):
-    description: Optional[str] = Field(None, max_length=1000)
-    default_format: Optional[str] = None
+    description: str | None = Field(None, max_length=1000)
+    default_format: str | None = None
 
     @field_validator("default_format")
     @classmethod
@@ -123,7 +121,7 @@ class NamespaceResponse(BaseModel):
     name: str
     description: str
     default_format: str
-    page_count: Optional[int] = None
+    page_count: int | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -151,7 +149,7 @@ class PageCreate(BaseModel):
 
 class PageUpdate(BaseModel):
     content: str = Field(..., max_length=10_000_000)
-    format: Optional[str] = None
+    format: str | None = None
     comment: str = Field(default="", max_length=512)
 
     @field_validator("format")
@@ -177,8 +175,8 @@ class PageVersionResponse(BaseModel):
     version: int
     content: str
     format: str
-    author_id: Optional[str]
-    author_username: Optional[str]
+    author_id: str | None
+    author_username: str | None
     comment: str
     created_at: datetime
 
@@ -195,9 +193,9 @@ class PageResponse(BaseModel):
     version: int
     content: str
     format: str
-    rendered: Optional[str]
-    author_id: Optional[str]
-    author_username: Optional[str]
+    rendered: str | None
+    author_id: str | None
+    author_username: str | None
     comment: str
     created_at: datetime
     updated_at: datetime
@@ -215,7 +213,7 @@ class PageSummary(BaseModel):
     slug: str
     version: int
     format: str
-    author_username: Optional[str]
+    author_username: str | None
     updated_at: datetime
 
     model_config = {"from_attributes": True}
@@ -242,7 +240,7 @@ class AttachmentResponse(BaseModel):
     content_type: str
     size_bytes: int
     comment: str
-    uploaded_by: Optional[str]
+    uploaded_by: str | None
     uploaded_at: datetime
     url: str
 
@@ -259,7 +257,7 @@ class SearchResult(BaseModel):
     slug: str
     snippet: str
     format: str = ""
-    author: Optional[str] = None
+    author: str | None = None
     updated_at: datetime
     rank: float = 0.0
 

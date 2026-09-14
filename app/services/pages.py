@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import difflib
 import re
-from typing import Optional
+from datetime import UTC
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -25,8 +25,8 @@ from sqlalchemy.orm import selectinload
 
 from app.models import Namespace, Page, PageVersion, User
 from app.schemas import PageCreate, PageRename, PageUpdate
-from .namespaces import get_namespace_by_name
 
+from .namespaces import get_namespace_by_name
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -55,7 +55,7 @@ async def _get_page(db: AsyncSession, ns_id: str, slug: str) -> Page:
     return page
 
 
-async def _latest_version(db: AsyncSession, page_id: str) -> Optional[PageVersion]:
+async def _latest_version(db: AsyncSession, page_id: str) -> PageVersion | None:
     result = await db.execute(
         select(PageVersion)
         .where(PageVersion.page_id == page_id)
@@ -81,7 +81,7 @@ async def create_page(
     db: AsyncSession,
     namespace_name: str,
     data: PageCreate,
-    author_id: Optional[str] = None,
+    author_id: str | None = None,
 ) -> tuple[Page, PageVersion]:
     ns = await get_namespace_by_name(db, namespace_name)
     slug = slugify(data.title)
@@ -121,7 +121,7 @@ async def get_page(
     db: AsyncSession,
     namespace_name: str,
     slug: str,
-    version: Optional[int] = None,
+    version: int | None = None,
 ) -> tuple[Page, PageVersion]:
     """Return (page, version_row). Defaults to latest version."""
     ns = await get_namespace_by_name(db, namespace_name)
@@ -181,7 +181,7 @@ async def update_page(
     namespace_name: str,
     slug: str,
     data: PageUpdate,
-    author_id: Optional[str] = None,
+    author_id: str | None = None,
 ) -> tuple[Page, PageVersion]:
     ns = await get_namespace_by_name(db, namespace_name)
     page = await _get_page(db, ns.id, slug)
@@ -214,7 +214,7 @@ async def rename_page(
     namespace_name: str,
     slug: str,
     data: PageRename,
-    author_id: Optional[str] = None,
+    author_id: str | None = None,
 ) -> Page:
     ns = await get_namespace_by_name(db, namespace_name)
     page = await _get_page(db, ns.id, slug)
@@ -335,7 +335,7 @@ async def list_pages(
     namespace_name: str,
     skip: int = 0,
     limit: int = 100,
-    search: Optional[str] = None,
+    search: str | None = None,
 ) -> list[dict]:
     """Return lightweight summaries (no content body)."""
     ns = await get_namespace_by_name(db, namespace_name)
@@ -463,11 +463,11 @@ def _python_snippet(content: str, query: str, context: int = 160) -> str:
 async def search_pages(
     db: AsyncSession,
     query: str,
-    namespace_name: Optional[str] = None,
-    format: Optional[str] = None,
-    author: Optional[str] = None,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
+    namespace_name: str | None = None,
+    format: str | None = None,
+    author: str | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
     skip: int = 0,
     limit: int = 50,
 ) -> list[dict]:
@@ -481,10 +481,9 @@ async def search_pages(
 
     Uses PostgreSQL tsvector/tsquery when available; falls back to ILIKE for SQLite.
     """
-    from datetime import date as _date
 
     # ── Category: prefix ──────────────────────────────────────────────────────
-    category_filter: Optional[str] = None
+    category_filter: str | None = None
     if query.lower().startswith("category:"):
         category_filter = query[len("category:"):].strip()
         query = ""  # no text search — filter by category only
@@ -566,16 +565,16 @@ async def search_pages(
 
     if from_date:
         try:
-            from datetime import datetime, timezone
-            dt_from = datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc)
+            from datetime import datetime
+            dt_from = datetime.fromisoformat(from_date).replace(tzinfo=UTC)
             q = q.where(PageVersion.created_at >= dt_from)
         except ValueError:
             pass
 
     if to_date:
         try:
-            from datetime import datetime, timezone
-            dt_to = datetime.fromisoformat(to_date).replace(tzinfo=timezone.utc)
+            from datetime import datetime
+            dt_to = datetime.fromisoformat(to_date).replace(tzinfo=UTC)
             # inclusive: add one day
             from datetime import timedelta
             dt_to = dt_to + timedelta(days=1)
@@ -729,7 +728,7 @@ async def get_pages_in_category(
 async def get_recent_changes(
     db: AsyncSession,
     limit: int = 50,
-    namespace_name: Optional[str] = None,
+    namespace_name: str | None = None,
 ) -> list[dict]:
     """Return the most recently edited pages (one row per page, latest version).
 

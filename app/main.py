@@ -13,8 +13,6 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-log = logging.getLogger(__name__)
-
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -23,9 +21,10 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import get_settings
 from app.core.database import create_all_tables, init_db
 from app.core.logging_buffer import install as install_log_buffer
-from app.routes import auth, namespaces, pages, attachments, search, admin, render
+from app.routes import admin, attachments, auth, namespaces, pages, render, search
 from app.ui import views
 
+log = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
 
@@ -33,7 +32,6 @@ from app.ui import views
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     install_log_buffer()        # capture WARNING+ into in-memory ring buffer
-    settings = get_settings()
     init_db()
     await create_all_tables()   # safe: CREATE TABLE IF NOT EXISTS
     # Seed default namespace on first run
@@ -45,9 +43,10 @@ async def lifespan(app: FastAPI):
 
 async def _seed_defaults() -> None:
     """Create the default namespace and Main Page if they don't exist yet."""
+    from sqlalchemy import select
+
     from app.core.database import get_session_factory
     from app.models import Namespace, Page
-    from sqlalchemy import select
 
     settings = get_settings()
     factory = get_session_factory()
@@ -172,8 +171,7 @@ def create_app() -> FastAPI:
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={"detail": "Not found"},
             )
-        from fastapi.templating import Jinja2Templates
-        tmpl = Jinja2Templates(directory="app/templates")
+        from app.ui.views import templates as tmpl
         return tmpl.TemplateResponse(
             request,
             "error.html",
@@ -193,10 +191,12 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health", tags=["system"])
     async def health():
+        import time
+
         from sqlalchemy import text
+
         from app.core.database import get_session_factory
         from app.services.renderer import RENDERER_VERSION
-        import time
 
         db_status = "ok"
         db_latency_ms: float | None = None

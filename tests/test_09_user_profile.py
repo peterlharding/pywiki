@@ -13,7 +13,6 @@ from sqlalchemy import update
 from app.models import User
 from tests.conftest import auth_headers, cookie_auth, register_user
 
-
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------

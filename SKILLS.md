@@ -123,10 +123,11 @@ When cutting a new release (e.g. vX.Y.Z):
    This must be in the release commit so the tag includes it.
 2. Create `release_notes/vX.Y.Z.md` - standalone release note with highlights, full what's-new breakdown, upgrade instructions, and known limitations
 3. Bump `version` in `pyproject.toml` (`app/_version.py` reads it; there is no other version string)
-4. Update version in `SKILLS.md` header
-5. Commit on `devel`: `git commit -m "chore: release vX.Y.Z"`
+4. Update the version in the `SKILLS.md` header and "Recent releases", and mark the work done in `TODO.md`
+5. Run `make lint` and the full test suite; commit on `devel`: `git commit -m "chore: release vX.Y.Z"`
 6. Tag that commit (still on `devel`): `git tag -a vX.Y.Z -m 'Release vX.Y.Z'`
-7. Merge into `main`: `git checkout main && git merge --no-ff devel -m "chore: merge devel into main for vX.Y.Z release"`
+7. `git fetch` and check `git log devel..origin/main` first: PLH sometimes commits directly on `main` (e.g. from a server).
+   Merge into `main` on top of `origin/main`: `git checkout main && git merge --ff-only origin/main && git merge --no-ff devel -m "chore: merge devel into main for vX.Y.Z release"`, then bring any `main`-only commits back with `git checkout devel && git merge --ff-only main`
 8. Push branches and tag: `git push origin devel main vX.Y.Z`
 9. If post-release commits need to be included in the tag (e.g. a same-session bugfix): `git tag -d vX.Y.Z && git tag -a vX.Y.Z -m 'Release vX.Y.Z' && git push origin :refs/tags/vX.Y.Z && git push origin vX.Y.Z`
 
@@ -145,9 +146,10 @@ When cutting a new release (e.g. vX.Y.Z):
 
 ## Working Practices
 - **Update `TODO.md` when work is completed** - mark items `[x]` with a brief note of what was done and the version. Do this at the end of each session or when a feature/fix is confirmed working.
-- **Push to origin after each session** - run `git push origin devel` before finishing.
-  Never commit directly on the server; always push from the dev machine and pull on the server.
-  If `git pull` on the server says "already up to date" but fixes aren't showing, check that the local commits were actually pushed (`git log --oneline -5 origin/devel`).
+- **Push to origin after each session** - run `git push origin devel` (and merge released work into `main`) before finishing.
+  Prefer committing on the dev machine and pulling on the server; if something is committed on a server (usually on `main`), fold it back into `devel` before the next release.
+  If `git pull` on the server says "already up to date" but fixes aren't showing, check that the commits were actually pushed and merged to `main` (`git log --oneline -5 origin/main`).
+- **Verify UI changes in a real browser.** Headless Playwright works well; `base.html` loads KaTeX from a CDN, so in sandboxed or offline runs abort non-local requests or the `load` event never fires.
 
 
 ---
@@ -171,17 +173,18 @@ journalctl -u pywiki -n 50 --no-pager | grep -i 'error\|exception'
 ```
 
 ### Fresh server install checklist
-Do these steps in order:
+Full steps are in `setup/README.md`; servers track the `main` branch (released code). In order:
 ```bash
 cd /opt/pywiki
-git pull origin devel
+git pull                      # main
 pip install -r setup/requirements.txt
-cp setup/env.template .env    # edit: DATABASE_URL, BASE_URL, SECRET_KEY, etc.
-systemctl start pywiki        # create_all_tables() creates schema from ORM models on first start
+cp setup/env.template .env    # edit: DATABASE_URL, BASE_URL, SECRET_KEY, APP_PORT, etc.
+PYTHONPATH=. .venv/bin/alembic upgrade head   # empty DB: creates the full schema and stamps Alembic
+systemctl start pywiki
 journalctl -u pywiki -n 30 --no-pager | grep -iE 'seed|error|exception'
 ```
-- **`create_all_tables()`** (called in `lifespan`) issues `CREATE TABLE IF NOT EXISTS` from current ORM model definitions - this correctly creates all tables including all columns for a truly empty database.
-- **Do NOT run `alembic upgrade head` on a fresh install** where `create_all_tables()` already ran - it will try to `CREATE TABLE` tables that already exist and fail.
+- **Run migrations before the first start.** On an empty database the migrations create the complete current schema (verified against the ORM models at v0.10.0) and record the Alembic revision, so later `alembic upgrade head` runs work.
+- **`create_all_tables()`** (called in `lifespan`) issues `CREATE TABLE IF NOT EXISTS` from the ORM models. If the service is started before migrating, it builds the schema without stamping Alembic; a later `alembic upgrade head` then tries to `CREATE TABLE` existing tables and fails. Recover with `alembic stamp head` (see troubleshooting below).
 - After first start, check `journalctl` for `Seeded 'Main' namespace` and `Seeded Category namespace` to confirm seeding ran.
 
 ### Migration troubleshooting (existing DB)
@@ -219,7 +222,8 @@ systemctl stop pywiki && systemctl start pywiki
 - **Import route: capture `ns.id` before the loop** - SQLAlchemy expires object attributes after `db.execute()` calls inside the loop; store `ns_id = ns.id` before any loop that issues further queries.
 
 ## Git
-- Day-to-day work happens on `devel`; `main` only receives release merges (`chore: merge devel into main for vX.Y.Z release`).
-- If a fix is committed directly on `main` (e.g. while installing on a server), apply the same change to `devel` before the next release so the branches don't diverge.
+- Day-to-day work happens on `devel`; `main` receives release merges (`chore: merge devel into main for vX.Y.Z release`) and servers pull `main`.
+- If a fix is committed directly on `main` (e.g. while installing on a server), merge it back into `devel` before the next release so the branches don't diverge.
+- `uv.lock` is **not tracked** (gitignored after v0.10.0). Installs use `requirements.txt` (dev) and `setup/requirements.txt` (servers), and different uv versions write different lock formats (revision 2 vs 3), so a committed lock caused conflicts between instances. Keep dependency changes in `pyproject.toml`, `requirements.txt` and `setup/requirements.txt` together.
 - Commit often with descriptive messages
  

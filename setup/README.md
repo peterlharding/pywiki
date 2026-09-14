@@ -249,11 +249,12 @@ The `APP_PORT` port (e.g. 8222) should **not** be exposed externally - nginx pro
 Registration is enabled by default (`ALLOW_REGISTRATION=true`).
 
 1. Open `https://pywiki.example.com` and register your admin account.
-2. Promote it to admin via psql:
+   The first account registered on a new wiki becomes an admin automatically.
+2. To make another existing account an admin later, use Special pages > Users, or psql:
 
 ```bash
 psql -h 127.0.0.1 -U pywiki -d pywiki \
-  -c "UPDATE users SET is_admin = TRUE WHERE username = 'your-username';"
+  -c "UPDATE users SET is_admin = TRUE WHERE username = 'their-username';"
 ```
 
 3. Once the admin account is set up, **disable public registration**:
@@ -263,10 +264,10 @@ In `/opt/pywiki/.env`:
 ALLOW_REGISTRATION=false
 ```
 
-Then restart:
+Then restart (stop and start, which guarantees old workers are gone):
 
 ```bash
-sudo systemctl restart pywiki
+sudo systemctl stop pywiki && sudo systemctl start pywiki
 ```
 
 ---
@@ -277,15 +278,15 @@ sudo systemctl restart pywiki
 # View live logs
 sudo journalctl -u pywiki -f
 
-# Restart after a code update
-sudo systemctl restart pywiki
+# Restart (stop + start rather than restart, so no old workers linger)
+sudo systemctl stop pywiki && sudo systemctl start pywiki
 
 # Run migrations after a code update
 sudo -u pywiki bash -c "cd /opt/pywiki && PYTHONPATH=. .venv/bin/alembic upgrade head"
 
-# Pull latest code (if deployed via git)
+# Pull latest code (if deployed via git; servers track the main branch)
 sudo -u pywiki bash -c "cd /opt/pywiki && git pull"
-sudo systemctl restart pywiki
+sudo systemctl stop pywiki && sudo systemctl start pywiki
 
 # Check service health
 sudo systemctl status pywiki
@@ -296,7 +297,11 @@ curl -s https://pywiki.example.com/special/status | head -20
 
 ## Updating the application
 
+Check `release_notes/` for the versions you are skipping; they list any required configuration changes.
+
 ```bash
+sudo systemctl stop pywiki
+
 # 1. Deploy new code (rsync or git pull)
 sudo -u pywiki bash -c "cd /opt/pywiki && git pull"
 
@@ -306,6 +311,6 @@ sudo -u pywiki bash -c "cd /opt/pywiki && .venv/bin/pip install -r setup/require
 # 3. Run any new migrations
 sudo -u pywiki bash -c "cd /opt/pywiki && PYTHONPATH=. .venv/bin/alembic upgrade head"
 
-# 4. Restart the service
-sudo systemctl restart pywiki
+# 4. Start the service
+sudo systemctl start pywiki
 ```

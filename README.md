@@ -1,19 +1,21 @@
 # PyWiki
 
-A MediaWiki-inspired wiki built with **FastAPI** and **Python**, supporting both **Markdown** and **reStructuredText (RST)** page content.
+A MediaWiki-inspired wiki built with **FastAPI** and **Python**, supporting **Markdown**, **reStructuredText (RST)** and MediaWiki-style **wikitext** page content.
 
 ## Features
 
-- 📝 **Markdown** and **reStructuredText** content formats (selectable per page/version)
+- 📝 **Markdown**, **reStructuredText** and **wikitext** content formats (selectable per page/version)
 - 🗂️ **Namespaces** — organise pages into named namespaces (like MediaWiki)
 - 📜 **Full revision history** — every save appends a new version; nothing is overwritten
 - ↔️ **Diff viewer** — compare any two versions of a page
 - 📎 **File attachments** - upload images and documents (PDF, Office and OpenDocument files, CSV, text, Markdown; configurable) to any page
+- 🏷️ **Categories** - tag pages with `[[Category:Name]]`; each category has a page in the Category namespace listing its pages, with an optional description
 - 🔍 **Full-text search** across all pages and namespaces
 - 👤 **User accounts** — registration, JWT authentication, admin roles
 - 🔗 **`[[WikiLink]]`** syntax — inter-page links auto-resolved to the correct URL
 - ⚡ **REST API** (`/api/v1/…`) — full JSON API with OpenAPI docs
-- 🖥️ **Jinja2 web UI** — server-rendered HTML with live edit preview
+- 🖥️ **Jinja2 web UI** — server-rendered HTML with live edit preview, dark mode, and a layout that uses wide screens (full / limited width toggle)
+- 📦 **Import / export** - ZIP export and import of pages with attachments, plus MediaWiki XML import
 - 💾 **PostgreSQL** for production, **SQLite** for development (zero setup)
 - 🗄️ **Alembic** migrations — version-controlled schema with autogenerate
 
@@ -118,6 +120,7 @@ pywiki/
 │   ├── core/
 │   │   ├── config.py        # Pydantic-settings configuration
 │   │   ├── database.py      # SQLAlchemy async engine + session
+│   │   ├── filetypes.py     # Allowed / prohibited attachment types and how they are served
 │   │   └── security.py      # bcrypt + JWT helpers
 │   ├── models/
 │   │   └── models.py        # ORM models: User, Namespace, Page, PageVersion, Attachment
@@ -126,9 +129,10 @@ pywiki/
 │   ├── services/
 │   │   ├── users.py         # User CRUD & authentication
 │   │   ├── namespaces.py    # Namespace CRUD
-│   │   ├── pages.py         # Page CRUD, history, diff, search
+│   │   ├── pages.py         # Page CRUD, history, diff, search, categories
 │   │   ├── attachments.py   # File upload / download
-│   │   └── renderer.py      # Markdown (mistune) + RST (docutils) renderer
+│   │   ├── email.py         # Verification and password-reset email
+│   │   └── renderer.py      # Markdown (mistune), RST (docutils) and wikitext renderer
 │   ├── routes/              # FastAPI API routers
 │   │   ├── auth.py
 │   │   ├── namespaces.py
@@ -202,10 +206,32 @@ This is **strong** and *emphasis*.
 `Link to Another Page <http://localhost:8000/wiki/Main/another-page>`_
 ```
 
+### Wikitext
+
+A MediaWiki-style subset: `== headings ==`, `'''bold'''` / `''italic''`, `*` and `#` lists (including nested and mixed levels such as `*#`), `{| tables |}`, `<ref>` footnotes, `<math>`, `<syntaxhighlight>` and `[[File:...]]` images.
+
 ### WikiLinks
 
-Both formats support `[[Page Title]]` and `[[Page Title|Display Text]]` syntax.  
+All formats support `[[Page Title]]` and `[[Page Title|Display Text]]` syntax.
 These are rewritten to the appropriate `/wiki/<namespace>/<slug>` URL before rendering.
+
+### Attachments
+
+Upload files from the editor's attachment panel or Special:Upload, then reference them from the page:
+
+| Format | Image | Other file |
+|--------|-------|------------|
+| Markdown | `![Alt](attachment:photo.png)` | `[Report](attachment:report.pdf)` |
+| Wikitext | `[[File:photo.png\|thumb\|Caption]]` | `[[Media:report.pdf\|Report]]` |
+| RST | `.. image:: attachment:photo.png` | `` `Report <attachment:report.pdf>`_ `` |
+
+The uploadable file types are set by `ATTACHMENT_EXTENSIONS`; executable and web content types are always refused.
+
+### Categories
+
+Add `[[Category:Name]]` to a page (or `.. category:: Name` in RST).
+The category's page is `/wiki/Category/name`: it lists every page in the category, and an optional description can be added there.
+`/wiki/Category` lists all categories.
 
 ## API Overview
 
@@ -221,6 +247,9 @@ These are rewritten to the appropriate `/wiki/<namespace>/<slug>` URL before ren
 | PUT | `/api/v1/namespaces/{ns}/pages/{slug}` | Update page (auth) |
 | GET | `/api/v1/namespaces/{ns}/pages/{slug}/history` | Version history |
 | GET | `/api/v1/namespaces/{ns}/pages/{slug}/diff/{a}/{b}` | Diff two versions |
+| GET | `/api/v1/namespaces/{ns}/pages/{slug}/attachments` | List attachments |
+| POST | `/api/v1/namespaces/{ns}/pages/{slug}/attachments` | Upload attachment (auth) |
+| DELETE | `/api/v1/namespaces/{ns}/pages/{slug}/attachments/{filename}` | Delete attachment (auth) |
 | GET | `/api/v1/search?q=...` | Full-text search |
 | GET | `/api/v1/render?content=...&format=markdown` | Live preview |
 | GET | `/api/health` | Health check |

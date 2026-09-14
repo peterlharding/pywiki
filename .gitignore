@@ -10,6 +10,11 @@ SETUP/
 # ...but track the setup/ folder (matters on case-insensitive filesystems like macOS)
 !/setup/
 
+# uv lockfile: installs use requirements.txt / setup/requirements.txt, and different uv
+# versions rewrite the lock in different formats, so a tracked lock only causes conflicts
+# between instances.  Each checkout may keep its own local uv.lock.
+uv.lock
+
 
 # -----------------------------------------------------------------------------
 # Python

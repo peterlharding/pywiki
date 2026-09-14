@@ -1,5 +1,8 @@
 
+NAME       :=  $(shell grep "^APP_NAME=" .env | sed 's/APP_NAME=//')
 APP_PORT   :=  $(shell grep -s "^APP_PORT=" .env | sed 's/APP_PORT=//')
+APP_PORT   :=  $(shell grep "^APP_PORT=" .env | sed 's/APP_PORT=//')
+APP_LOG    :=  $(shell grep "^APP_LOG=" .env | sed 's/APP_LOG=//')
 
 # Development default; production instances set APP_PORT in .env (see setup/README.md)
 ifeq ($(strip $(APP_PORT)),)
@@ -17,6 +20,7 @@ endif
 
 chk-env:
 	@echo "APP_PORT |${APP_PORT}|"
+	@echo " APP_LOG |${APP_LOG}|"
 
 venv:
 	uv venv .venv
@@ -27,8 +31,8 @@ install:
 
 # -----------------------------------------------------------------------------
 
-run:
-	uvicorn app.main:app --host 127.0.0.1 --port ${APP_PORT}
+start-bg:
+	nohup uvicorn app.main:app --host 127.0.0.1 --port ${APP_PORT} 2>& 1  > /tmp/${APP_LOG} &
 
 dev:
 	uvicorn app.main:app --host 127.0.0.1 --port ${APP_PORT} --reload

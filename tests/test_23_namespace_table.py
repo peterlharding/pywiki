@@ -2,7 +2,7 @@
 #
 #
 # -----------------------------------------------------------------------------
-"""Tests for the namespace index page table layout."""
+"""Tests for table layout: selection columns, content-sized columns, label/value tables."""
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
@@ -49,13 +49,34 @@ async def test_table_scrolls_inside_its_own_container(client):
     assert re.search(r'<div class="table-scroll">\s*<table class="wiki-table">', html)
 
 
-def test_selection_column_overrides_first_column_width():
+def test_tables_size_columns_to_content():
     css = (Path(__file__).parent.parent / "app/static/css/wiki.css").read_text()
-    first_col = css.index(".wiki-table td:first-child, .wiki-table th:first-child { min-width: 180px; width: 40%; }")
+    # A blanket 40% first column squeezed tables whose first column is a control
+    assert ".wiki-table td:first-child, .wiki-table th:first-child" not in css
     select_col = css.index(".wiki-table th.col-select, .wiki-table td.col-select {")
-    # Same specificity, so the selection rule must come later to win
-    assert select_col > first_col
     assert "width: 1%;" in css[select_col:select_col + 120]
+    assert ".wiki-table.kv-table td:first-child { width: 40%; }" in css
+
+
+@pytest.mark.asyncio
+async def test_history_compare_radios_are_selection_columns(client):
+    await register_user(client, "histuser", "histuser@example.com")
+    headers = await auth_headers(client, "histuser")
+    await client.post("/api/v1/namespaces", json={"name": "HIST", "description": "", "default_format": "markdown"}, headers=headers)
+    await client.post("/api/v1/namespaces/HIST/pages", json={"title": "Changing", "content": "v1", "format": "markdown"}, headers=headers)
+    await client.put("/api/v1/namespaces/HIST/pages/changing", json={"content": "v2", "format": "markdown", "comment": "second"}, headers=headers)
+    html = (await client.get("/wiki/HIST/changing/history")).text
+    assert html.count('<td class="col-select"><input type="radio" name="from_ver"') == 2
+    assert html.count('<td class="col-select"><input type="radio" name="to_ver"') == 2
+    assert 'aria-label="Compare from version 2"' in html
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["/special/health", "/special/status"])
+async def test_status_pages_have_no_stray_markdown_rules(client, path):
+    html = (await client.get(path)).text
+    assert "\n---\n" not in html
+    assert 'class="wiki-table kv-table"' in html
 
 
 # -----------------------------------------------------------------------------

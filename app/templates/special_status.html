@@ -9,7 +9,7 @@
 
 <section class="home-section">
   <h2>Statistics</h2>
-  <table class="wiki-table" style="max-width:400px;">
+  <table class="wiki-table kv-table" style="max-width:400px;">
     <tbody>
       <tr><td><strong>Total pages</strong></td><td>{{ total_pages }}</td></tr>
       <tr><td><strong>Total revisions</strong></td><td>{{ total_versions }}</td></tr>
@@ -22,8 +22,6 @@
 
 
 </section>
-
----
 
 <section class="home-section">
   <h2>Namespaces</h2>
@@ -44,15 +42,13 @@
 
 </section>
 
----
-
 <section class="home-section">
   <h2>Recent Changes</h2>
   {% if recent %}
   <table class="wiki-table">
     <thead>
       <tr>
-        <th>Page</th>
+        <th class="col-title">Page</th>
         <th>Namespace</th>
         <th>Ver</th>
         <th>Author</th>

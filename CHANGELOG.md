@@ -12,6 +12,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.9.4] - 2026-09-15
+
+### Fixed
+- **Revision history table** - the Compare radio buttons took about 40% of the table, wrapping comments. The same site-wide rule that caused the v0.9.2 namespace table problem gave every table's first column 40% of the width; it has been removed, so columns now size to their content. Row controls stay as narrow as the control, page-title columns keep enough room not to wrap, and label/value tables (profile, status, health, special pages) keep a consistent label column so stacked tables line up.
+- **User and namespace lists** - usernames and namespace names no longer take 40% of the table; headers such as "Display name" and the action buttons no longer wrap.
+- **Health check and Site status pages** showed literal `---` lines between sections.
+- Log review said "last 1 records".
+
+
+---
+
 ## [0.9.3] - 2026-09-14
 
 ### Fixed
@@ -787,7 +798,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.3...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.4...HEAD
+[0.9.4]: https://github.com/peterlharding/pywiki/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/peterlharding/pywiki/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/peterlharding/pywiki/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/peterlharding/pywiki/compare/v0.9.0...v0.9.1

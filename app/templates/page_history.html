@@ -35,10 +35,10 @@
   <table class="wiki-table history-table">
     <thead>
       <tr>
-        <th colspan="2">Compare</th>
-        <th>Ver</th>
-        <th>Format</th>
-        <th>Date</th>
+        <th colspan="2" class="col-nowrap">Compare</th>
+        <th class="col-nowrap">Ver</th>
+        <th class="col-nowrap">Format</th>
+        <th class="col-nowrap">Date</th>
         <th>Author</th>
         <th>Comment</th>
         <th>Actions</th>
@@ -47,11 +47,11 @@
     <tbody>
       {% for v in versions %}
       <tr>
-        <td><input type="radio" name="from_ver" value="{{ v.version }}"
+        <td class="col-select"><input type="radio" name="from_ver" value="{{ v.version }}" aria-label="Compare from version {{ v.version }}"
                    {% if loop.index == 2 %}checked{% endif %} /></td>
-        <td><input type="radio" name="to_ver" value="{{ v.version }}"
+        <td class="col-select"><input type="radio" name="to_ver" value="{{ v.version }}" aria-label="Compare to version {{ v.version }}"
                    {% if loop.first %}checked{% endif %} /></td>
-        <td>
+        <td class="col-nowrap">
           <a href="/wiki/{{ namespace_name }}/{{ page.slug }}?version={{ v.version }}">
             {{ v.version }}
           </a>
@@ -61,7 +61,7 @@
         <td class="ts">{{ v.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
         <td>{% if v.author %}<a href="/user/{{ v.author.username }}">{{ v.author.username }}</a>{% else %}—{% endif %}</td>
         <td>{{ v.comment or '—' }}</td>
-        <td>
+        <td class="col-nowrap">
           <a href="/wiki/{{ namespace_name }}/{{ page.slug }}?version={{ v.version }}">view</a>
         </td>
       </tr>

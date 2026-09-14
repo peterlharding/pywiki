@@ -26,7 +26,7 @@
 <ul class="category-index-list">
   {% for cat in categories %}
   <li>
-    <a href="/category/{{ cat.name }}">{{ cat.name }}</a>
+    <a href="/wiki/Category/{{ cat.slug }}">{{ cat.name }}</a>
     <span class="cat-count">({{ cat.count }} {{ 'member' if cat.count == 1 else 'members' }})</span>
   </li>
   {% endfor %}

@@ -97,7 +97,7 @@ async def test_category_page_lists_tagged_pages(client, db_session):
     await _create_page(client, "CatNS1", "Gamma Page",
                        "No category here.", "markdown", headers)
 
-    resp = await client.get("/category/Science")
+    resp = await client.get("/wiki/Category/science")
     assert resp.status_code == 200
     html = resp.text
     assert "Alpha Page" in html
@@ -108,8 +108,8 @@ async def test_category_page_lists_tagged_pages(client, db_session):
 @pytest.mark.asyncio
 async def test_category_page_empty_for_unknown_category(client, db_session):
     await _setup(client, db_session, "catuser2", "CatNS2")
-    resp = await client.get("/category/NonExistentCategory")
-    assert resp.status_code == 200
+    resp = await client.get("/wiki/Category/nonexistentcategory")
+    assert resp.status_code == 404
     assert "No pages" in resp.text
 
 
@@ -119,7 +119,9 @@ async def test_category_page_case_insensitive(client, db_session):
     await _create_page(client, "CatNS3", "Tagged Page",
                        "[[Category:Animals]]", "markdown", headers)
 
-    resp = await client.get("/category/Animals")
+    resp = await client.get("/wiki/Category/ANIMALS")
+    assert resp.status_code == 200
+    resp = await client.get("/wiki/Category/animals")
     assert resp.status_code == 200
     assert "Tagged Page" in resp.text
 
@@ -133,7 +135,7 @@ async def test_category_links_appear_on_page_view(client, db_session):
     resp = await client.get("/wiki/CatNS4/cat-link-test")
     assert resp.status_code == 200
     html = resp.text
-    assert "/category/Tech" in html
+    assert 'href="/wiki/Category/tech"' in html
     assert "Tech" in html
 
 
@@ -147,7 +149,7 @@ async def test_wikitext_categories_render_in_footer(client, db_session):
     resp = await client.get("/wiki/CatNS5/wiki-cat-page")
     assert resp.status_code == 200
     html = resp.text
-    assert "/category/Robotics" in html
+    assert "/wiki/Category/robotics" in html
 
 
 # =============================================================================

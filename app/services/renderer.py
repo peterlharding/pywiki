@@ -25,7 +25,7 @@ from app.core.filetypes import is_image
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 16
+RENDERER_VERSION = 17
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 # Sentinel injected by _expand_macros() in place of {{toc}} / __TOC__.
@@ -882,7 +882,7 @@ def _render_wikitext(
     # Append categories footer if any were found
     if categories:
         cat_links = " · ".join(
-            f'<a href="{base_url}/category/{c}" class="category-link">{c}</a>'
+            f'<a href="{base_url}/wiki/Category/{_slugify(c)}" class="category-link">{c}</a>'
             for c in categories
         )
         out.append(f'<div class="wiki-categories"><strong><a href="/special/categories">Categories:</a></strong> {cat_links}</div>')

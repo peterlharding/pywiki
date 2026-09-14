@@ -42,7 +42,7 @@ Never pipe test output through `tail`/`head`; show the full run so failures are 
 - `app/main.py:create_app()` wires routers; `lifespan` runs `create_all_tables()` and `_seed_defaults()` (creates `Main` + `Category` namespaces and the Main Page).
 
 **Data model** (`app/models/models.py`): `Namespace` -> `Page` (slug is lowercase, URL-only; title stored separately) -> append-only `PageVersion` rows (every save is a new version) plus `Attachment` rows with files under `ATTACHMENT_ROOT/<ns>/<slug>/`.
-Categories are not a table; they are parsed from `[[Category:Name]]` tags in content.
+Categories are not a table; they are parsed from `[[Category:Name]]` / RST `.. category::` tags and identified by slug. As in MediaWiki, each category's page is `/wiki/Category/<slug>` (optional description page in the Category namespace plus the generated member list); see "Category system" in SKILLS.md.
 Uploadable types are configured by `ATTACHMENT_EXTENSIONS` and enforced in `save_attachment()`, the single write path for uploads, Special:Upload and ZIP import; `app/core/filetypes.py` holds the always-prohibited list and how each type is served.
 Redirects are page content parsed by `parse_redirect()`.
 

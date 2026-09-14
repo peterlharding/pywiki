@@ -535,6 +535,10 @@ body.editor-page .nav-inner { max-width: 100%; padding: 0 1.5rem; }
 
 /* Alphabetical category listing (MediaWiki style) */
 .category-alpha-listing { column-count: 3; column-gap: 2rem; margin-top: 1rem; }
+.category-members { margin-top: 1.5rem; }
+.namespace-desc code { white-space: nowrap; }
+.category-description + .category-members { border-top: 1px solid var(--border); padding-top: 1rem; }
+.category-members-title { font-size: 1.15rem; margin-bottom: 0.25rem; }
 .category-alpha-group { break-inside: avoid; margin-bottom: 1.25rem; }
 .category-alpha-group h3 { font-size: 1rem; font-weight: 700; border-bottom: 1px solid var(--border); margin-bottom: 0.35rem; padding-bottom: 0.2rem; }
 .category-alpha-group ul { list-style: none; margin: 0; padding: 0; }

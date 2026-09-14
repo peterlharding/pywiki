@@ -92,7 +92,7 @@
 <div class="wiki-categories-bar">
   <strong><a href="/special/categories">Categories:</a></strong>
   {% for cat in categories %}
-  <a href="/category/{{ cat }}" class="category-link">{{ cat }}</a>{% if not loop.last %} · {% endif %}
+  <a href="/wiki/Category/{{ cat | slugify }}" class="category-link">{{ cat }}</a>{% if not loop.last %} · {% endif %}
   {% endfor %}
 </div>
 {% endif %}

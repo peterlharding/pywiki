@@ -51,9 +51,10 @@
     <ul class="special-list">
       <li><a href="/special/categories">All categories</a> — alphabetical list with page counts</li>
     </ul>
-    {% if all_categories %}
+    {% set in_use = all_categories | selectattr('count') | list %}
+    {% if in_use %}
     <p class="muted" style="font-size:0.875rem;margin-top:0.5rem;">
-      {{ all_categories|length }} categor{{ 'y' if all_categories|length == 1 else 'ies' }} currently in use.
+      {{ in_use|length }} categor{{ 'y' if in_use|length == 1 else 'ies' }} currently in use.
     </p>
     {% endif %}
   </div>

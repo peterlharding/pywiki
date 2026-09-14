@@ -2,16 +2,29 @@
 
 {% block title %}Category: {{ category_name }} — {{ site_name }}{% endblock %}
 
+{% block breadcrumb %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/">Home</a>
+  <span class="sep">›</span>
+  <a href="/wiki/Category">Category</a>
+  <span class="sep">›</span>
+  <span class="current">{{ category_name }}</span>
+</nav>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
   <h1>Category: {{ category_name }}</h1>
   <div class="page-actions">
     {% if user %}
-      {% if cat_description_html %}
-        <a class="btn btn-sm" href="/wiki/Category/{{ cat_slug }}/edit">✏️ Edit description</a>
+      {% if description_page %}
+        <a class="btn btn-primary" href="/wiki/Category/{{ cat_slug }}/edit">✏️ Edit description</a>
       {% else %}
-        <a class="btn btn-sm" href="/create?title={{ category_name }}&namespace=Category">➕ Add description</a>
+        <a class="btn btn-primary" href="/create?namespace=Category&amp;title={{ category_name | urlencode }}">➕ Add description</a>
       {% endif %}
+    {% endif %}
+    {% if description_page %}
+      <a class="btn" href="/wiki/Category/{{ cat_slug }}/history">📜 History</a>
     {% endif %}
   </div>
 </div>
@@ -20,11 +33,11 @@
 <div class="wiki-content category-description">
   {{ cat_description_html | safe }}
 </div>
-<hr style="margin: 1.5rem 0;" />
 {% endif %}
 
 {% if pages %}
-<div id="mw-pages">
+<div id="mw-pages" class="category-members">
+  <h2 class="category-members-title">Pages in category "{{ category_name }}"</h2>
   <p class="search-count">The following {{ pages|length }} page{{ 's' if pages|length != 1 else '' }} {{ 'are' if pages|length != 1 else 'is' }} in this category.</p>
 
   {# Group pages alphabetically by first letter of title #}
@@ -53,9 +66,13 @@
     {% endfor %}
   </div>
 </div>
-
+{% elif description_page %}
+<p class="muted category-members">No pages are currently tagged with this category.</p>
 {% else %}
-<p class="muted">No pages are currently tagged with this category.</p>
+<p class="muted">
+  No pages are currently tagged with this category, and it has no description.
+  Tag a page with <code>[[Category:{{ category_name }}]]</code> to add it{% if user %}, or add a description above{% endif %}.
+</p>
 {% endif %}
 
 {% endblock %}

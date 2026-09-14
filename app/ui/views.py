@@ -117,6 +117,7 @@ templates.env.globals["attachment_policy"] = _attachment_policy
 templates.env.globals["layout_max_width"] = lambda: get_settings().layout_max_width
 templates.env.tests["image_file"] = is_image
 templates.env.filters["filesize"] = _human_size
+templates.env.filters["slugify"] = page_svc.slugify
 
 
 # -----------------------------------------------------------------------------
@@ -230,36 +231,48 @@ async def recent_changes(
 # Category index
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-@router.get("/category/{category_name}", response_class=HTMLResponse)
-async def category_index(
-    request: Request,
-    category_name: str,
-    db: AsyncSession = Depends(get_db),
-):
-    user, new_token = await _current_user(request, db)
-    pages = await page_svc.get_pages_in_category(db, category_name)
+@router.get("/category/{category_name}")
+async def category_index(category_name: str):
+    """Old category URL: categories now live in the Category namespace."""
+    return RedirectResponse(
+        url=f"/wiki/{page_svc.CATEGORY_NAMESPACE}/{page_svc.slugify(category_name)}",
+        status_code=301,
+    )
 
-    # Look up optional description page in the "Category" namespace
-    from app.services.renderer import render
-    cat_slug = page_svc.slugify(category_name)
-    cat_description_html: str | None = None
+
+async def _category_page(request: Request, db: AsyncSession, user, new_token, slug: str, version: int | None):
+    """A category page, as in MediaWiki: the optional description page plus the pages tagged with it."""
+    settings = get_settings()
+    category = await page_svc.get_category(db, slug)
+
+    description_page = description_html = None
     try:
-        _, cat_ver = await page_svc.get_page(db, "Category", cat_slug)
-        cat_description_html = render(cat_ver.content, cat_ver.format,
-                                      namespace="Category", base_url="")
-    except Exception:
-        pass
+        description_page, ver = await page_svc.get_page(db, page_svc.CATEGORY_NAMESPACE, category["slug"], version=version)
+    except HTTPException as e:
+        if e.status_code != 404:
+            raise
+    else:
+        atts = await list_attachments(db, page_svc.CATEGORY_NAMESPACE, category["slug"])
+        description_html = render_markup(
+            ver.content, ver.format,
+            namespace=page_svc.CATEGORY_NAMESPACE,
+            base_url=settings.base_url,
+            attachments={a.filename: attachment_url(a, settings.base_url) for a in atts} or None,
+        )
 
+    exists = bool(description_page or category["pages"])
     resp = templates.TemplateResponse(
         request,
         "category.html",
         _ctx(user,
-             category_name=category_name,
-             cat_slug=cat_slug,
-             cat_description_html=cat_description_html,
-             pages=pages),
+             category_name=category["name"],
+             cat_slug=category["slug"],
+             description_page=description_page,
+             cat_description_html=description_html,
+             pages=category["pages"]),
+        status_code=200 if exists else 404,
     )
-    _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+    _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp
 
 
@@ -279,6 +292,14 @@ async def namespace_index(
 ):
     user, new_token = await _current_user(request, db)
     ns = await ns_svc.get_namespace_by_name(db, namespace_name)
+    if ns.name == page_svc.CATEGORY_NAMESPACE:
+        resp = templates.TemplateResponse(
+            request,
+            "category_namespace.html",
+            _ctx(user, ns=ns, categories=await page_svc.get_all_categories(db)),
+        )
+        _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
+        return resp
     pages = await page_svc.list_pages(db, namespace_name, limit=500)
     count = await ns_svc.get_page_count(db, ns.id)
 
@@ -592,6 +613,9 @@ async def view_page(
 ):
     user, new_token = await _current_user(request, db)
     settings = get_settings()
+
+    if namespace_name == page_svc.CATEGORY_NAMESPACE:
+        return await _category_page(request, db, user, new_token, slug, version)
 
     try:
         page, ver = await page_svc.get_page(db, namespace_name, slug, version=version)
@@ -1041,11 +1065,7 @@ async def create_page_submit(
 
     await db.commit()
 
-    if namespace_name == "Category":
-        redirect_url = f"/category/{title}"
-    else:
-        redirect_url = f"/wiki/{namespace_name}/{page.slug}"
-    resp = RedirectResponse(url=redirect_url, status_code=303)
+    resp = RedirectResponse(url=f"/wiki/{namespace_name}/{page.slug}", status_code=303)
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     if namespace_name != "Category":
         resp.set_cookie("pref_namespace", namespace_name, max_age=60*60*24*365, samesite="lax")
@@ -1540,28 +1560,7 @@ async def special_pages(request: Request, db: AsyncSession = Depends(get_db)):
     total_users    = (await db.execute(sa_select(func.count()).select_from(UserModel))).scalar_one()
     namespaces = await ns_svc.list_namespaces(db)
 
-    # Collect all declared categories from latest versions
-    max_ver_sub = (
-        sa_select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
-        .group_by(PageVersion.page_id)
-        .subquery()
-    )
-    q = (
-        sa_select(PageVersion.content, PageVersion.format)
-        .join(max_ver_sub,
-              (PageVersion.page_id == max_ver_sub.c.page_id)
-              & (PageVersion.version == max_ver_sub.c.max_ver))
-        .where(
-            PageVersion.content.ilike("%[[Category:%") |
-            PageVersion.content.ilike("%.. category::%")
-        )
-    )
-    rows = (await db.execute(q)).all()
-    cat_set: set[str] = set()
-    for content, fmt in rows:
-        for c in extract_categories(content, fmt):
-            cat_set.add(c)
-    all_categories = sorted(cat_set, key=str.lower)
+    all_categories = await page_svc.get_all_categories(db)
 
     resp = templates.TemplateResponse(
         request,

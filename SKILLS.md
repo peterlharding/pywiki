@@ -1,4 +1,4 @@
-# PyWiki - Session Primer (v0.9.0)
+# PyWiki - Session Primer (v0.9.1)
 
 ## Project
 - **Stack**: FastAPI + SQLAlchemy (async) + Jinja2 + PostgreSQL (prod) / SQLite (tests)
@@ -160,7 +160,7 @@ When cutting a new release (e.g. vX.Y.Z):
   The maintainer's performiq.com sites use option B with a wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; all other sites use Let's Encrypt.
   Keep maintainer-specific infrastructure out of `setup/`.
 - `setup/requirements.txt` - use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.7.0 (setup/ folder, APP_PORT in systemd unit, TLS docs, fresh-install and attachment-link fixes), v0.8.0 (document attachments, ATTACHMENT_EXTENSIONS, defensive file serving), v0.9.0 (wide-screen layout, LAYOUT_MAX_WIDTH, width toggle)
+- Recent releases: v0.7.0 (setup/ folder, APP_PORT in systemd unit, TLS docs, fresh-install and attachment-link fixes), v0.8.0 (document attachments, ATTACHMENT_EXTENSIONS, defensive file serving), v0.9.0 (wide-screen layout, LAYOUT_MAX_WIDTH, width toggle), v0.9.1 (compact list spacing, valid nested wikitext lists)
 
 ### Verification command
 ```bash

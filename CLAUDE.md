@@ -81,5 +81,5 @@ Helpers: `register_user`, `login_user`, `auth_headers` (Bearer, for API) and `co
 
 - Work happens on `devel`; `main` receives release merges.
 - When a feature or fix is done, mark it `[x]` in `TODO.md` with a short note and the version.
-- `CHANGELOG.md` is maintained by PLH; do not edit it.
+- `CHANGELOG.md` is hand-maintained (no generator); update it in the release commit so the tag includes it.
 - Release notes live in `release_notes/vX.Y.Z.md`; see "Release Process" in `SKILLS.md` for the full sequence (version bump in `pyproject.toml` and the `SKILLS.md` header, tag).

@@ -9,6 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Tighter list spacing** - bulleted and numbered lists on page views are more compact (item spacing about 25px instead of 29px, and instead of 37px for RST and loose Markdown lists, whose items were wrapped in paragraphs), with less space around nested lists. All three formats now space lists the same way. `RENDERER_VERSION` bumped to 16.
+
+### Fixed
+- **Wikitext nested lists produced invalid HTML** - a nested list was emitted beside its parent item instead of inside it. Lists now nest correctly, and mixed prefixes such as `*#` (a numbered list inside a bullet) work as in MediaWiki instead of showing the `#` as text.
+
 
 ---
 

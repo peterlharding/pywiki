@@ -574,8 +574,12 @@ body.editor-page .nav-inner { max-width: 100%; padding: 0 1.5rem; }
 .wiki-content h1 { font-size: 1.6rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
 .wiki-content h2 { font-size: 1.35rem; border-bottom: 1px solid var(--border); padding-bottom: 0.2rem; }
 .wiki-content p  { margin: 0.75em 0; }
-.wiki-content ul, .wiki-content ol { margin: 0.75em 0 0.75em 2em; }
-.wiki-content li { margin: 0.25em 0; }
+.wiki-content ul, .wiki-content ol { margin: 0.5em 0 0.75em 2em; }
+.wiki-content li { margin: 0.1em 0; line-height: 1.55; }
+/* RST and loose Markdown lists wrap each item in <p>; don't let it add paragraph spacing */
+.wiki-content li > p { margin: 0; }
+.wiki-content li > p + p { margin-top: 0.35em; }
+.wiki-content li ul, .wiki-content li ol { margin: 0.1em 0 0.1em 1.5em; }
 .wiki-content pre {
   background: var(--code-bg);
   border: 1px solid var(--border);

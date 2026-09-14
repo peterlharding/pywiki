@@ -9,6 +9,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+
+---
+
+## [0.10.0] - 2026-09-15
+
 ### Changed
 - **Categories follow the MediaWiki model** - each category's page is now `/wiki/Category/<name>` in the Category namespace, showing its optional description together with the pages in the category, instead of a separate `/category/<name>` listing and a description page that showed no members. The Category namespace page lists every category in use, with page counts and whether it has a description, rather than only categories someone had described. Existing `/category/...` links redirect permanently. Categories are matched by name ignoring case and spacing, so "Fruit Dishes" and "fruit dishes" are the same category. `RENDERER_VERSION` bumped to 17.
 
@@ -808,7 +813,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.4...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/peterlharding/pywiki/compare/v0.9.4...v0.10.0
 [0.9.4]: https://github.com/peterlharding/pywiki/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/peterlharding/pywiki/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/peterlharding/pywiki/compare/v0.9.1...v0.9.2

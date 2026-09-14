@@ -1,4 +1,4 @@
-# PyWiki - Session Primer (v0.9.4)
+# PyWiki - Session Primer (v0.10.0)
 
 ## Project
 - **Stack**: FastAPI + SQLAlchemy (async) + Jinja2 + PostgreSQL (prod) / SQLite (tests)
@@ -163,7 +163,7 @@ When cutting a new release (e.g. vX.Y.Z):
   The maintainer's performiq.com sites use option B with a wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; all other sites use Let's Encrypt.
   Keep maintainer-specific infrastructure out of `setup/`.
 - `setup/requirements.txt` - use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.9.1 (compact list spacing, valid nested wikitext lists), v0.9.2 (namespace table checkbox column, mobile navbar overflow), v0.9.3 (footer credits pywiki, not SITE_NAME), v0.9.4 (content-sized table columns, history Compare column)
+- Recent releases: v0.9.2 (namespace table checkbox column, mobile navbar overflow), v0.9.3 (footer credits pywiki, not SITE_NAME), v0.9.4 (content-sized table columns, history Compare column), v0.10.0 (MediaWiki-style category pages, make start-bg)
 
 ### Verification command
 ```bash

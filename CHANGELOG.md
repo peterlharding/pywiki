@@ -9,6 +9,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+
+---
+
+## [0.9.0] - 2026-09-14
+
 ### Added
 - **Wide-screen layout** - pages now use the width of large screens. By default the layout is limited to 90% of the reader's screen width (never below 1200px, replacing the fixed 1200px), so it grows with the browser window like MediaWiki.
 - **Full / limited width toggle** in the header, remembered per browser; it is hidden when the window is too narrow for it to make a difference, and on the editor and other always-wide pages.
@@ -754,7 +759,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/peterlharding/pywiki/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/peterlharding/pywiki/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/peterlharding/pywiki/compare/v0.6.9...v0.7.0
 [0.6.9]: https://github.com/peterlharding/pywiki/compare/v0.6.8...v0.6.9

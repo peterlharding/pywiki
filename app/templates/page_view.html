@@ -31,7 +31,7 @@
     <li><strong>Format:</strong> <span class="badge badge-{{ ver.format }}">{{ ver.format }}</span></li>
     <li><strong>Version:</strong> {{ ver.version }}</li>
     <li><strong>Author:</strong> {% if ver.author %}<a href="/user/{{ ver.author.username }}">{{ ver.author.username }}</a>{% else %}—{% endif %}</li>
-    <li><strong>Updated:</strong> {{ ver.created_at.strftime('%Y-%m-%d %H:%M') }}</li>
+    <li><strong>Updated:</strong> <time datetime="{{ ver.created_at.isoformat() }}">{{ ver.created_at.strftime('%Y-%m-%d %H:%M') }}</time></li>
   </ul>
 </div>
 {% endblock %}
@@ -121,7 +121,7 @@
 {% if files %}
 {% set file_icons = {'pdf': '📕', 'doc': '📝', 'docx': '📝', 'odt': '📝', 'md': '📝',
                      'xls': '📊', 'xlsx': '📊', 'ods': '📊', 'csv': '📊',
-                     'ppt': '📽️', 'pptx': '📽️', 'zip': '🗜️', 'txt': '📄'} %}
+                     'ppt': '📽️', 'pptx': '📽️', 'odp': '📽️', 'zip': '🗜️', 'txt': '📄'} %}
 <div class="wiki-files" data-attachment-section>
   <h4 class="wiki-images-title">Files (<span data-attachment-count>{{ files|length }}</span>)</h4>
   <ul class="wiki-files-list">

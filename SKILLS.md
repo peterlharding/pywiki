@@ -40,14 +40,14 @@ make test
 
 ## Key architecture notes
 - `get_settings()` is `@lru_cache` - call `get_settings.cache_clear()` if overriding in tests
-- `RENDERER_VERSION = 14` in `app/services/renderer.py` - bump this whenever render output changes to bust cached HTML
+- `RENDERER_VERSION = 15` in `app/services/renderer.py` - bump this whenever render output changes to bust cached HTML
 - `slugify()` is public in `app/services/pages.py` - always lowercases; slug is for URL routing only, title is stored separately
 - **Do not apply Jinja2 `| title` filter** to slugs when pre-filling Create Page form - it destroys acronyms (MQ→Mq, PERL→Perl). Use `slug | replace('-', ' ')` only.
 - `/admin` UI route does **not** exist - the nav "Admin" link points to `/special`
 - First registered user auto-becomes admin (`users.py` counts existing users at registration)
 
 ## Attachments (`app/core/filetypes.py`, `app/services/attachments.py`)
-- **Allowed types** come from `ATTACHMENT_EXTENSIONS` (comma/space-separated, default `png,jpg,jpeg,gif,webp,svg,bmp,pdf,txt,md,docx,xlsx`); `filetypes.PROHIBITED_EXTENSIONS` (html, js, php, exe, ...) is not configurable and always wins. A startup warning lists prohibited types found in the setting.
+- **Allowed types** come from `ATTACHMENT_EXTENSIONS` (comma/space-separated, default `png,jpg,jpeg,gif,webp,avif,svg,bmp,pdf,txt,md,csv,docx,xlsx,pptx,odt,ods,odp`); `filetypes.PROHIBITED_EXTENSIONS` (html, js, php, exe, macro-enabled Office files, ...) is not configurable and always wins. A startup warning lists prohibited types found in the setting.
 - **Every write path goes through `save_attachment()`** (API upload, Special:Upload, editor panel, ZIP import): sanitizes the filename, checks type (415) and size (413), sets `content_type` from the extension (never the client), and clears the page's cached HTML via `invalidate_rendered_html()`. Delete clears it too.
 - **Serving** (`routes/attachments.py::_file_response`): content type from extension, `X-Content-Type-Options: nosniff`; raster images, PDF, TXT and MD are `inline` (MD as `text/plain`), everything else (including SVG, Office files) is a download; all except PDF get a `sandbox` CSP (Chrome's PDF viewer breaks under it).
 - **Link syntax for non-images**: Markdown `[label](attachment:file.pdf)`, wikitext `[[Media:file.pdf|label]]` (also `[[File:file.pdf]]` for non-images), RST `` `label <attachment:file.pdf>`_ ``. Missing files render as red `missing-file` upload links in all of these.

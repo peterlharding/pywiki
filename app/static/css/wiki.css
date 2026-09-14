@@ -250,6 +250,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 }
 .sidebar-section ul { list-style: none; }
 .sidebar-section li { padding: 0.15rem 0; font-size: 0.9rem; }
+.sidebar-section time { white-space: nowrap; }
 .sidebar-section p { font-size: 0.85rem; }
 
 /* ─── Main content ───────────────────────────────────────────────────────── */

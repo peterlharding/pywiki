@@ -22,11 +22,13 @@ from pathlib import PurePosixPath
 
 # -----------------------------------------------------------------------------
 
-IMAGE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"})
+IMAGE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "bmp"})
 
 DEFAULT_ATTACHMENT_EXTENSIONS = (
-    "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp",
-    "pdf", "txt", "md", "docx", "xlsx",
+    "png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "bmp",
+    "pdf", "txt", "md", "csv",
+    "docx", "xlsx", "pptx",
+    "odt", "ods", "odp",
 )
 
 # Never accepted, even when listed in ATTACHMENT_EXTENSIONS: content a browser
@@ -38,11 +40,13 @@ PROHIBITED_EXTENSIONS = frozenset({
     "php", "phtml", "php3", "php4", "php5", "phps", "phar",
     "pl", "py", "cgi", "sh", "ps1",
     "exe", "scr", "dll", "msi", "vbs", "bat", "com", "pif", "cmd", "vxd", "cpl", "jar",
+    # Macro-enabled Office documents, templates and add-ins
+    "docm", "dotm", "xlsm", "xltm", "xlam", "pptm", "potm", "ppsm", "ppam",
 })
 
 # Served with Content-Disposition: inline so the browser displays them.
 # Everything else (including SVG, which can carry scripts) is a download.
-INLINE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "gif", "webp", "bmp", "pdf", "txt", "md"})
+INLINE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "pdf", "txt", "md"})
 
 _CONTENT_TYPES = {
     "png":  "image/png",
@@ -50,6 +54,7 @@ _CONTENT_TYPES = {
     "jpeg": "image/jpeg",
     "gif":  "image/gif",
     "webp": "image/webp",
+    "avif": "image/avif",
     "svg":  "image/svg+xml",
     "bmp":  "image/bmp",
     "pdf":  "application/pdf",
@@ -65,6 +70,7 @@ _CONTENT_TYPES = {
     "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "odt":  "application/vnd.oasis.opendocument.text",
     "ods":  "application/vnd.oasis.opendocument.spreadsheet",
+    "odp":  "application/vnd.oasis.opendocument.presentation",
     "zip":  "application/zip",
 }
 

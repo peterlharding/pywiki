@@ -8,7 +8,7 @@ A MediaWiki-inspired wiki built with **FastAPI** and **Python**, supporting both
 - 🗂️ **Namespaces** — organise pages into named namespaces (like MediaWiki)
 - 📜 **Full revision history** — every save appends a new version; nothing is overwritten
 - ↔️ **Diff viewer** — compare any two versions of a page
-- 📎 **File attachments** - upload images and documents (PDF, Word, Excel, text, Markdown; configurable) to any page
+- 📎 **File attachments** - upload images and documents (PDF, Office and OpenDocument files, CSV, text, Markdown; configurable) to any page
 - 🔍 **Full-text search** across all pages and namespaces
 - 👤 **User accounts** — registration, JWT authentication, admin roles
 - 🔗 **`[[WikiLink]]`** syntax — inter-page links auto-resolved to the correct URL
@@ -292,7 +292,7 @@ See `setup/env.template` for all available settings. Key variables:
 | `SITE_NAME` | `PyWiki` | Displayed site name |
 | `DEFAULT_NAMESPACE` | `Main` | Namespace created on first run |
 | `ALLOW_REGISTRATION` | `true` | Allow public user registration |
-| `ATTACHMENT_EXTENSIONS` | `png,jpg,jpeg,gif,webp,svg,bmp,pdf,txt,md,docx,xlsx` | Uploadable file types (comma-separated); executable and web content types are always refused |
+| `ATTACHMENT_EXTENSIONS` | `png,jpg,jpeg,gif,webp,avif,svg,bmp,pdf,txt,md,csv,docx,xlsx,pptx,odt,ods,odp` | Uploadable file types (comma-separated); executable and web content types are always refused |
 | `MAX_ATTACHMENT_BYTES` | `52428800` | Maximum upload size in bytes (50 MB) |
 
 ## License

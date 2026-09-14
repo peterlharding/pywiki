@@ -84,7 +84,8 @@ def test_prohibited_extensions_are_dropped_from_configuration(monkeypatch):
 
 def test_default_extensions_include_requested_document_types():
     allowed = get_settings().allowed_attachment_extensions
-    assert {"docx", "xlsx", "txt", "pdf", "md", "png", "jpg"} <= allowed
+    assert {"docx", "xlsx", "pptx", "csv", "odt", "ods", "odp", "txt", "pdf", "md", "png", "jpg", "avif"} <= allowed
+    assert not {"docm", "xlsm", "pptm"} & allowed
 
 
 def test_sanitize_filename_strips_directories_and_unsafe_characters():
@@ -103,7 +104,10 @@ def test_content_type_is_derived_from_extension():
 # =============================================================================
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("filename", ["report.pdf", "Notes.docx", "Budget.xlsx", "notes.txt", "README.md", "SCAN.PDF"])
+@pytest.mark.parametrize("filename", [
+    "report.pdf", "Notes.docx", "Budget.xlsx", "Slides.pptx", "data.csv",
+    "Letter.odt", "Sheet.ods", "Deck.odp", "notes.txt", "README.md", "SCAN.PDF", "photo.avif",
+])
 async def test_upload_accepts_document_types(client, db_session, filename):
     headers = await _setup(client, db_session)
     resp = await _upload(client, headers, filename)
@@ -123,6 +127,16 @@ async def test_upload_ignores_client_content_type(client, db_session):
 async def test_upload_rejects_prohibited_type(client, db_session):
     headers = await _setup(client, db_session)
     resp = await _upload(client, headers, "setup.exe")
+    assert resp.status_code == 415
+    assert "security" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("filename", ["Invoice.docm", "Budget.xlsm", "Deck.pptm"])
+async def test_upload_rejects_macro_enabled_office_files(client, db_session, monkeypatch, filename):
+    headers = await _setup(client, db_session)
+    _set_extensions(monkeypatch, "docx docm xlsm pptm")
+    resp = await _upload(client, headers, filename)
     assert resp.status_code == 415
     assert "security" in resp.json()["detail"]
 
@@ -193,7 +207,7 @@ async def test_markdown_is_served_inline_as_plain_text(client, db_session):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("filename", ["Notes.docx", "diagram.svg"])
+@pytest.mark.parametrize("filename", ["Notes.docx", "Slides.pptx", "Deck.odp", "data.csv", "diagram.svg"])
 async def test_active_or_office_files_are_downloads(client, db_session, filename):
     headers = await _setup(client, db_session)
     resp = await _served(client, headers, filename)
@@ -246,6 +260,12 @@ def test_wikitext_missing_media_offers_upload():
     assert 'href="/special/upload?filename=minutes.pdf"' in html
 
 
+def test_avif_is_treated_as_an_image():
+    html = render("[[File:photo.avif|thumb|Cap]]", "wikitext", attachments={"photo.avif": "/a/1/photo.avif"})
+    assert '<img src="/a/1/photo.avif"' in html
+    assert content_type_for("photo.avif") == "image/avif"
+
+
 def test_same_site_links_do_not_open_new_tabs():
     base = "https://wiki.example.com"
     html = render("[[Other Page]] [ext](https://example.org)", "markdown", base_url=base)
@@ -293,7 +313,7 @@ async def test_editor_accepts_configured_types(client, db_session):
     await _setup(client, db_session)
     cookies = await cookie_auth(client, "filesuser")
     resp = await client.get(f"/wiki/{NS}/doc-page/edit", headers=cookies)
-    assert 'accept=".bmp,.docx,' in resp.text
+    assert 'accept=".avif,.bmp,.csv,.docx,' in resp.text
     assert "Drop files here" in resp.text
     assert 'accept="image/*"' not in resp.text
 

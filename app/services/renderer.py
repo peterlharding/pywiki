@@ -18,11 +18,14 @@ to the correct wiki URL before final HTML output.
 
 from __future__ import annotations
 
+import html as _html_mod
 import re
+
+from app.core.filetypes import is_image
 
 # Bump this whenever the render pipeline changes so stale cached HTML is
 # automatically discarded and re-rendered on next page view.
-RENDERER_VERSION = 13
+RENDERER_VERSION = 14
 _CACHE_STAMP = f'<!--rv:{RENDERER_VERSION}-->'
 
 # Sentinel injected by _expand_macros() in place of {{toc}} / __TOC__.
@@ -220,6 +223,21 @@ def _preprocess_wikilinks_md(
             content,
         )
 
+    # File links: [label](attachment:report.pdf).  Missing files become a red
+    # upload link, as [[Media:]] does in wikitext.
+    def _att_link(m: re.Match) -> str:
+        label, name = m.group(1), m.group(2).strip()
+        url = (attachments or {}).get(name, "")
+        if url:
+            return f'[{label}]({url})'
+        name_attr = _html_mod.escape(name)
+        return f'<a href="/special/upload?filename={name_attr}" class="missing-file" title="Upload {name_attr}">{label or name_attr}</a>'
+    content = re.sub(
+        r'(?<!!)\[([^\]]*)\]\(attachment:([^)]+)\)',
+        _att_link,
+        content,
+    )
+
     def _replace(m: re.Match) -> str:
         target = m.group(1).strip()
         label  = (m.group(2) or target).strip()
@@ -302,6 +320,11 @@ def _slugify(text: str) -> str:
 # -----------------------------------------------------------------------------
 
 _CATEGORY_RE = re.compile(r"\[\[Category:([^\]]+)\]\]", re.IGNORECASE)
+
+
+def _file_link(url: str, label: str) -> str:
+    """Link to a non-image attachment: wikitext [[Media:x.pdf]] and [[File:x.pdf]]."""
+    return f'<a href="{_html_mod.escape(url)}" class="wiki-file">{_html_mod.escape(label, quote=False)}</a>'
 
 
 def _render_wikitext(
@@ -534,6 +557,8 @@ def _render_wikitext(
             if not url:
                 upload_href = f"/special/upload?filename={name}"
                 return f'<a href="{upload_href}" class="missing-file" title="Upload {name}">[[{m.group(0)[2:-2]}]]</a>'
+            if not is_image(name):
+                return _file_link(url, caption or name)
             thumb   = "thumb" in opts or "thumbnail" in opts or "frame" in opts
             align_class = next((f"img-{o}" for o in ("left", "right", "center") if o in opts), "img-right" if thumb else "")
             size_attrs  = (f' width="{width}"'  if width  else "") + \
@@ -547,12 +572,23 @@ def _render_wikitext(
                 return f'<img src="{url}" alt="{caption}" class="{img_class} {align_class}"{size_attrs} loading="lazy" />'
         text = re.sub(r"\[\[(?:File|Image):[^\]|][^\]]*(?:\|[^\]]*)*\]\]", _file, text, flags=re.IGNORECASE)
 
+        # [[Media:report.pdf]] / [[Media:report.pdf|Label]]: direct link to the file
+        def _media(m: re.Match) -> str:
+            name  = m.group(1).strip()
+            label = (m.group(2) or name).strip()
+            url   = (_attachments or {}).get(name, "")
+            if not url:
+                upload_href = f"/special/upload?filename={name}"
+                return f'<a href="{upload_href}" class="missing-file" title="Upload {name}">[[{m.group(0)[2:-2]}]]</a>'
+            return _file_link(url, label)
+        text = re.sub(r"\[\[Media:([^\]|]+)(?:\|([^\]]*))?\]\]", _media, text, flags=re.IGNORECASE)
+
         # WikiLinks: [[Page|Label]] / [[Page]]
         def _wl(m: re.Match) -> str:
             target = m.group(1).strip()
             label  = (m.group(2) or target).strip()
             # Skip if it's a File:/Image: link (already handled above)
-            if target.lower().startswith("file:") or target.lower().startswith("image:"):
+            if target.lower().startswith(("file:", "image:", "media:")):
                 return m.group(0)
             slug   = _slugify(target)
             href   = f"{base_url}/wiki/{namespace}/{slug}"
@@ -1065,11 +1101,16 @@ _EXT_LINK_RE = re.compile(
 )
 
 
-def _add_external_link_targets(html: str) -> str:
-    """Add target="_blank" rel="noopener noreferrer" to all external <a> tags."""
+def _add_external_link_targets(html: str, base_url: str = "") -> str:
+    """Add target="_blank" rel="noopener noreferrer" to all external <a> tags.
+
+    Links under *base_url* (wikilinks, attachments) point back into this wiki
+    and are left alone.
+    """
+    same_site = re.compile(r'href=["\']' + re.escape(base_url.rstrip("/")) + r'(?:[/"\'?#])', re.IGNORECASE) if base_url else None
     def _patch(m: re.Match) -> str:
         attrs = m.group(1)
-        if "target=" in attrs:
+        if "target=" in attrs or (same_site and same_site.search(attrs)):
             return m.group(0)
         return f'<a {attrs} target="_blank" rel="noopener noreferrer">'
     return _EXT_LINK_RE.sub(_patch, html)
@@ -1095,9 +1136,10 @@ def render(
     fmt         : "markdown", "rst", or "wikitext"
     namespace   : wiki namespace name (used for wikilink URL construction)
     base_url    : site base URL prefix for wikilinks
-    attachments : optional mapping of filename → URL for inline image resolution.
-                  Used by ``[[File:name.png]]`` (wikitext) and
-                  ``![alt](attachment:name.png)`` (markdown).
+    attachments : optional mapping of filename → URL for attachment resolution.
+                  Used by ``[[File:name.png]]`` / ``[[Media:name.pdf]]`` (wikitext),
+                  ``![alt](attachment:name.png)`` / ``[label](attachment:name.pdf)``
+                  (markdown) and ``attachment:`` targets in RST.
     """
     fmt = fmt.lower()
     content = _expand_macros(content)
@@ -1116,7 +1158,7 @@ def render(
         import html as _html
         html = f"<pre>{_html.escape(content)}</pre>"
 
-    return _CACHE_STAMP + _add_toc(_add_external_link_targets(html))
+    return _CACHE_STAMP + _add_toc(_add_external_link_targets(html, base_url))
 
 
 def is_cache_valid(rendered: str | None) -> bool:

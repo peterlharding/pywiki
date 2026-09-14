@@ -57,6 +57,7 @@
   Import complete —
   <strong>{{ parts[0] }}</strong> page(s) created, <strong>{{ parts[1] }}</strong> updated{% if att_ok and (att_parts[0] != '0' or att_parts[1] != '0') %};
   <strong>{{ att_parts[0] }}</strong> attachment(s) imported, <strong>{{ att_parts[1] }}</strong> updated{% endif %}.
+  {% if att_skipped %}<strong>{{ att_skipped }}</strong> attachment(s) skipped because their file type is not allowed or they are too large.{% endif %}
 </div>
 {% endif %}
 

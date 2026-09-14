@@ -337,6 +337,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
   border-radius: 4px;
   font-size: 0.95rem;
   font-family: inherit;
+  color: var(--text);
   background: var(--bg);
 }
 .form-row input:focus,
@@ -346,6 +347,19 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(51,102,204,.2);
 }
+.form-row input[type="file"] {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--text);
+}
+.form-row input:disabled { background: var(--bg-alt); color: var(--muted); }
+.form-row .hint { display: block; margin-top: 0.25rem; }
+.form-row.form-check label { display: flex; align-items: center; gap: 0.4rem; font-weight: 400; }
+.narrow-form { max-width: 560px; }
+.page-intro { margin: 0 0 1.25rem; }
 .form-actions { display: flex; gap: 0.5rem; margin-top: 1.25rem; }
 .required { color: var(--danger); }
 .hint { font-size: 0.82rem; color: var(--muted); }
@@ -379,12 +393,18 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 }
 .alert-error { background: #fde8e8; border: 1px solid #f5c6c6; color: #8b1a1a; }
 .alert-info  { background: #e8f0fe; border: 1px solid #c6d7f5; color: #1a3060; }
+.alert-success { background: #e8f5e9; border: 1px solid #c3e2c5; color: #1b5e20; }
 [data-theme="dark"] .alert-error { background: #3a1a1a; border-color: #7a2a2a; color: #f38ba8; }
 [data-theme="dark"] .alert-info  { background: #1a2040; border-color: #2a4080; color: #89b4fa; }
+[data-theme="dark"] .alert-success { background: #1a3020; border-color: #2a6040; color: #a6e3a1; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .alert-error { background: #3a1a1a; border-color: #7a2a2a; color: #f38ba8; }
   :root:not([data-theme="light"]) .alert-info  { background: #1a2040; border-color: #2a4080; color: #89b4fa; }
+  :root:not([data-theme="light"]) .alert-success { background: #1a3020; border-color: #2a6040; color: #a6e3a1; }
 }
+.alert .form-actions { margin-top: 0.75rem; }
+.upload-syntax { margin-top: 0.6rem; display: grid; gap: 0.3rem; }
+.upload-syntax-fmt { display: inline-block; min-width: 5.5rem; opacity: 0.8; }
 
 /* ─── Tables ─────────────────────────────────────────────────────────────── */
 
@@ -885,6 +905,85 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+}
+
+/* ─── File attachments (page view) ──────────────────────────────────────── */
+
+.wiki-files {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border, #ddd);
+  clear: both;
+}
+
+.wiki-images + .wiki-files {
+  margin-top: 1.25rem;
+}
+
+.wiki-files-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wiki-file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+}
+
+.wiki-file-item:hover {
+  background: var(--bg-alt);
+}
+
+.wiki-file-icon {
+  flex: none;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.wiki-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-file-size {
+  flex: none;
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--muted, #666);
+  font-variant-numeric: tabular-nums;
+}
+
+.wiki-file-delete {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  line-height: 1;
+  font-size: 0.85rem;
+  background: rgba(200, 0, 0, 0.75);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+}
+
+.wiki-file-item:hover .wiki-file-delete,
+.wiki-file-delete:focus-visible {
+  visibility: visible;
+}
+
+.wiki-file-delete:hover {
+  background: rgba(180, 0, 0, 1);
 }
 
 /* ─── Lightbox ───────────────────────────────────────────────────────────── */

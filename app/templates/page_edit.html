@@ -18,13 +18,15 @@
   .format-tab { padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; background: var(--bg); }
   .format-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-  /* Image upload panel */
+  /* Attachment upload panel */
   .upload-panel { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: 4px; padding: 1rem; }
   .upload-panel h4 { margin: 0 0 0.75rem; font-size: 0.95rem; }
   .upload-drop-zone { border: 2px dashed var(--border); border-radius: 4px; padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
   .upload-drop-zone.dragover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
   .upload-drop-zone input[type=file] { display: none; }
+  .upload-hint { display: block; margin-top: 0.35rem; font-size: 0.8rem; color: var(--muted); }
   .upload-progress { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+  .upload-progress.error { color: var(--danger); }
   .att-list { list-style: none; padding: 0; margin: 0.75rem 0 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .att-item { display: flex; align-items: center; gap: 0.4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0.3rem 0.6rem; font-size: 0.85rem; }
   .att-item img.thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 2px; }
@@ -92,17 +94,19 @@
   <button class="btn btn-danger" type="submit">🗑 Delete page</button>
 </form>
 
+{% set policy = attachment_policy() %}
 <div class="upload-panel">
   <h4>📎 Attachments</h4>
   <div class="upload-drop-zone" id="drop-zone">
-    <input type="file" id="file-input" accept="image/*" multiple />
-    <span>Drop images here or <strong>click to upload</strong></span>
+    <input type="file" id="file-input" accept="{{ policy.accept }}" multiple />
+    <span>Drop files here or <strong>click to upload</strong></span>
+    <small class="upload-hint">Allowed: {{ policy.extensions | join(', ') }} · max&nbsp;{{ policy.max_mb }}&nbsp;MB</small>
   </div>
-  <div class="upload-progress" id="upload-status"></div>
+  <div class="upload-progress" id="upload-status" role="status"></div>
   <ul class="att-list" id="att-list">
     {% for att in attachments %}
-    <li class="att-item" id="att-{{ att.filename | replace('.', '-') }}">
-      {% set is_image = att.filename.lower().endswith(('.png','.jpg','.jpeg','.gif','.webp','.svg','.bmp')) %}
+    <li class="att-item">
+      {% set is_image = att.filename is image_file %}
       {% if is_image %}
       <img class="thumb" src="{{ att_map[att.filename] }}" alt="{{ att.filename }}" />
       {% else %}
@@ -167,14 +171,27 @@
   // Render initial preview on page load
   updatePreview();
 
-  // ── Image upload ──────────────────────────────────────────────────────────
+  // ── Attachment upload ─────────────────────────────────────────────────────
   const UPLOAD_URL = `/api/v1/namespaces/${WIKI_NS}/pages/${WIKI_SLUG}/attachments`;
   const dropZone   = document.getElementById('drop-zone');
   const fileInput  = document.getElementById('file-input');
   const status     = document.getElementById('upload-status');
   const attList    = document.getElementById('att-list');
 
-  const IMAGE_EXTS = new Set(['.png','.jpg','.jpeg','.gif','.webp','.svg','.bmp']);
+  const POLICY       = {{ attachment_policy() | tojson }};
+  const IMAGE_EXTS   = new Set(POLICY.image_extensions);
+  const ALLOWED_EXTS = new Set(POLICY.extensions);
+  const MAX_BYTES    = POLICY.max_mb * 1024 * 1024;
+
+  function extOf(filename) {
+    const dot = filename.lastIndexOf('.');
+    return dot > 0 ? filename.slice(dot + 1).toLowerCase() : '';
+  }
+
+  function showStatus(message, isError = false) {
+    status.textContent = message;
+    status.classList.toggle('error', isError);
+  }
 
   function insertAttachment(filename, isImage) {
     const fmt = document.getElementById('fmt-input').value;
@@ -211,7 +228,16 @@
 
   async function uploadFiles(files) {
     for (const file of files) {
-      status.textContent = `Uploading ${file.name}…`;
+      const ext = extOf(file.name);
+      if (!ALLOWED_EXTS.has(ext)) {
+        showStatus(`${file.name}: ${ext ? `'.${ext}' files are not allowed` : 'files need an extension'}. Allowed: ${POLICY.extensions.join(', ')}`, true);
+        continue;
+      }
+      if (file.size > MAX_BYTES) {
+        showStatus(`${file.name}: exceeds the ${POLICY.max_mb} MB limit`, true);
+        continue;
+      }
+      showStatus(`Uploading ${file.name}…`);
       const fd = new FormData();
       fd.append('file', file);
       fd.append('comment', 'Uploaded via editor');
@@ -223,31 +249,46 @@
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          status.textContent = `Error: ${err.detail || res.statusText}`;
+          showStatus(`${file.name}: ${err.detail || res.statusText}`, true);
           continue;
         }
         const att = await res.json();
-        status.textContent = `Uploaded: ${att.filename}`;
+        showStatus(`Uploaded: ${att.filename}`);
         addAttToList(att);
       } catch (e) {
-        status.textContent = `Upload failed: ${e.message}`;
+        showStatus(`Upload failed: ${e.message}`, true);
       }
     }
   }
 
   function addAttToList(att) {
-    const isImage = IMAGE_EXTS.has(att.filename.slice(att.filename.lastIndexOf('.')).toLowerCase());
+    const isImage = IMAGE_EXTS.has(extOf(att.filename));
+    // Replace the entry when re-uploading a file with the same name
+    for (const btn of attList.querySelectorAll('.att-insert-btn')) {
+      if (btn.dataset.filename === att.filename) btn.closest('.att-item').remove();
+    }
     const li = document.createElement('li');
     li.className = 'att-item';
-    li.id = `att-${att.filename.replace(/\./g, '-')}`;
     if (isImage) {
-      li.innerHTML = `<img class="thumb" src="${att.url}" alt="${att.filename}" />`;
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.src = att.url;
+      img.alt = att.filename;
+      li.append(img);
     } else {
-      li.innerHTML = `<span>📄</span>`;
+      const icon = document.createElement('span');
+      icon.textContent = '📄';
+      li.append(icon);
     }
-    li.innerHTML += `<span>${att.filename}</span>`
-      + `<button class="att-insert-btn" type="button"`
-      + ` data-filename="${att.filename}" data-image="${isImage}">Insert</button>`;
+    const name = document.createElement('span');
+    name.textContent = att.filename;
+    const btn = document.createElement('button');
+    btn.className = 'att-insert-btn';
+    btn.type = 'button';
+    btn.dataset.filename = att.filename;
+    btn.dataset.image = String(isImage);
+    btn.textContent = 'Insert';
+    li.append(name, btn);
     attList.appendChild(li);
   }
 

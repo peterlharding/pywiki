@@ -32,6 +32,12 @@ log = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     install_log_buffer()        # capture WARNING+ into in-memory ring buffer
+    ignored = get_settings().ignored_attachment_extensions
+    if ignored:
+        log.warning(
+            "ATTACHMENT_EXTENSIONS lists prohibited types, which will be refused: %s",
+            ", ".join(sorted(ignored)),
+        )
     init_db()
     await create_all_tables()   # safe: CREATE TABLE IF NOT EXISTS
     # Seed default namespace on first run

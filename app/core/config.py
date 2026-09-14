@@ -18,6 +18,11 @@ from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app._version import __version__ as _pkg_version
+from app.core.filetypes import (
+    DEFAULT_ATTACHMENT_EXTENSIONS,
+    PROHIBITED_EXTENSIONS,
+    parse_extension_list,
+)
 
 # -----------------------------------------------------------------------------
 
@@ -56,6 +61,10 @@ class Settings(BaseSettings):
 
     attachment_root: Path = Path("./data/attachments")
     max_attachment_bytes: int = 50 * 1024 * 1024   # 50 MB
+    # Uploadable file extensions, comma- or space-separated (like MediaWiki's
+    # $wgFileExtensions).  Extensions in filetypes.PROHIBITED_EXTENSIONS are
+    # always refused, even if listed here.
+    attachment_extensions: str = ",".join(DEFAULT_ATTACHMENT_EXTENSIONS)
 
     # ── SMTP / email ──────────────────────────────────────────────────────────
 
@@ -85,6 +94,15 @@ class Settings(BaseSettings):
     @property
     def is_testing(self) -> bool:
         return self.environment == "testing"
+
+    @property
+    def allowed_attachment_extensions(self) -> frozenset[str]:
+        return parse_extension_list(self.attachment_extensions) - PROHIBITED_EXTENSIONS
+
+    @property
+    def ignored_attachment_extensions(self) -> frozenset[str]:
+        """Configured extensions that are dropped because they are prohibited."""
+        return parse_extension_list(self.attachment_extensions) & PROHIBITED_EXTENSIONS
 
     @property
     def attachment_root_resolved(self) -> Path:

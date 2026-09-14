@@ -125,8 +125,12 @@ Key values to set:
 | `APP_PORT` | uvicorn port, per the port convention above (e.g. `8222`) |
 | `BASE_URL` | `https://pywiki.example.com` |
 | `ATTACHMENT_ROOT` | `/opt/pywiki/data/attachments` |
+| `ATTACHMENT_EXTENSIONS` | Uploadable file types, e.g. `png,jpg,pdf,docx,xlsx,txt,md` (dangerous types are always refused) |
+| `MAX_ATTACHMENT_BYTES` | Upload size limit; keep nginx `client_max_body_size` above it |
 | `SMTP_*` | Brevo (or other relay) credentials |
 | `ALLOW_REGISTRATION` | `true` until first admin is created, then `false` |
+
+Keep comments on their own lines in `.env`: systemd passes `KEY=value  # comment` through with the comment attached, and the service will fail to start.
 
 Secure the file:
 

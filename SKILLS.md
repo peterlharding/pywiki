@@ -107,14 +107,15 @@ make import-mw XML=path/to/export.xml [ARGS="--dry-run --limit 10"]  # MediaWiki
 
 ## Release Process
 When cutting a new release (e.g. vX.Y.Z):
-1. `CHANGELOG.md` is maintained by PLH; agents must not edit it.
-   Instead, list the changes that belong in the `[X.Y.Z]` entry in the release summary so PLH can add them.
+1. Update `CHANGELOG.md` (hand-maintained, Keep a Changelog format; there is no generator, so edit it directly).
+   Add a `## [X.Y.Z] - YYYY-MM-DD` section below `[Unreleased]` (moving anything listed under `[Unreleased]` into it), point the `[Unreleased]` compare link at `vX.Y.Z...HEAD`, and add a `[X.Y.Z]: .../compare/vPREV...vX.Y.Z` link.
+   This must be in the release commit so the tag includes it.
 2. Create `release_notes/vX.Y.Z.md` - standalone release note with highlights, full what's-new breakdown, upgrade instructions, and known limitations
 3. Bump `version` in `pyproject.toml` (`app/_version.py` reads it; there is no other version string)
 4. Update version in `SKILLS.md` header
 5. Commit on `devel`: `git commit -m "chore: release vX.Y.Z"`
-6. Merge into `main`: `git checkout main && git merge devel -m "chore: merge devel into main for vX.Y.Z release"`
-7. Tag: `git tag -a vX.Y.Z -m 'Release vX.Y.Z'`
+6. Tag that commit (still on `devel`): `git tag -a vX.Y.Z -m 'Release vX.Y.Z'`
+7. Merge into `main`: `git checkout main && git merge --no-ff devel -m "chore: merge devel into main for vX.Y.Z release"`
 8. Push branches and tag: `git push origin devel main vX.Y.Z`
 9. If post-release commits need to be included in the tag (e.g. a same-session bugfix): `git tag -d vX.Y.Z && git tag -a vX.Y.Z -m 'Release vX.Y.Z' && git push origin :refs/tags/vX.Y.Z && git push origin vX.Y.Z`
 

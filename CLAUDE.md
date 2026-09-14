@@ -56,7 +56,8 @@ Math is rendered client-side by KaTeX; the renderer only normalises delimiters.
 Search in `pages.py` branches on dialect (`tsvector` ranking on PostgreSQL, `ILIKE` on SQLite), so keep both paths working.
 
 **Config**: `app/core/config.py` pydantic-settings from `.env`; `get_settings()` is `lru_cache`d, so tests must call `get_settings.cache_clear()` after changing env.
-Never put inline `# comments` on `.env` value lines; pydantic-settings treats them as part of the value.
+Never put inline `# comments` on `.env` value lines: systemd's `EnvironmentFile` passes them through as part of the value and the service fails to start.
+`PYWIKI_ENV_FILE` selects a different settings file (empty = none). Settings added recently: `ATTACHMENT_EXTENSIONS`, `LAYOUT_MAX_WIDTH` (see `setup/env.template`).
 
 **Version**: the only source of truth is `version` in `pyproject.toml`; `app/_version.py` parses it at import time.
 
@@ -78,10 +79,14 @@ Never put inline `# comments` on `.env` value lines; pydantic-settings treats th
 `tests/conftest.py` sets `PYWIKI_ENV_FILE=""` so the local `.env` is ignored, forces an in-memory SQLite DB, builds the app via `create_app()` and overrides `get_db`; tests use `httpx.AsyncClient` with `asyncio_mode = "auto"`.
 Helpers: `register_user`, `login_user`, `auth_headers` (Bearer, for API) and `cookie_auth` (for UI routes).
 `cookie_auth()` returns `{"Cookie": "access_token=..."}`; pass it as `headers=`, not `cookies=`.
+The test app runs without its lifespan, so the `Main` and `Category` namespaces are not seeded; create them in a test when needed.
+Verify UI changes in a browser (headless Playwright works); `base.html` loads KaTeX from a CDN, so abort non-local requests in sandboxed runs or pages never finish loading.
 
 ## Project conventions
 
-- Work happens on `devel`; `main` receives release merges.
+- Work happens on `devel`; `main` receives release merges and is what servers pull.
+  Before merging into `main`, `git fetch` and check for commits made directly on `main` (it happens from servers); merge on top of `origin/main` and bring them back into `devel`.
 - When a feature or fix is done, mark it `[x]` in `TODO.md` with a short note and the version.
 - `CHANGELOG.md` is hand-maintained (no generator); update it in the release commit so the tag includes it.
-- Release notes live in `release_notes/vX.Y.Z.md`; see "Release Process" in `SKILLS.md` for the full sequence (version bump in `pyproject.toml` and the `SKILLS.md` header, tag).
+- Release notes live in `release_notes/vX.Y.Z.md`; see "Release Process" in `SKILLS.md` for the full sequence (version bump in `pyproject.toml`, `uv lock`, the `SKILLS.md` header, tag on `devel`, merge to `main`).
+- Table and layout CSS conventions (`col-select`, `col-title`, `kv-table`, layout width) are under "UI / Template rules" in `SKILLS.md`.

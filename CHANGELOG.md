@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Footer credited the wiki instead of the project** - "Powered by" showed the instance's `SITE_NAME` (e.g. "Powered by Expanse Wiki"); it now always reads "Powered by pywiki", linked to the project repository. The site name still appears in the navbar, page titles and printable pages.
+
 
 ---
 

@@ -796,6 +796,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
   border-top: 1px solid var(--border);
   margin-top: 2rem;
 }
+.site-footer .footer-project { font-weight: 600; color: inherit; }
+.site-footer .footer-project:hover { color: var(--link); }
 
 /* ─── Table of Contents ──────────────────────────────────────────────────── */
 

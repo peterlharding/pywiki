@@ -20,7 +20,7 @@
     <li><a href="/wiki/{{ namespace_name }}/{{ page.slug }}/print">🖨️ Printable version</a></li>
     <li><a href="/special">Special pages</a></li>
     {% if user %}
-    <li><a href="/api/v1/namespaces/{{ namespace_name }}/pages/{{ page.slug }}/attachments">📎 Upload file</a></li>
+    <li><a href="/special/upload?namespace={{ namespace_name | urlencode }}&amp;page={{ page.slug | urlencode }}&amp;back={{ ('/wiki/' ~ namespace_name ~ '/' ~ page.slug) | urlencode }}">📎 Upload file</a></li>
     {% endif %}
   </ul>
 </div>
@@ -31,7 +31,7 @@
     <li><strong>Format:</strong> <span class="badge badge-{{ ver.format }}">{{ ver.format }}</span></li>
     <li><strong>Version:</strong> {{ ver.version }}</li>
     <li><strong>Author:</strong> {% if ver.author %}<a href="/user/{{ ver.author.username }}">{{ ver.author.username }}</a>{% else %}—{% endif %}</li>
-    <li><strong>Updated:</strong> {{ ver.created_at.strftime('%Y-%m-%d %H:%M') }}</li>
+    <li><strong>Updated:</strong> <time datetime="{{ ver.created_at.isoformat() }}">{{ ver.created_at.strftime('%Y-%m-%d %H:%M') }}</time></li>
   </ul>
 </div>
 {% endblock %}
@@ -98,28 +98,83 @@
 {% endif %}
 
 {% if images %}
-<div class="wiki-images">
-  <h4 class="wiki-images-title">Images ({{ images|length }})</h4>
+<div class="wiki-images" data-attachment-section>
+  <h4 class="wiki-images-title">Images (<span data-attachment-count>{{ images|length }}</span>)</h4>
   <div class="wiki-images-grid">
     {% for img in images %}
-    <div class="wiki-gallery-item">
+    <div class="wiki-gallery-item" data-attachment-item>
       <a href="{{ img.url }}" class="lightbox-trigger" data-src="{{ img.url }}" data-caption="{{ img.filename }}">
         <img src="{{ img.url }}" alt="{{ img.filename }}" class="wiki-gallery-thumb" loading="lazy" />
         <span class="wiki-gallery-name">{{ img.filename }}</span>
       </a>
       {% if user %}
-      <button class="wiki-gallery-delete" data-filename="{{ img.filename }}"
+      <button class="wiki-gallery-delete attachment-delete" data-filename="{{ img.filename }}"
               data-namespace="{{ namespace_name }}" data-slug="{{ page.slug }}"
-              title="Delete {{ img.filename }}" aria-label="Delete">&times;</button>
+              title="Delete {{ img.filename }}" aria-label="Delete {{ img.filename }}">&times;</button>
       {% endif %}
     </div>
     {% endfor %}
   </div>
 </div>
 {% endif %}
+
+{% if files %}
+{% set file_icons = {'pdf': '📕', 'doc': '📝', 'docx': '📝', 'odt': '📝', 'md': '📝',
+                     'xls': '📊', 'xlsx': '📊', 'ods': '📊', 'csv': '📊',
+                     'ppt': '📽️', 'pptx': '📽️', 'odp': '📽️', 'zip': '🗜️', 'txt': '📄'} %}
+<div class="wiki-files" data-attachment-section>
+  <h4 class="wiki-images-title">Files (<span data-attachment-count>{{ files|length }}</span>)</h4>
+  <ul class="wiki-files-list">
+    {% for f in files %}
+    <li class="wiki-file-item" data-attachment-item>
+      <span class="wiki-file-icon" aria-hidden="true">{{ file_icons.get(f.filename.rsplit('.', 1)[-1].lower(), '📎') }}</span>
+      <a href="{{ f.url }}" class="wiki-file-name">{{ f.filename }}</a>
+      <span class="wiki-file-size">{{ f.size_bytes | filesize }}</span>
+      {% if user %}
+      <button class="wiki-file-delete attachment-delete" data-filename="{{ f.filename }}"
+              data-namespace="{{ namespace_name }}" data-slug="{{ page.slug }}"
+              title="Delete {{ f.filename }}" aria-label="Delete {{ f.filename }}">&times;</button>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+{% if user and (images or files) %}
+<script>
+  document.querySelectorAll('.attachment-delete').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const { filename, namespace, slug } = btn.dataset;
+      if (!confirm(`Delete attachment "${filename}"?`)) return;
+      try {
+        const resp = await fetch(
+          `/api/v1/namespaces/${encodeURIComponent(namespace)}/pages/${encodeURIComponent(slug)}/attachments/${encodeURIComponent(filename)}`,
+          { method: 'DELETE', credentials: 'same-origin' }
+        );
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          alert(`Delete failed: ${err.detail || resp.statusText}`);
+          return;
+        }
+        const section = btn.closest('[data-attachment-section]');
+        btn.closest('[data-attachment-item]').remove();
+        const remaining = section.querySelectorAll('[data-attachment-item]').length;
+        if (remaining === 0) {
+          section.remove();
+        } else {
+          section.querySelector('[data-attachment-count]').textContent = remaining;
+        }
+      } catch (err) {
+        alert(`Delete failed: ${err.message}`);
+      }
+    });
+  });
+</script>
+{% endif %}
 {% if images %}
 <div id="lightbox-overlay" class="lightbox-overlay" style="display:none;" role="dialog" aria-modal="true">
   <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
@@ -132,39 +187,6 @@
   const overlay = document.getElementById('lightbox-overlay');
   const lbImg   = document.getElementById('lightbox-img');
   const lbCap   = document.getElementById('lightbox-caption');
-
-  document.querySelectorAll('.wiki-gallery-delete').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      const filename  = btn.dataset.filename;
-      const namespace = btn.dataset.namespace;
-      const slug      = btn.dataset.slug;
-      if (!confirm(`Delete attachment "${filename}"?`)) return;
-      try {
-        const resp = await fetch(
-          `/api/v1/namespaces/${namespace}/pages/${slug}/attachments/${encodeURIComponent(filename)}`,
-          { method: 'DELETE', credentials: 'same-origin' }
-        );
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          alert(`Delete failed: ${err.detail || resp.statusText}`);
-          return;
-        }
-        const item = btn.closest('.wiki-gallery-item');
-        item.remove();
-        const grid  = document.querySelector('.wiki-images-grid');
-        const remaining = grid.querySelectorAll('.wiki-gallery-item').length;
-        const section   = document.querySelector('.wiki-images');
-        if (remaining === 0) {
-          section.remove();
-        } else {
-          document.querySelector('.wiki-images-title').textContent = `Images (${remaining})`;
-        }
-      } catch (err) {
-        alert(`Delete failed: ${err.message}`);
-      }
-    });
-  });
 
   document.querySelectorAll('.lightbox-trigger').forEach(el => {
     el.addEventListener('click', e => {

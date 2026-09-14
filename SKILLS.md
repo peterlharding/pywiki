@@ -1,4 +1,4 @@
-# PyWiki - Session Primer (v0.7.0)
+# PyWiki - Session Primer (v0.8.0)
 
 ## Project
 - **Stack**: FastAPI + SQLAlchemy (async) + Jinja2 + PostgreSQL (prod) / SQLite (tests)
@@ -40,11 +40,19 @@ make test
 
 ## Key architecture notes
 - `get_settings()` is `@lru_cache` - call `get_settings.cache_clear()` if overriding in tests
-- `RENDERER_VERSION = 13` in `app/services/renderer.py` - bump this whenever render output changes to bust cached HTML
+- `RENDERER_VERSION = 15` in `app/services/renderer.py` - bump this whenever render output changes to bust cached HTML
 - `slugify()` is public in `app/services/pages.py` - always lowercases; slug is for URL routing only, title is stored separately
 - **Do not apply Jinja2 `| title` filter** to slugs when pre-filling Create Page form - it destroys acronyms (MQ→Mq, PERL→Perl). Use `slug | replace('-', ' ')` only.
 - `/admin` UI route does **not** exist - the nav "Admin" link points to `/special`
 - First registered user auto-becomes admin (`users.py` counts existing users at registration)
+
+## Attachments (`app/core/filetypes.py`, `app/services/attachments.py`)
+- **Allowed types** come from `ATTACHMENT_EXTENSIONS` (comma/space-separated, default `png,jpg,jpeg,gif,webp,avif,svg,bmp,pdf,txt,md,csv,docx,xlsx,pptx,odt,ods,odp`); `filetypes.PROHIBITED_EXTENSIONS` (html, js, php, exe, macro-enabled Office files, ...) is not configurable and always wins. A startup warning lists prohibited types found in the setting.
+- **Every write path goes through `save_attachment()`** (API upload, Special:Upload, editor panel, ZIP import): sanitizes the filename, checks type (415) and size (413), sets `content_type` from the extension (never the client), and clears the page's cached HTML via `invalidate_rendered_html()`. Delete clears it too.
+- **Serving** (`routes/attachments.py::_file_response`): content type from extension, `X-Content-Type-Options: nosniff`; raster images, PDF, TXT and MD are `inline` (MD as `text/plain`), everything else (including SVG, Office files) is a download; all except PDF get a `sandbox` CSP (Chrome's PDF viewer breaks under it).
+- **Link syntax for non-images**: Markdown `[label](attachment:file.pdf)`, wikitext `[[Media:file.pdf|label]]` (also `[[File:file.pdf]]` for non-images), RST `` `label <attachment:file.pdf>`_ ``. Missing files render as red `missing-file` upload links in all of these.
+- **Templates** get `attachment_policy()` (Jinja global: extensions, `accept` string, `max_mb`), the `image_file` test and the `filesize` filter from `app/ui/views.py`.
+- API page routes render with the attachment map (`attachment_map()`), so HTML they cache matches the UI.
 
 ## MediaWiki migration helpers
 - **`[[Image:name.png]]`** is a valid alias for `[[File:name.png]]` - both are handled by the wikitext renderer
@@ -152,7 +160,7 @@ When cutting a new release (e.g. vX.Y.Z):
   The maintainer's performiq.com sites use option B with a wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; all other sites use Let's Encrypt.
   Keep maintainer-specific infrastructure out of `setup/`.
 - `setup/requirements.txt` - use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.6.8 (delete page from editor, nested form fix), v0.6.9 (password show/hide toggle), v0.7.0 (setup/ folder, APP_PORT in systemd unit, TLS docs, fresh-install and attachment-link fixes)
+- Recent releases: v0.6.9 (password show/hide toggle), v0.7.0 (setup/ folder, APP_PORT in systemd unit, TLS docs, fresh-install and attachment-link fixes), v0.8.0 (document attachments, ATTACHMENT_EXTENSIONS, defensive file serving)
 
 ### Verification command
 ```bash
@@ -193,7 +201,7 @@ systemctl stop pywiki && systemctl start pywiki
 - **Stale system `jose` package**: some distros have a Python 2 `jose.py` at `/usr/local/lib/python3.12/dist-packages/` that shadows `python-jose`; fix: `pip install --force-reinstall "python-jose[cryptography]>=3.3.0"` into the venv
 - **`setuptools.backends.legacy` unavailable**: older setuptools doesn't support this build backend - use `pip install -r setup/requirements.txt` instead of `pip install -e .`; `pyproject.toml` now uses `setuptools.build_meta`
 - **`PYTHONPATH` inheritance**: systemd service sets `Environment=PYTHONPATH=/opt/pywiki` and `PATH=...` explicitly to prevent root's custom path leaking in
-- **Inline `.env` comments**: pydantic-settings parses the whole line as the value - never put `# comment` on the same line as a value (e.g. `KEY=value  # comment` will fail int/bool parsing)
+- **Inline `.env` comments**: systemd's `EnvironmentFile` keeps `# comment` as part of the value and pydantic-settings then fails int/bool parsing, so the service won't start - never put `# comment` on the same line as a value (verified: `MAX_ATTACHMENT_BYTES=52428800   # 50 MB` arrives as `52428800   # 50 MB`)
 - **`systemctl restart` vs stop+start**: `restart` can leave old workers running if the master is stuck; use `systemctl stop && systemctl start` to guarantee a clean reload
 - **Install sequence on server** (updates): `stop service` → `git pull` → `pip install -r setup/requirements.txt` → `alembic upgrade head` → `start service`
 - **`Category` namespace must not become default**: `pref_namespace` cookie is never set to `Category` (fixed v0.5.2+). On older installs where the cookie is already wrong, user clicks ⭐ Set default next to `Main` on `/special/namespaces` to fix it.

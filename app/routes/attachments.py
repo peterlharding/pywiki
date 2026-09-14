@@ -17,12 +17,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ----------------------------------------------------------------------------
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.filetypes import content_type_for, extension_of, serves_inline
 from app.core.security import get_current_user_id_bearer_or_cookie as get_current_user_id
+from app.models import Attachment
 from app.schemas import AttachmentResponse, OKResponse
 from app.services.attachments import (
     attachment_url,
@@ -80,16 +83,8 @@ async def download_attachment(
     filename: str,
     db: AsyncSession = Depends(get_db),
 ):
-    settings = get_settings()
     att = await get_attachment(db, namespace_name, slug, filename)
-    abs_path = settings.attachment_root_resolved / att.storage_path
-    if not abs_path.exists():
-        raise HTTPException(status_code=404, detail="File not found on disk")
-    return FileResponse(
-        path=str(abs_path),
-        media_type=att.content_type,
-        filename=att.filename,
-    )
+    return _file_response(att)
 
 
 # ── Delete ────────────────────────────────────────────────────────────────────
@@ -114,20 +109,38 @@ async def serve_attachment(
     filename: str,
     db: AsyncSession = Depends(get_db),
 ):
-    from sqlalchemy import select
-
-    from app.models import Attachment
     result = await db.execute(
         select(Attachment).where(Attachment.id == att_id, Attachment.filename == filename)
     )
     att = result.scalar_one_or_none()
     if not att:
         raise HTTPException(status_code=404, detail="Attachment not found")
+    return _file_response(att)
+
+
+# -----------------------------------------------------------------------------
+
+# Uploaded files are untrusted: never let the browser sniff a different type, and
+# sandbox anything it renders so scripts in e.g. an SVG cannot touch the wiki origin.
+# PDFs are exempt from the sandbox because Chrome's PDF viewer refuses to run under it.
+_SANDBOX_CSP = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
+
+
+def _file_response(att) -> FileResponse:
     settings = get_settings()
     abs_path = settings.attachment_root_resolved / att.storage_path
     if not abs_path.exists():
         raise HTTPException(status_code=404, detail="File not found on disk")
-    return FileResponse(str(abs_path), media_type=att.content_type, filename=att.filename)
+    headers = {"X-Content-Type-Options": "nosniff"}
+    if extension_of(att.filename) != "pdf":
+        headers["Content-Security-Policy"] = _SANDBOX_CSP
+    return FileResponse(
+        path=str(abs_path),
+        media_type=content_type_for(att.filename),
+        filename=att.filename,
+        content_disposition_type="inline" if serves_inline(att.filename) else "attachment",
+        headers=headers,
+    )
 
 
 # -----------------------------------------------------------------------------

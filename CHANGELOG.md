@@ -12,6 +12,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.8.0] - 2026-09-14
+
+### Added
+- **Document attachments** - pages accept PDF, Word (`.docx`), Excel (`.xlsx`), PowerPoint (`.pptx`), OpenDocument (`.odt`, `.ods`, `.odp`), CSV, text and Markdown files as well as images, including AVIF. The editor panel, Special:Upload and the API all accept them; the page view lists them in a new "Files" section with size and delete controls.
+- **`ATTACHMENT_EXTENSIONS` setting** - comma- or space-separated list of uploadable file types (like MediaWiki's `$wgFileExtensions`), default `png,jpg,jpeg,gif,webp,avif,svg,bmp,pdf,txt,md,csv,docx,xlsx,pptx,odt,ods,odp`. Executable and web content types (`html`, `js`, `php`, `exe`, ...) and macro-enabled Office files (`docm`, `xlsm`, `pptm`, ...) are always refused, even if listed; a startup warning names any that are configured.
+- **File link syntax** - Markdown `[label](attachment:file.pdf)` and wikitext `[[Media:file.pdf|label]]` link to attachments; wikitext `[[File:file.pdf]]` links non-image files instead of rendering a broken image. Links to files not uploaded yet show the red upload link in both formats.
+
+### Changed
+- **Uploads are validated on every path** - API, Special:Upload, the editor and ZIP import reject disallowed types with a clear message (HTTP 415); ZIP import reports how many attachments it skipped. Filenames are sanitised.
+- **Attachments are served defensively** - content type is taken from the file extension, never from the uploading browser; responses send `X-Content-Type-Options: nosniff`; images, PDF, text and Markdown open in the browser, other types (including SVG and Office files) download, and everything except PDF is sandboxed with a Content-Security-Policy.
+- `RENDERER_VERSION` bumped to 15.
+
+### Fixed
+- **Attachment links stayed broken after uploading the file** - cached page HTML is now cleared when a page's attachments are uploaded or deleted, and API page responses render with attachments like the UI.
+- **Internal links opened in new tabs when `BASE_URL` is absolute** - wikilinks and attachment links under `BASE_URL` no longer get `target="_blank"`; external links still do.
+- **"📎 Upload file" page tool** opened a JSON API listing; it now opens Special:Upload for the page.
+- **Special:Upload and Move page forms were unstyled** - they used CSS classes that did not exist; both now use the standard form styles. Form inputs also had unreadable text in dark mode.
+- **Page info "Updated" timestamp split across two lines** in the sidebar; it now wraps as a unit.
+- **Editor attachment list built HTML from filenames** - list entries are now created with DOM APIs, so a crafted filename cannot inject markup.
+- **`setup/env.template` could stop the service from starting** - `MAX_ATTACHMENT_BYTES=52428800   # 50 MB` reached the app with the comment attached via systemd's `EnvironmentFile`; the comment is now on its own line.
+
+
+---
+
 ## [0.7.0] - 2026-09-14
 
 ### Changed
@@ -719,7 +743,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/peterlharding/pywiki/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/peterlharding/pywiki/compare/v0.6.9...v0.7.0
 [0.6.9]: https://github.com/peterlharding/pywiki/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/peterlharding/pywiki/compare/v0.6.7...v0.6.8

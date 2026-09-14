@@ -41,6 +41,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.filetypes import IMAGE_EXTENSIONS, is_image
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -57,7 +58,12 @@ from app.schemas import (
 )
 from app.services import namespaces as ns_svc
 from app.services import pages as page_svc
-from app.services.attachments import attachment_url, list_attachments, upload_attachment
+from app.services.attachments import (
+    attachment_url,
+    list_attachments,
+    save_attachment,
+    upload_attachment,
+)
 from app.services.email import send_password_reset_email, send_verification_email
 from app.services.renderer import RENDERER_VERSION as renderer_version
 from app.services.renderer import extract_categories, is_cache_valid, parse_redirect
@@ -83,6 +89,33 @@ from app.services.users import (
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
+
+
+def _attachment_policy() -> dict:
+    """Upload rules for templates: allowed extensions, <input accept>, size limit."""
+    settings = get_settings()
+    extensions = sorted(settings.allowed_attachment_extensions)
+    return {
+        "extensions":       extensions,
+        "accept":           ",".join(f".{ext}" for ext in extensions),
+        "image_extensions": sorted(IMAGE_EXTENSIONS),
+        "max_mb":           settings.max_attachment_bytes // (1024 * 1024),
+    }
+
+
+def _human_size(size: int) -> str:
+    """1536 -> "1.5 KB"."""
+    value = float(size)
+    for unit in ("B", "KB", "MB"):
+        if value < 1024:
+            return f"{value:.0f} {unit}" if unit == "B" else f"{value:.1f} {unit}"
+        value /= 1024
+    return f"{value:.1f} GB"
+
+
+templates.env.globals["attachment_policy"] = _attachment_policy
+templates.env.tests["image_file"] = is_image
+templates.env.filters["filesize"] = _human_size
 
 
 # -----------------------------------------------------------------------------
@@ -240,6 +273,7 @@ async def namespace_index(
     import_ok: str | None = None,
     import_error: str | None = None,
     att_ok: str | None = None,
+    att_skipped: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
     user, new_token = await _current_user(request, db)
@@ -251,7 +285,8 @@ async def namespace_index(
         request,
         "namespace.html",
         _ctx(user, ns=ns, pages=pages, page_count=count,
-             import_ok=import_ok, import_error=import_error, att_ok=att_ok),
+             import_ok=import_ok, import_error=import_error, att_ok=att_ok,
+             att_skipped=att_skipped),
     )
     _apply_new_token(resp, new_token, get_settings().access_token_expire_minutes)
     return resp
@@ -405,13 +440,10 @@ async def import_pages(
 ):
     """Import pages and attachments from a ZIP archive into a namespace (upsert by slug)."""
     import io
-    import mimetypes
     import zipfile
-    from pathlib import Path
 
     from sqlalchemy import select as sa_select
 
-    from app.models import Attachment
     from app.models import Page as PageModel
     from app.schemas import PageCreate
     from app.schemas import PageUpdate as PU
@@ -493,7 +525,7 @@ async def import_pages(
     await db.flush()
 
     # ── Pass 2: attachments  ({any}/{slug}/attachments/{filename}) ────────────
-    att_created = att_updated = 0
+    att_created = att_updated = att_skipped = 0
     for name in all_names:
         if "__MACOSX" in name:
             continue
@@ -520,47 +552,23 @@ async def import_pages(
         if page_row is None:
             continue
 
-        page_id = page_row.id
-        data = zf.read(name)
-        content_type = mimetypes.guess_type(att_filename)[0] or "application/octet-stream"
-
-        # Write file to disk: attachment_root/<namespace>/<slug>/<filename>
-        rel_path = Path(namespace_name) / page_slug / att_filename
-        abs_path = settings.attachment_root_resolved / rel_path
-        abs_path.parent.mkdir(parents=True, exist_ok=True)
-        abs_path.write_bytes(data)
-
-        # Upsert Attachment record
-        existing_att = (await db.execute(
-            sa_select(Attachment).where(
-                Attachment.page_id == page_id,
-                Attachment.filename == att_filename,
+        try:
+            _, created_att = await save_attachment(
+                db, page_row, namespace_name, att_filename, zf.read(name),
+                comment="Imported", uploaded_by=user.id,
             )
-        )).scalar_one_or_none()
-
-        if existing_att:
-            existing_att.content_type = content_type
-            existing_att.size_bytes   = len(data)
-            existing_att.storage_path = str(rel_path)
-            existing_att.uploaded_by  = user.id
-            existing_att.comment      = "Imported"
-            att_updated += 1
-        else:
-            db.add(Attachment(
-                page_id=page_id,
-                filename=att_filename,
-                content_type=content_type,
-                size_bytes=len(data),
-                storage_path=str(rel_path),
-                uploaded_by=user.id,
-                comment="Imported",
-            ))
+        except HTTPException:
+            att_skipped += 1   # file type not allowed, or too large
+            continue
+        if created_att:
             att_created += 1
+        else:
+            att_updated += 1
 
     await db.commit()
 
     resp = RedirectResponse(
-        url=f"/wiki/{namespace_name}?import_ok={created}+{updated}&att_ok={att_created}+{att_updated}",
+        url=f"/wiki/{namespace_name}?import_ok={created}+{updated}&att_ok={att_created}+{att_updated}&att_skipped={att_skipped}",
         status_code=303,
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
@@ -609,11 +617,14 @@ async def view_page(
 
     atts = await list_attachments(db, namespace_name, slug)
     att_map = {a.filename: attachment_url(a, settings.base_url) for a in atts}
-    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+    by_name = sorted(atts, key=lambda a: a.filename.lower())
     images = [
-        {"filename": a.filename, "url": attachment_url(a, settings.base_url)}
-        for a in atts
-        if any(a.filename.lower().endswith(ext) for ext in image_exts)
+        {"filename": a.filename, "url": att_map[a.filename]}
+        for a in by_name if is_image(a.filename)
+    ]
+    files = [
+        {"filename": a.filename, "url": att_map[a.filename], "size_bytes": a.size_bytes}
+        for a in by_name if not is_image(a.filename)
     ]
 
     if is_cache_valid(ver.rendered) and version is None:
@@ -674,6 +685,7 @@ async def view_page(
              categories=categories,
              redirected_from=redirected_from,
              images=images,
+             files=files,
              attachments=atts,
              back_url=back_url,
              is_redirect=is_redirect),
@@ -1437,8 +1449,7 @@ async def special_upload_form(
              sel_filename=filename or "",
              back_url=back or "",
              success=None,
-             error=None,
-             max_attachment_mb=settings.max_attachment_bytes // (1024 * 1024)),
+             error=None),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp
@@ -1466,7 +1477,7 @@ async def special_upload_submit(
             comment=comment, uploaded_by=str(user.id),
         )
         url = attachment_url(att, settings.base_url)
-        success = {"filename": att.filename, "url": url}
+        success = {"filename": att.filename, "url": url, "is_image": is_image(att.filename)}
     except HTTPException as e:
         error = e.detail
     except Exception as e:
@@ -1481,8 +1492,7 @@ async def special_upload_submit(
              sel_filename="",
              back_url=back_url,
              success=success,
-             error=error,
-             max_attachment_mb=settings.max_attachment_bytes // (1024 * 1024)),
+             error=error),
     )
     _apply_new_token(resp, new_token, settings.access_token_expire_minutes)
     return resp

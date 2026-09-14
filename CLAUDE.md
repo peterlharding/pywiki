@@ -42,6 +42,7 @@ Never pipe test output through `tail`/`head`; show the full run so failures are 
 
 **Data model** (`app/models/models.py`): `Namespace` -> `Page` (slug is lowercase, URL-only; title stored separately) -> append-only `PageVersion` rows (every save is a new version) plus `Attachment` rows with files under `ATTACHMENT_ROOT/<ns>/<slug>/`.
 Categories are not a table; they are parsed from `[[Category:Name]]` tags in content.
+Uploadable types are configured by `ATTACHMENT_EXTENSIONS` and enforced in `save_attachment()`, the single write path for uploads, Special:Upload and ZIP import; `app/core/filetypes.py` holds the always-prohibited list and how each type is served.
 Redirects are page content parsed by `parse_redirect()`.
 
 **Rendering** (`app/services/renderer.py`): `render()` dispatches to mistune (markdown), docutils (rst) or a custom wikitext parser.

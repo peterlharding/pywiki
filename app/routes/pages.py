@@ -36,6 +36,7 @@ from app.schemas import (
     PageVersionResponse,
 )
 from app.services import pages as page_svc
+from app.services.attachments import attachment_map
 from app.services.renderer import is_cache_valid, render
 
 # -----------------------------------------------------------------------------
@@ -45,9 +46,15 @@ router = APIRouter(prefix="/namespaces/{namespace_name}/pages", tags=["pages"])
 
 # -----------------------------------------------------------------------------
 
-def _render_page(content: str, fmt: str, namespace_name: str) -> str:
+async def _render_page(db: AsyncSession, page, ver, namespace_name: str) -> str:
     settings = get_settings()
-    return render(content, fmt, namespace=namespace_name, base_url=settings.base_url)
+    atts = await attachment_map(db, page.id, settings.base_url)
+    return render(
+        ver.content, ver.format,
+        namespace=namespace_name,
+        base_url=settings.base_url,
+        attachments=atts or None,
+    )
 
 
 # ── List ─────────────────────────────────────────────────────────────────────
@@ -73,7 +80,7 @@ async def create_page(
     db: AsyncSession = Depends(get_db),
 ):
     page, ver = await page_svc.create_page(db, namespace_name, data, author_id=user_id)
-    rendered = _render_page(ver.content, ver.format, namespace_name)
+    rendered = await _render_page(db, page, ver, namespace_name)
     ver.rendered = rendered
     return _page_response(namespace_name, page, ver, rendered)
 
@@ -96,7 +103,7 @@ async def get_page(
         if is_cache_valid(ver.rendered) and cacheable:
             rendered = ver.rendered
         else:
-            rendered = _render_page(ver.content, ver.format, namespace_name)
+            rendered = await _render_page(db, page, ver, namespace_name)
             if cacheable:
                 ver.rendered = rendered
 
@@ -160,7 +167,7 @@ async def update_page(
     db: AsyncSession = Depends(get_db),
 ):
     page, ver = await page_svc.update_page(db, namespace_name, slug, data, author_id=user_id)
-    rendered = _render_page(ver.content, ver.format, namespace_name)
+    rendered = await _render_page(db, page, ver, namespace_name)
     ver.rendered = rendered
     return _page_response(namespace_name, page, ver, rendered)
 

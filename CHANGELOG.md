@@ -9,6 +9,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+
+---
+
+## [0.8.0] - 2026-09-14
+
 ### Added
 - **Document attachments** - pages accept PDF, Word (`.docx`), Excel (`.xlsx`), PowerPoint (`.pptx`), OpenDocument (`.odt`, `.ods`, `.odp`), CSV, text and Markdown files as well as images, including AVIF. The editor panel, Special:Upload and the API all accept them; the page view lists them in a new "Files" section with size and delete controls.
 - **`ATTACHMENT_EXTENSIONS` setting** - comma- or space-separated list of uploadable file types (like MediaWiki's `$wgFileExtensions`), default `png,jpg,jpeg,gif,webp,avif,svg,bmp,pdf,txt,md,csv,docx,xlsx,pptx,odt,ods,odp`. Executable and web content types (`html`, `js`, `php`, `exe`, ...) and macro-enabled Office files (`docm`, `xlsm`, `pptm`, ...) are always refused, even if listed; a startup warning names any that are configured.
@@ -738,7 +743,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/peterlharding/pywiki/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/peterlharding/pywiki/compare/v0.6.9...v0.7.0
 [0.6.9]: https://github.com/peterlharding/pywiki/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/peterlharding/pywiki/compare/v0.6.7...v0.6.8

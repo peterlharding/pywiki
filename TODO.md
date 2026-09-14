@@ -75,6 +75,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 ## Attachments
 
 - [x] **Image gallery on page** — image thumbnails shown below page content with lightbox.
+- [x] **Document attachments** - PDF, Office (docx/xlsx/pptx), OpenDocument, CSV, text and Markdown uploads; `ATTACHMENT_EXTENSIONS` setting with an always-prohibited list; "Files" section on page view; `[[Media:]]` and `[label](attachment:)` links; defensive serving headers (v0.8.0)
 
 
 ---

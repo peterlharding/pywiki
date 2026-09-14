@@ -1,8 +1,28 @@
 <!DOCTYPE html>
-<html lang="en" id="html-root">
+<html lang="en" id="html-root" data-layout-width="{{ layout_max_width() }}">
 <head>
 <script>
-  (function(){var t=localStorage.getItem('pywiki-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
+  // Runs before first paint so neither the theme nor the layout width flickers.
+  (function () {
+    var root = document.documentElement;
+    function stored(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+    var theme = stored('pywiki-theme');
+    if (theme) root.setAttribute('data-theme', theme);
+
+    // Layout width: LAYOUT_MAX_WIDTH is the site default; the reader's toggle overrides it.
+    var configured = root.getAttribute('data-layout-width') || 'auto';
+    window.PyWiki = {
+      // The "limited" width: the configured length, or 90% of this screen (never below 1200px)
+      limitWidth: function () {
+        return (configured === 'auto' || configured === 'full')
+          ? Math.max(1200, Math.round(screen.availWidth * 0.9)) + 'px'
+          : configured;
+      }
+    };
+    root.setAttribute('data-width', stored('pywiki-width') || (configured === 'full' ? 'full' : 'limited'));
+    root.style.setProperty('--limit-w', window.PyWiki.limitWidth());
+  })();
 </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -35,7 +55,16 @@
         <a href="/login">Log in</a>
         <a href="/register">Register</a>
       {% endif %}
-      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark/light mode">🌙</button>
+      <button id="width-toggle" class="theme-toggle nav-icon-btn" type="button" hidden
+              aria-label="Full width" aria-pressed="false" title="Use full width">
+        <svg class="icon-expand" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path d="M1.5 3v10M14.5 3v10M6.5 8h-3m0 0 2-2m-2 2 2 2M9.5 8h3m0 0-2-2m2 2-2 2" />
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path d="M8 3v10M1.5 8h4m0 0-2-2m2 2-2 2M14.5 8h-4m0 0 2-2m-2 2 2 2" />
+        </svg>
+      </button>
+      <button id="theme-toggle" class="theme-toggle nav-icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle dark/light mode">🌙</button>
     </div>
   </div>
 </nav>

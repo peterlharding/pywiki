@@ -11,10 +11,13 @@ All values can be overridden via environment variables or a .env file.
 
 from __future__ import annotations
 
+import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app._version import __version__ as _pkg_version
@@ -29,7 +32,8 @@ from app.core.filetypes import (
 class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # PYWIKI_ENV_FILE selects another settings file; set it to "" to read none
+        env_file=os.environ.get("PYWIKI_ENV_FILE", ".env") or None,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -83,6 +87,26 @@ class Settings(BaseSettings):
     site_name: str = "PyWiki"
     admin_email: str = "admin@example.com"
     allow_registration: bool = True
+
+    # ── Layout ─────────────────────────────────────────────────────────────
+
+    # Maximum width of the page layout, as the default for readers who have not
+    # used the width toggle.  "auto" limits it to 90% of the reader's screen
+    # (never below 1200px); "full" fills the window; or give a CSS length such
+    # as "1600px", "100rem" or "90%" (a bare number means px).
+    layout_max_width: str = "auto"
+
+    @field_validator("layout_max_width")
+    @classmethod
+    def _validate_layout_max_width(cls, value: str) -> str:
+        value = value.strip().lower()
+        if re.fullmatch(r"\d+(?:\.\d+)?", value):
+            value += "px"
+        if value in ("auto", "full") or re.fullmatch(r"\d+(?:\.\d+)?(?:px|rem|em|vw|%)", value):
+            return value
+        raise ValueError(
+            "LAYOUT_MAX_WIDTH must be 'auto', 'full' or a CSS length such as 1600px, 100rem or 90%"
+        )
 
     # ── CORS ───────────────────────────────────────────────────────────────
 

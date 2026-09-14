@@ -16,9 +16,11 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-# Force test-safe settings before any app module caches them
-os.environ.setdefault("ALLOW_REGISTRATION", "true")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+# Force test-safe settings before any app module caches them.  The developer's
+# .env is not read, so local configuration cannot change test results.
+os.environ["PYWIKI_ENV_FILE"] = ""
+os.environ["ALLOW_REGISTRATION"] = "true"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 os.environ["REQUIRE_EMAIL_VERIFICATION"] = "false"
 os.environ["SMTP_HOST"] = ""
 

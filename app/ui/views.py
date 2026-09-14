@@ -114,6 +114,7 @@ def _human_size(size: int) -> str:
 
 
 templates.env.globals["attachment_policy"] = _attachment_policy
+templates.env.globals["layout_max_width"] = lambda: get_settings().layout_max_width
 templates.env.tests["image_file"] = is_image
 templates.env.filters["filesize"] = _human_size
 

@@ -24,7 +24,7 @@ make dev
 make test
 ```
 - `PYTHONUNBUFFERED=1` is set in the Makefile `test` target so output streams live, including through `wsl.exe` pipes on Windows
-- Tests use **SQLite in-memory** - `conftest.py` sets `ALLOW_REGISTRATION=true` and `DATABASE_URL` env vars and clears `get_settings()` lru_cache before imports
+- Tests use **SQLite in-memory** - `conftest.py` sets `PYWIKI_ENV_FILE=""` (so the developer's `.env` is not read), `ALLOW_REGISTRATION=true` and `DATABASE_URL`, and clears the `get_settings()` lru_cache before imports
 - **NEVER pipe or tail test output** (`| tail -N`, `| head`, etc.) - always run the full command and show all output so failures are visible
 
 ## Database
@@ -209,6 +209,7 @@ systemctl stop pywiki && systemctl start pywiki
 - **`BASE_URL` must be the external HTTPS URL** (e.g. `https://wiki.example.com`), not `http://localhost:<APP_PORT>`. Uvicorn's internal port is only relevant to nginx's `proxy_pass` - `BASE_URL` controls what gets embedded in attachment URLs in rendered HTML, so it must be browser-reachable
 
 ## UI / Template rules
+- **Layout width**: `--max-w` (nav and `.page-wrapper`) follows `html[data-width]` = `limited` | `full`. `LAYOUT_MAX_WIDTH` (`auto` | `full` | CSS length) is rendered as `html[data-layout-width]`; the pre-paint script in `base.html` sets `--limit-w` (configured length, or 90% of `screen.availWidth`, min 1200px) and the initial mode from `localStorage['pywiki-width']`. `wiki.js` runs the header toggle and hides it when the window is narrower than the limit. `editor-page` / `wide-page` bodies are always full width and have no toggle.
 - **Nested `<form>` elements are illegal HTML** - browsers silently discard the inner form and submit only the outermost one. Always place secondary action forms (delete, etc.) *outside* the main form's closing `</form>` tag.
 - **`cookie_auth()` returns `{"Cookie": "access_token=..."}` - always pass as `headers=` not `cookies=`** in `httpx` test calls. Passing as `cookies=` does not work.
 - **Import route: capture `ns.id` before the loop** - SQLAlchemy expires object attributes after `db.execute()` calls inside the loop; store `ns_id = ns.id` before any loop that issues further queries.

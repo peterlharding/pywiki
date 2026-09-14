@@ -88,5 +88,6 @@ Verify UI changes in a browser (headless Playwright works); `base.html` loads Ka
   Before merging into `main`, `git fetch` and check for commits made directly on `main` (it happens from servers); merge on top of `origin/main` and bring them back into `devel`.
 - When a feature or fix is done, mark it `[x]` in `TODO.md` with a short note and the version.
 - `CHANGELOG.md` is hand-maintained (no generator); update it in the release commit so the tag includes it.
-- Release notes live in `release_notes/vX.Y.Z.md`; see "Release Process" in `SKILLS.md` for the full sequence (version bump in `pyproject.toml`, `uv lock`, the `SKILLS.md` header, tag on `devel`, merge to `main`).
+- Release notes live in `release_notes/vX.Y.Z.md`; see "Release Process" in `SKILLS.md` for the full sequence (version bump in `pyproject.toml`, the `SKILLS.md` header, tag on `devel`, merge to `main`).
+- `uv.lock` is gitignored: installs come from `requirements.txt` / `setup/requirements.txt`, so dependency changes go in those and `pyproject.toml` together.
 - Table and layout CSS conventions (`col-select`, `col-title`, `kv-table`, layout width) are under "UI / Template rules" in `SKILLS.md`.

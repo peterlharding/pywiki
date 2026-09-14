@@ -9,6 +9,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **`uv.lock` is no longer tracked** - it is now in `.gitignore`. Installs use `requirements.txt` (development) and `setup/requirements.txt` (servers), and instances running different uv versions kept rewriting the lock in different formats, causing conflicts on `git pull`. Each checkout can keep its own local `uv.lock`.
+  Upgrade note: pulling this change removes `uv.lock` from each checkout. If `git pull` on an instance refuses because `uv.lock` has local changes ("You have unstaged changes" or "Your local changes ... would be overwritten"), run `git checkout -- uv.lock` and pull again. Run `uv lock` afterwards only if that instance uses `uv sync`; the regenerated lock stays local.
+
 
 ---
 

@@ -122,7 +122,7 @@ When cutting a new release (e.g. vX.Y.Z):
    Add a `## [X.Y.Z] - YYYY-MM-DD` section below `[Unreleased]` (moving anything listed under `[Unreleased]` into it), point the `[Unreleased]` compare link at `vX.Y.Z...HEAD`, and add a `[X.Y.Z]: .../compare/vPREV...vX.Y.Z` link.
    This must be in the release commit so the tag includes it.
 2. Create `release_notes/vX.Y.Z.md` - standalone release note with highlights, full what's-new breakdown, upgrade instructions, and known limitations
-3. Bump `version` in `pyproject.toml` (`app/_version.py` reads it; there is no other version string), then run `uv lock` so `uv.lock` records the new project version
+3. Bump `version` in `pyproject.toml` (`app/_version.py` reads it; there is no other version string)
 4. Update the version in the `SKILLS.md` header and "Recent releases", and mark the work done in `TODO.md`
 5. Run `make lint` and the full test suite; commit on `devel`: `git commit -m "chore: release vX.Y.Z"`
 6. Tag that commit (still on `devel`): `git tag -a vX.Y.Z -m 'Release vX.Y.Z'`
@@ -224,6 +224,6 @@ systemctl stop pywiki && systemctl start pywiki
 ## Git
 - Day-to-day work happens on `devel`; `main` receives release merges (`chore: merge devel into main for vX.Y.Z release`) and servers pull `main`.
 - If a fix is committed directly on `main` (e.g. while installing on a server), merge it back into `devel` before the next release so the branches don't diverge.
-- `uv.lock` is committed. Different uv versions write different lock formats (revision 2 vs 3), which conflicts when a lock is regenerated on a server; prefer regenerating it on the dev machine.
+- `uv.lock` is **not tracked** (gitignored after v0.10.0). Installs use `requirements.txt` (dev) and `setup/requirements.txt` (servers), and different uv versions write different lock formats (revision 2 vs 3), so a committed lock caused conflicts between instances. Keep dependency changes in `pyproject.toml`, `requirements.txt` and `setup/requirements.txt` together.
 - Commit often with descriptive messages
  

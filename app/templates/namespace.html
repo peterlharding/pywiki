@@ -67,38 +67,36 @@
 
 {% if pages %}
 <form method="post" action="/wiki/{{ ns.name }}/export/selected" id="ns-export-form">
-<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap;">
-  <label style="font-size:0.85rem;cursor:pointer;">
-    <input type="checkbox" id="select-all-ns" style="margin-right:0.3rem;" />
-    Select all
-  </label>
-  <button type="submit" class="btn" style="font-size:0.85rem;">&#8595; Export selected</button>
-  <span class="muted" style="font-size:0.8rem;" id="sel-count-ns"></span>
+<div class="table-toolbar">
+  <button type="submit" class="btn">&#8595; Export selected</button>
+  <span class="muted" id="sel-count-ns" aria-live="polite"></span>
 </div>
+<div class="table-scroll">
 <table class="wiki-table">
   <thead>
     <tr>
-      <th style="width:2rem;"></th>
-      <th>Title</th>
-      <th>Format</th>
-      <th>Version</th>
-      <th>Last edited by</th>
-      <th>Updated</th>
+      <th class="col-select"><input type="checkbox" id="select-all-ns" title="Select all" aria-label="Select all pages" /></th>
+      <th class="col-title">Title</th>
+      <th class="col-nowrap">Format</th>
+      <th class="col-nowrap">Version</th>
+      <th class="col-nowrap">Last edited by</th>
+      <th class="col-nowrap">Updated</th>
     </tr>
   </thead>
   <tbody>
     {% for p in pages %}
     <tr>
-      <td><input type="checkbox" name="slugs" value="{{ p.slug }}" class="row-check-ns" /></td>
-      <td><a href="/wiki/{{ ns.name }}/{{ p.slug }}">{{ p.title }}</a></td>
-      <td><span class="badge badge-{{ p.format }}">{{ p.format }}</span></td>
-      <td>{{ p.version }}</td>
-      <td>{{ p.author_username or '—' }}</td>
+      <td class="col-select"><input type="checkbox" name="slugs" value="{{ p.slug }}" class="row-check-ns" aria-label="Select {{ p.title }}" /></td>
+      <td class="col-title"><a href="/wiki/{{ ns.name }}/{{ p.slug }}">{{ p.title }}</a></td>
+      <td class="col-nowrap"><span class="badge badge-{{ p.format }}">{{ p.format }}</span></td>
+      <td class="col-nowrap">{{ p.version }}</td>
+      <td class="col-nowrap">{{ p.author_username or '—' }}</td>
       <td class="ts">{{ p.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
+</div>
 </form>
 {% else %}
 <p class="muted">No pages in this namespace yet. <a href="/create?namespace={{ ns.name }}">Create one!</a></p>

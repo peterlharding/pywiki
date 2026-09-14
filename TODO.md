@@ -95,6 +95,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Wide-screen layout** - layout limit defaults to 90% of the reader's screen (min 1200px) instead of a fixed 1200px; header toggle for full / limited width remembered per browser; `LAYOUT_MAX_WIDTH` site default (`auto`, `full` or a CSS length) (v0.9.0).
 - [x] **Compact list spacing** - tighter, consistent bullet and numbered list spacing across Markdown, RST and wikitext; wikitext nested and mixed (`*#`) lists emit valid nested HTML (v0.9.1).
 - [x] **Namespace page table layout** - checkbox column sized to the checkbox, select-all in the column header, table scrolls on narrow screens; mobile navbar no longer overflows (v0.9.2).
+- [x] **Footer project credit** - footer reads "Powered by pywiki" (linked to the repository) instead of the instance's `SITE_NAME` (v0.9.3).
 
 
 ---

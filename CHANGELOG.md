@@ -12,6 +12,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.9.3] - 2026-09-14
+
+### Fixed
+- **Footer credited the wiki instead of the project** - "Powered by" showed the instance's `SITE_NAME` (e.g. "Powered by Expanse Wiki"); it now always reads "Powered by pywiki", linked to the project repository. The site name still appears in the navbar, page titles and printable pages.
+
+
+---
+
 ## [0.9.2] - 2026-09-14
 
 ### Fixed
@@ -779,7 +787,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/peterlharding/pywiki/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/peterlharding/pywiki/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/peterlharding/pywiki/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/peterlharding/pywiki/compare/v0.8.0...v0.9.0

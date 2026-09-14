@@ -448,17 +448,18 @@ body.editor-page .nav-inner { max-width: 100%; padding: 0 1.5rem; }
 }
 .wiki-table th { background: var(--bg-alt); font-weight: 600; }
 .wiki-table tr:hover td { background: var(--table-hover); }
-.wiki-table td:first-child, .wiki-table th:first-child { min-width: 180px; width: 40%; }
-/* Tables whose first column is a row checkbox: keep it narrow and give the width to the title */
+/* Columns size to their content.  Row controls (checkboxes, radios) stay as narrow as the
+   control; page-title columns get room so short titles don't wrap. */
 .wiki-table th.col-select, .wiki-table td.col-select {
   width: 1%;
-  min-width: 0;
   padding-right: 0.5rem;
   text-align: center;
   white-space: nowrap;
 }
 .wiki-table .col-select input { margin: 0; vertical-align: middle; cursor: pointer; }
-.wiki-table th.col-title, .wiki-table td.col-title { min-width: 180px; width: 40%; }
+.wiki-table th.col-title, .wiki-table td.col-title { min-width: 12rem; }
+/* Label / value tables: a consistent label column so stacked tables line up */
+.wiki-table.kv-table td:first-child { width: 40%; }
 .wiki-table .col-nowrap { white-space: nowrap; }
 .table-scroll { overflow-x: auto; }
 .table-toolbar {
@@ -690,7 +691,7 @@ sup.reference a:hover { text-decoration: underline; }
 
 /* ─── History table ──────────────────────────────────────────────────────── */
 
-.history-table input[type="radio"] { cursor: pointer; }
+.history-table input[type="radio"] { cursor: pointer; margin: 0; vertical-align: middle; }
 
 /* ─── Search ─────────────────────────────────────────────────────────────── */
 

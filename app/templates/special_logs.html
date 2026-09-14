@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-header">
   <h1>Log Review</h1>
-  <p class="muted">In-memory ring buffer — last {{ records | length }} records (newest first). Resets on restart.</p>
+  <p class="muted">In-memory ring buffer — last {{ records | length }} record{{ '' if records | length == 1 else 's' }} (newest first). Resets on restart.</p>
 </div>
 
 <section class="home-section">

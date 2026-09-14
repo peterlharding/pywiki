@@ -449,6 +449,26 @@ body.editor-page .nav-inner { max-width: 100%; padding: 0 1.5rem; }
 .wiki-table th { background: var(--bg-alt); font-weight: 600; }
 .wiki-table tr:hover td { background: var(--table-hover); }
 .wiki-table td:first-child, .wiki-table th:first-child { min-width: 180px; width: 40%; }
+/* Tables whose first column is a row checkbox: keep it narrow and give the width to the title */
+.wiki-table th.col-select, .wiki-table td.col-select {
+  width: 1%;
+  min-width: 0;
+  padding-right: 0.5rem;
+  text-align: center;
+  white-space: nowrap;
+}
+.wiki-table .col-select input { margin: 0; vertical-align: middle; cursor: pointer; }
+.wiki-table th.col-title, .wiki-table td.col-title { min-width: 180px; width: 40%; }
+.wiki-table .col-nowrap { white-space: nowrap; }
+.table-scroll { overflow-x: auto; }
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
 .ts { white-space: nowrap; color: var(--muted); }
 
 /* ─── Badges ─────────────────────────────────────────────────────────────── */
@@ -1075,7 +1095,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
   .page-wrapper { flex-direction: column; align-items: stretch; }
   .sidebar { width: 100%; position: static; }
   .nav-search { display: none; }
-  .nav-links { gap: 0.4rem; font-size: 0.8rem; }
+  .nav-inner { gap: 0.5rem; padding: 0 0.75rem; }
+  .nav-logo { font-size: 1.1rem; }
+  .nav-links { gap: 0.5rem; }
+  .nav-links a { font-size: 0.8rem; }
   .content { padding: 1rem; }
   .editor-wrap { flex-direction: column; }
   #preview-pane { max-height: 400px; }

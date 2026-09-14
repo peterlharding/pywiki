@@ -74,7 +74,7 @@ Never put inline `# comments` on `.env` value lines; pydantic-settings treats th
 
 ## Tests
 
-`tests/conftest.py` forces an in-memory SQLite DB, builds the app via `create_app()` and overrides `get_db`; tests use `httpx.AsyncClient` with `asyncio_mode = "auto"`.
+`tests/conftest.py` sets `PYWIKI_ENV_FILE=""` so the local `.env` is ignored, forces an in-memory SQLite DB, builds the app via `create_app()` and overrides `get_db`; tests use `httpx.AsyncClient` with `asyncio_mode = "auto"`.
 Helpers: `register_user`, `login_user`, `auth_headers` (Bearer, for API) and `cookie_auth` (for UI routes).
 `cookie_auth()` returns `{"Cookie": "access_token=..."}`; pass it as `headers=`, not `cookies=`.
 

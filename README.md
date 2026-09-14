@@ -292,6 +292,7 @@ See `setup/env.template` for all available settings. Key variables:
 | `SITE_NAME` | `PyWiki` | Displayed site name |
 | `DEFAULT_NAMESPACE` | `Main` | Namespace created on first run |
 | `ALLOW_REGISTRATION` | `true` | Allow public user registration |
+| `LAYOUT_MAX_WIDTH` | `auto` | Default page width: `auto` (90% of the reader's screen, at least 1200px), `full`, or a CSS length such as `1600px`; readers can switch between full and limited width with the header toggle |
 | `ATTACHMENT_EXTENSIONS` | `png,jpg,jpeg,gif,webp,avif,svg,bmp,pdf,txt,md,csv,docx,xlsx,pptx,odt,ods,odp` | Uploadable file types (comma-separated); executable and web content types are always refused |
 | `MAX_ATTACHMENT_BYTES` | `52428800` | Maximum upload size in bytes (50 MB) |
 

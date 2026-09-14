@@ -15,7 +15,9 @@
   --nav-bg:     #1a3060;
   --nav-text:   #ffffff;
   --sidebar-w:  220px;
-  --max-w:      1200px;
+  /* --limit-w is set per screen by the script in base.html; --max-w follows the width toggle */
+  --limit-w:    1600px;
+  --max-w:      var(--limit-w);
   /* component tokens */
   --code-bg:        #f6f8fa;
   --code-inline-bg: #f0f0f0;
@@ -188,6 +190,7 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  margin-left: auto;
   white-space: nowrap;
 }
 .nav-links a { color: rgba(255,255,255,.85); font-size: 0.9rem; }
@@ -207,7 +210,31 @@ a:hover { text-decoration: underline; color: var(--accent-hov); }
 }
 .theme-toggle:hover { background: rgba(255,255,255,.2); }
 
+.nav-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  min-width: 30px;
+}
+.nav-icon-btn[hidden] { display: none; }
+.nav-icon-btn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+:root[data-width="full"] #width-toggle .icon-expand,
+:root:not([data-width="full"]) #width-toggle .icon-collapse { display: none; }
+
 /* ─── Page wrapper ───────────────────────────────────────────────────────── */
+
+:root[data-width="full"] { --max-w: 100%; }
+
+/* Pages that always use the full width keep the navbar aligned with them */
+body.editor-page .nav-inner { max-width: 100%; padding: 0 1.5rem; }
+.wide-page .nav-inner { max-width: 100%; padding: 0 2rem; }
 
 .wide-page .page-wrapper {
   max-width: 100%;
@@ -925,6 +952,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
   list-style: none;
   margin: 0;
   padding: 0;
+  max-width: 48rem;   /* keep sizes near their names on wide layouts */
 }
 
 .wiki-file-item {
@@ -1040,7 +1068,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  .page-wrapper { flex-direction: column; }
+  .page-wrapper { flex-direction: column; align-items: stretch; }
   .sidebar { width: 100%; position: static; }
   .nav-search { display: none; }
   .nav-links { gap: 0.4rem; font-size: 0.8rem; }

@@ -1,4 +1,4 @@
-# PyWiki - Session Primer (v0.9.3)
+# PyWiki - Session Primer (v0.9.4)
 
 ## Project
 - **Stack**: FastAPI + SQLAlchemy (async) + Jinja2 + PostgreSQL (prod) / SQLite (tests)
@@ -160,7 +160,7 @@ When cutting a new release (e.g. vX.Y.Z):
   The maintainer's performiq.com sites use option B with a wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; all other sites use Let's Encrypt.
   Keep maintainer-specific infrastructure out of `setup/`.
 - `setup/requirements.txt` - use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.9.0 (wide-screen layout, LAYOUT_MAX_WIDTH, width toggle), v0.9.1 (compact list spacing, valid nested wikitext lists), v0.9.2 (namespace table checkbox column, mobile navbar overflow), v0.9.3 (footer credits pywiki, not SITE_NAME)
+- Recent releases: v0.9.1 (compact list spacing, valid nested wikitext lists), v0.9.2 (namespace table checkbox column, mobile navbar overflow), v0.9.3 (footer credits pywiki, not SITE_NAME), v0.9.4 (content-sized table columns, history Compare column)
 
 ### Verification command
 ```bash
@@ -209,6 +209,7 @@ systemctl stop pywiki && systemctl start pywiki
 - **`BASE_URL` must be the external HTTPS URL** (e.g. `https://wiki.example.com`), not `http://localhost:<APP_PORT>`. Uvicorn's internal port is only relevant to nginx's `proxy_pass` - `BASE_URL` controls what gets embedded in attachment URLs in rendered HTML, so it must be browser-reachable
 
 ## UI / Template rules
+- **Tables** (`.wiki-table`): columns size to their content; there is no default first-column width. Mark row-control cells (checkboxes, radios) `col-select`, page-title columns `col-title`, short columns `col-nowrap`, and label/value tables `kv-table` (40% label column).
 - **Layout width**: `--max-w` (nav and `.page-wrapper`) follows `html[data-width]` = `limited` | `full`. `LAYOUT_MAX_WIDTH` (`auto` | `full` | CSS length) is rendered as `html[data-layout-width]`; the pre-paint script in `base.html` sets `--limit-w` (configured length, or 90% of `screen.availWidth`, min 1200px) and the initial mode from `localStorage['pywiki-width']`. `wiki.js` runs the header toggle and hides it when the window is narrower than the limit. `editor-page` / `wide-page` bodies are always full width and have no toggle.
 - **Nested `<form>` elements are illegal HTML** - browsers silently discard the inner form and submit only the outermost one. Always place secondary action forms (delete, etc.) *outside* the main form's closing `</form>` tag.
 - **`cookie_auth()` returns `{"Cookie": "access_token=..."}` - always pass as `headers=` not `cookies=`** in `httpx` test calls. Passing as `cookies=` does not work.

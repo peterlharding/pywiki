@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Category — {{ site_name }}{% endblock %}
+
+{% block breadcrumb %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/">Home</a>
+  <span class="sep">›</span>
+  <span class="current">Category</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Namespace: Category</h1>
+  {% if user %}
+  <div class="page-actions">
+    <a class="btn" href="/wiki/Category/export" title="Download all category description pages as a ZIP">&#8595; Export descriptions</a>
+  </div>
+  {% endif %}
+</div>
+
+<p class="namespace-desc">
+  Every category used on the wiki.
+  A category appears here as soon as a page is tagged with <code>[[Category:Name]]</code> (or <code>.. category:: Name</code> in RST);
+  its page shows an optional description and the pages in the category.
+</p>
+
+{% if categories %}
+<div class="table-scroll">
+<table class="wiki-table">
+  <thead>
+    <tr>
+      <th class="col-title">Category</th>
+      <th class="col-nowrap">Pages</th>
+      <th class="col-nowrap">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cat in categories %}
+    <tr>
+      <td class="col-title"><a href="/wiki/Category/{{ cat.slug }}">{{ cat.name }}</a></td>
+      <td class="col-nowrap">{{ cat.count }}</td>
+      <td class="col-nowrap">
+        {% if cat.has_description %}
+          <span class="badge">described</span>
+        {% elif user %}
+          <a href="/create?namespace=Category&amp;title={{ cat.name | urlencode }}">➕ Add</a>
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="muted">No categories yet. Tag a page with <code>[[Category:Name]]</code> to create one.</p>
+{% endif %}
+{% endblock %}

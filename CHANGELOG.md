@@ -9,10 +9,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+
+---
+
+## [0.10.0] - 2026-09-15
+
+### Changed
+- **Categories follow the MediaWiki model** - each category's page is now `/wiki/Category/<name>` in the Category namespace, showing its optional description together with the pages in the category, instead of a separate `/category/<name>` listing and a description page that showed no members. The Category namespace page lists every category in use, with page counts and whether it has a description, rather than only categories someone had described. Existing `/category/...` links redirect permanently. Categories are matched by name ignoring case and spacing, so "Fruit Dishes" and "fruit dishes" are the same category. `RENDERER_VERSION` bumped to 17.
+
 ### Added
 - **`make start-bg`** runs the server in the background, logging to `/tmp/$APP_LOG` (`APP_LOG` in `.env`, default `pywiki-<APP_PORT>.log`). It replaces `make run`.
 
 ### Fixed
+- **RST categories missing from Special:Categories** - categories declared only with `.. category::` did not appear in the list (their pages worked).
 - **Makefile** - reading `APP_NAME`, `APP_PORT` and `APP_LOG` no longer prints `grep: .env: No such file or directory` when there is no `.env`; a duplicate `APP_PORT` line was removed; `start-bg` now sends errors to its log file instead of the terminal.
 
 
@@ -804,7 +813,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.9.4...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/peterlharding/pywiki/compare/v0.9.4...v0.10.0
 [0.9.4]: https://github.com/peterlharding/pywiki/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/peterlharding/pywiki/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/peterlharding/pywiki/compare/v0.9.1...v0.9.2

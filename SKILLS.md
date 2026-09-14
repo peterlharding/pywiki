@@ -1,4 +1,4 @@
-# PyWiki - Session Primer (v0.9.4)
+# PyWiki - Session Primer (v0.10.0)
 
 ## Project
 - **Stack**: FastAPI + SQLAlchemy (async) + Jinja2 + PostgreSQL (prod) / SQLite (tests)
@@ -40,7 +40,7 @@ make test
 
 ## Key architecture notes
 - `get_settings()` is `@lru_cache` - call `get_settings.cache_clear()` if overriding in tests
-- `RENDERER_VERSION = 16` in `app/services/renderer.py` - bump this whenever render output changes to bust cached HTML
+- `RENDERER_VERSION = 17` in `app/services/renderer.py` - bump this whenever render output changes to bust cached HTML
 - `slugify()` is public in `app/services/pages.py` - always lowercases; slug is for URL routing only, title is stored separately
 - **Do not apply Jinja2 `| title` filter** to slugs when pre-filling Create Page form - it destroys acronyms (MQ→Mq, PERL→Perl). Use `slug | replace('-', ' ')` only.
 - `/admin` UI route does **not** exist - the nav "Admin" link points to `/special`
@@ -92,11 +92,13 @@ make test
 - `SearchResult` schema includes `rank: float` field
 
 ## Category system
-- Categories are derived from `[[Category:Name]]` tags in page content (no separate DB model)
-- **Category description pages** live in the `Category` namespace (e.g. `/wiki/Category/science`)
-- `Category` namespace is **hidden** from the `/create` page dropdown but usable via `?namespace=Category` prefill
-- After saving a Category description page, the user is redirected to `/category/{title}` not `/wiki/Category/{slug}`
-- `Categories:` label on page view links to `/special/categories`
+MediaWiki model: every category lives in the `Category` namespace.
+- Categories are derived from tags in page content (no separate DB model): `[[Category:Name]]` (all formats) and `.. category:: Name` (RST). Always parse with `extract_categories()`; SQL `ilike` filters are only pre-filters and must cover both syntaxes.
+- Categories are identified by **slug** (`slugify(name)`), so "Fruit Dishes" and "fruit dishes" are one category. Service: `page_svc.get_category()` (name, slug, pages) and `get_all_categories()` (name, slug, count, has_description), in `app/services/pages.py`.
+- **Category page** = `/wiki/Category/<slug>`: `view_page` hands the `Category` namespace to `_category_page()`, which shows the optional description page (a normal page in the namespace, same slug) plus the member list; 404 when neither exists. The description page's own `/edit`, `/history` and `/move` routes work as for any page.
+- `/wiki/Category` (namespace index) lists every category in use plus description-only ones (`category_namespace.html`), not just stored pages.
+- `/category/<name>` is a 301 redirect to `/wiki/Category/<slug>` for old links. Category bars, the wikitext footer and Special:Categories link to the canonical URL (Jinja `slugify` filter).
+- `Category` namespace is **hidden** from the `/create` dropdown but usable via `?namespace=Category` prefill ("Add description" on a category page).
 - Category page lists pages alphabetically grouped by first letter (3-column CSS layout)
 
 ## Makefile targets
@@ -161,7 +163,7 @@ When cutting a new release (e.g. vX.Y.Z):
   The maintainer's performiq.com sites use option B with a wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; all other sites use Let's Encrypt.
   Keep maintainer-specific infrastructure out of `setup/`.
 - `setup/requirements.txt` - use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.9.1 (compact list spacing, valid nested wikitext lists), v0.9.2 (namespace table checkbox column, mobile navbar overflow), v0.9.3 (footer credits pywiki, not SITE_NAME), v0.9.4 (content-sized table columns, history Compare column)
+- Recent releases: v0.9.2 (namespace table checkbox column, mobile navbar overflow), v0.9.3 (footer credits pywiki, not SITE_NAME), v0.9.4 (content-sized table columns, history Compare column), v0.10.0 (MediaWiki-style category pages, make start-bg)
 
 ### Verification command
 ```bash

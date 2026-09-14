@@ -625,71 +625,16 @@ async def search_pages(
 
 # -----------------------------------------------------------------------------
 
-async def get_all_categories(
-    db: AsyncSession,
-    starts_with: str = "",
-) -> list[dict]:
-    """Return all categories declared across the wiki with their page counts.
+CATEGORY_NAMESPACE = "Category"
 
-    Each dict has: name, count.  Sorted case-insensitively by name.
-    Optionally filter to names starting with *starts_with* (case-insensitive).
+
+async def _latest_versions_with_categories(db: AsyncSession):
+    """(Page, PageVersion, Namespace, User | None) for latest versions that declare a category.
+
+    The SQL filter is only a pre-filter; callers parse the content with
+    extract_categories(), which understands both [[Category:X]] and RST
+    ``.. category:: X``.
     """
-    from app.services.renderer import extract_categories
-
-    max_ver_sub = (
-        select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
-        .group_by(PageVersion.page_id)
-        .subquery()
-    )
-    q = (
-        select(PageVersion.content, PageVersion.format)
-        .join(max_ver_sub,
-              (PageVersion.page_id == max_ver_sub.c.page_id)
-              & (PageVersion.version == max_ver_sub.c.max_ver))
-        .where(PageVersion.content.ilike("%[[Category:%"))
-    )
-    rows = (await db.execute(q)).all()
-
-    counts: dict[str, int] = {}
-    for content, fmt in rows:
-        for cat in extract_categories(content, fmt):
-            key = cat.lower()
-            # Store the first-seen casing as the canonical name
-            if key not in counts:
-                counts[key] = {"name": cat, "count": 0}
-            counts[key]["count"] += 1
-
-    results = list(counts.values())
-    if starts_with:
-        results = [r for r in results if r["name"].lower().startswith(starts_with.lower())]
-    return sorted(results, key=lambda r: r["name"].lower())
-
-
-async def get_pages_in_category(
-    db: AsyncSession,
-    category_name: str,
-) -> list[dict]:
-    """Return all pages whose latest version content declares [[Category:name]]
-    (markdown/wikitext) or ``.. category:: name`` (RST).
-
-    Case-insensitive match.  Returns dicts with: namespace, title, slug,
-    version, format, author, updated_at — sorted alphabetically by title.
-    """
-    import re as _re
-    _wiki_pat = _re.compile(
-        r"\[\[Category:" + _re.escape(category_name) + r"\]\]",
-        _re.IGNORECASE,
-    )
-    _rst_pat = _re.compile(
-        r"\.\.\s+category::\s*" + _re.escape(category_name) + r"\s*$",
-        _re.IGNORECASE | _re.MULTILINE,
-    )
-
-    def _matches(content: str, fmt: str) -> bool:
-        if fmt == "rst":
-            return bool(_rst_pat.search(content)) or bool(_wiki_pat.search(content))
-        return bool(_wiki_pat.search(content))
-
     max_ver_sub = (
         select(PageVersion.page_id, func.max(PageVersion.version).label("max_ver"))
         .group_by(PageVersion.page_id)
@@ -705,24 +650,99 @@ async def get_pages_in_category(
         )
         .join(Namespace, Namespace.id == Page.namespace_id)
         .outerjoin(User, User.id == PageVersion.author_id)
+        .where(
+            PageVersion.content.ilike("%[[Category:%")
+            | PageVersion.content.ilike("%.. category::%")
+        )
         .order_by(Page.title)
     )
-    result = await db.execute(q)
-    rows = result.all()
+    return (await db.execute(q)).all()
 
-    return [
-        {
-            "namespace": ns.name,
-            "title": p.title,
-            "slug": p.slug,
-            "version": v.version,
-            "format": v.format,
-            "author": u.username if u else "anonymous",
-            "updated_at": v.created_at,
-        }
-        for p, v, ns, u in rows
-        if _matches(v.content, v.format)
+
+async def _category_description_pages(db: AsyncSession) -> dict[str, str]:
+    """{slug: title} of pages in the Category namespace (category descriptions)."""
+    result = await db.execute(
+        select(Page.slug, Page.title)
+        .join(Namespace, Namespace.id == Page.namespace_id)
+        .where(Namespace.name == CATEGORY_NAMESPACE)
+    )
+    return {slug: title for slug, title in result.all()}
+
+
+async def get_all_categories(
+    db: AsyncSession,
+    starts_with: str = "",
+) -> list[dict]:
+    """Return every category: those tagged on pages plus those that only have a description page.
+
+    Each dict has: name, slug, count (pages tagged), has_description.
+    Categories are identified by slug, so "Fruit Dishes" and "fruit dishes" are one
+    category.  The description page title, when there is one, is the display name.
+    Sorted case-insensitively by name; optionally filtered to names starting with
+    *starts_with* (case-insensitive).
+    """
+    from app.services.renderer import extract_categories
+
+    categories: dict[str, dict] = {}
+    for _page, ver, _ns, _user in await _latest_versions_with_categories(db):
+        for name in extract_categories(ver.content, ver.format):
+            entry = categories.setdefault(slugify(name), {"name": name, "count": 0})
+            entry["count"] += 1
+
+    descriptions = await _category_description_pages(db)
+    for slug, title in descriptions.items():
+        categories.setdefault(slug, {"name": title, "count": 0})["name"] = title
+
+    results = [
+        {**entry, "slug": slug, "has_description": slug in descriptions}
+        for slug, entry in categories.items()
+        if slug
     ]
+    if starts_with:
+        results = [r for r in results if r["name"].lower().startswith(starts_with.lower())]
+    return sorted(results, key=lambda r: r["name"].lower())
+
+
+async def get_category(db: AsyncSession, category: str) -> dict:
+    """Return one category by name or slug: name, slug, pages.
+
+    *pages* lists every page whose latest version declares the category (any
+    syntax, case-insensitive), as dicts with namespace, title, slug, version,
+    format, author, updated_at, sorted by title.  *name* is the description page
+    title if one exists, otherwise the first spelling found on a tagged page,
+    otherwise the slug made readable.
+    """
+    from app.services.renderer import extract_categories
+
+    slug = slugify(category)
+    name: str | None = None
+    pages = []
+    for page, ver, ns, user in await _latest_versions_with_categories(db):
+        matches = [c for c in extract_categories(ver.content, ver.format) if slugify(c) == slug]
+        if not matches:
+            continue
+        name = name or matches[0]
+        pages.append({
+            "namespace":  ns.name,
+            "title":      page.title,
+            "slug":       page.slug,
+            "version":    ver.version,
+            "format":     ver.format,
+            "author":     user.username if user else "anonymous",
+            "updated_at": ver.created_at,
+        })
+
+    description_title = (await _category_description_pages(db)).get(slug)
+    return {
+        "name":  description_title or name or slug.replace("-", " ").capitalize(),
+        "slug":  slug,
+        "pages": pages,
+    }
+
+
+async def get_pages_in_category(db: AsyncSession, category_name: str) -> list[dict]:
+    """Pages tagged with *category_name* (name or slug); see get_category()."""
+    return (await get_category(db, category_name))["pages"]
 
 
 async def get_recent_changes(

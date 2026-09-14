@@ -97,6 +97,7 @@ Update status with: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] **Namespace page table layout** - checkbox column sized to the checkbox, select-all in the column header, table scrolls on narrow screens; mobile navbar no longer overflows (v0.9.2).
 - [x] **Footer project credit** - footer reads "Powered by pywiki" (linked to the repository) instead of the instance's `SITE_NAME` (v0.9.3).
 - [x] **Content-sized table columns** - removed the blanket 40% first-column width; history Compare radios, user and namespace lists sized to content; label/value tables keep aligned label columns (v0.9.4).
+- [x] **MediaWiki-style categories** - category pages live at `/wiki/Category/<name>` (description + members); Category namespace lists every category; RST categories included in listings; `/category/` redirects (v0.10.0).
 
 
 ---

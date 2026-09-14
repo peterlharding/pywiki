@@ -9,9 +9,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+
+---
+
+## [0.10.1] - 2026-09-15
+
 ### Changed
 - **`uv.lock` is no longer tracked** - it is now in `.gitignore`. Installs use `requirements.txt` (development) and `setup/requirements.txt` (servers), and instances running different uv versions kept rewriting the lock in different formats, causing conflicts on `git pull`. Each checkout can keep its own local `uv.lock`.
   Upgrade note: pulling this change removes `uv.lock` from each checkout. If `git pull` on an instance refuses because `uv.lock` has local changes ("You have unstaged changes" or "Your local changes ... would be overwritten"), run `git checkout -- uv.lock` and pull again. Run `uv lock` afterwards only if that instance uses `uv sync`; the regenerated lock stays local.
+- **Documentation brought up to date** - the README covers wikitext, categories, attachment link syntax and the attachment API; `SKILLS.md` and `CLAUDE.md` reflect the current release process and conventions.
+
+### Fixed
+- **Server setup guide** - the first registered account already becomes an admin (the psql promotion step is only needed for other accounts); service restarts use stop + start, and updates stop the service first. The session primer's fresh-install checklist now runs migrations before the first start, matching `setup/README.md`, so Alembic can apply later migrations.
 
 
 ---
@@ -817,7 +826,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/peterlharding/pywiki/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/peterlharding/pywiki/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/peterlharding/pywiki/compare/v0.9.4...v0.10.0
 [0.9.4]: https://github.com/peterlharding/pywiki/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/peterlharding/pywiki/compare/v0.9.2...v0.9.3

@@ -1,4 +1,4 @@
-# PyWiki - Session Primer (v0.10.0)
+# PyWiki - Session Primer (v0.10.1)
 
 ## Project
 - **Stack**: FastAPI + SQLAlchemy (async) + Jinja2 + PostgreSQL (prod) / SQLite (tests)
@@ -165,7 +165,7 @@ When cutting a new release (e.g. vX.Y.Z):
   The maintainer's performiq.com sites use option B with a wildcard cert at `/etc/openssl/certs/<domain>/_.domain.fullchain.crt` + `.key`; all other sites use Let's Encrypt.
   Keep maintainer-specific infrastructure out of `setup/`.
 - `setup/requirements.txt` - use instead of `pip install -e .` on server (avoids setuptools build backend issues)
-- Recent releases: v0.9.2 (namespace table checkbox column, mobile navbar overflow), v0.9.3 (footer credits pywiki, not SITE_NAME), v0.9.4 (content-sized table columns, history Compare column), v0.10.0 (MediaWiki-style category pages, make start-bg)
+- Recent releases: v0.9.3 (footer credits pywiki, not SITE_NAME), v0.9.4 (content-sized table columns, history Compare column), v0.10.0 (MediaWiki-style category pages, make start-bg), v0.10.1 (uv.lock untracked, documentation refresh)
 
 ### Verification command
 ```bash
@@ -224,6 +224,6 @@ systemctl stop pywiki && systemctl start pywiki
 ## Git
 - Day-to-day work happens on `devel`; `main` receives release merges (`chore: merge devel into main for vX.Y.Z release`) and servers pull `main`.
 - If a fix is committed directly on `main` (e.g. while installing on a server), merge it back into `devel` before the next release so the branches don't diverge.
-- `uv.lock` is **not tracked** (gitignored after v0.10.0). Installs use `requirements.txt` (dev) and `setup/requirements.txt` (servers), and different uv versions write different lock formats (revision 2 vs 3), so a committed lock caused conflicts between instances. Keep dependency changes in `pyproject.toml`, `requirements.txt` and `setup/requirements.txt` together.
+- `uv.lock` is **not tracked** (gitignored since v0.10.1). Installs use `requirements.txt` (dev) and `setup/requirements.txt` (servers), and different uv versions write different lock formats (revision 2 vs 3), so a committed lock caused conflicts between instances. Keep dependency changes in `pyproject.toml`, `requirements.txt` and `setup/requirements.txt` together.
 - Commit often with descriptive messages
  
